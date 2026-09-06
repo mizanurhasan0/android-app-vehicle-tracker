@@ -5,7 +5,7 @@ manual bKash/Rocket payment submissions and an admin review workspace.
 
 ## Run locally
 
-Requirements: Node >=22.11 (use Node 24 for the companion API), JDK 17, Android SDK
+Requirements: Node >=22.11 (Node >=22.22 for the companion API), JDK 17, Android SDK
 36, and an emulator or device. The restored native app uses package
 `com.pathsathi.transport` and React Native 0.86.2.
 
@@ -16,13 +16,21 @@ npm start
 npm run android
 ```
 
-Start `../gps-tracker-api` first using its README. The debug app defaults to
-`http://10.0.2.2:3000`, the Android emulator's host address. For a physical phone,
-open **School server settings** on the sign-in screen and enter the API's LAN
-origin, or use `adb reverse tcp:3000 tcp:3000` and `http://127.0.0.1:3000`.
-For live locations also reverse port 3001 when using that local configuration.
-Use an HTTPS origin for release builds; proxy `/socket.io/` to the API Socket.IO
-port on that same origin. Server addresses must be origins, with no path/query.
+Both debug and release apps default to the deployed API at
+`http://147.79.71.98:3000`; live Socket.IO uses port 3001. No local backend is
+needed. On the first upgrade, saved loopback/emulator defaults move to this VPS
+and the old server session is cleared. Other custom server settings are retained.
+
+For local development, open **School server settings** and select
+`http://10.0.2.2:3000` (emulator), a LAN origin, or use `adb reverse tcp:3000 tcp:3000`
+with `http://127.0.0.1:3000`. Reverse port 3001 too for live locations.
+Release Android permits HTTP only to the deployed VPS host; other custom release
+origins must use HTTPS. HTTPS deployments proxy `/socket.io/` on the same origin.
+This VPS currently uses HTTP, so traffic is not encrypted. When HTTPS is deployed,
+update `src/api/server.ts` and remove the native VPS cleartext exception.
+
+Native network configuration changes require a rebuilt/reinstalled APK; a Metro
+reload alone does not apply them.
 
 `android/local.properties` is machine-specific and ignored. Set `sdk.dir` there
 or configure your Android SDK environment. No production credentials or payment
@@ -92,8 +100,7 @@ cd android
 
 The debug APK is `android/app/build/outputs/apk/debug/app-debug.apk` and needs a
 running Metro server. Release builds are deliberately unsigned: configure a
-private release signing key before distributing an APK/AAB. A release server
-must use HTTPS. Neither Play Store publishing nor remote deployment is performed
+private release signing key before distributing an APK/AAB. Custom release servers must use HTTPS; the deployed VPS has an explicit HTTP exception. Neither Play Store publishing nor remote deployment is performed
 by this change.
 
 See [verification notes and emulator screenshots](docs/qa/verification.md) for

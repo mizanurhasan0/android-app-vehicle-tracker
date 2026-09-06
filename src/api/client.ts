@@ -3,24 +3,7 @@ export class ApiError extends Error {
     super(message);
   }
 }
-export function normalizeServerUrl(value: string): string {
-  const url = new URL(value.trim());
-  if (
-    !['http:', 'https:'].includes(url.protocol) ||
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash ||
-    (url.pathname !== '/' && url.pathname !== '')
-  ) {
-    throw new Error(
-      'Enter the server origin, for example https://tracker.example.com',
-    );
-  }
-  if (!__DEV__ && url.protocol !== 'https:')
-    throw new Error('Use an HTTPS server for the release app');
-  return url.origin;
-}
+export { normalizeServerUrl } from './server';
 export async function api<T>(
   baseUrl: string,
   path: string,

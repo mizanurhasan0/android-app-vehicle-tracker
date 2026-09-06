@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import { api, ApiError, normalizeServerUrl } from '../api/client';
 import { Session, User } from '../api/types';
+import { DEFAULT_SERVER_URL, restoredServerUrl } from '../api/server';
 const credentialOptions = { service: 'transport.session' };
 interface AuthValue {
   session: Session | null;
@@ -25,17 +26,20 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
   const [startupError, setStartupError] = useState('');
-  const [baseUrl, setBaseUrl] = useState(__DEV__ ? 'http://10.0.2.2:3000' : '');
+  const [baseUrl, setBaseUrl] = useState(DEFAULT_SERVER_URL);
   useEffect(() => {
     let mounted = true;
     async function restore() {
       try {
         const savedUrl = await AsyncStorage.getItem('transport.server');
-        const url = savedUrl
-          ? normalizeServerUrl(savedUrl)
-          : __DEV__
-          ? 'http://10.0.2.2:3000'
-          : '';
+        const migrated = await AsyncStorage.getItem('transport.server.vps-v1');
+        const url = restoredServerUrl(savedUrl, migrated === '1');
+        if (!savedUrl || url !== new URL(savedUrl.trim()).origin) {
+          // Never send a session belonging to the old server to the new server.
+          await Keychain.resetGenericPassword(credentialOptions);
+        }
+        await AsyncStorage.setItem('transport.server', url);
+        await AsyncStorage.setItem('transport.server.vps-v1', '1');
         if (mounted) setBaseUrl(url);
         const credentials = await Keychain.getGenericPassword(
           credentialOptions,
