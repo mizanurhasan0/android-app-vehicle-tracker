@@ -51,7 +51,7 @@ export function shiftPeriod(
     .slice(0, 10);
 }
 export const historyTime = (value: string) =>
-  new Date(value).toLocaleString('en-GB', {
+  new Date(value).toLocaleString(locale() === 'bn-BD' ? 'bn-BD' : 'en-GB', {
     timeZone: 'Asia/Dhaka',
     day: '2-digit',
     month: 'short',
@@ -59,3 +59,4 @@ export const historyTime = (value: string) =>
     minute: '2-digit',
     second: '2-digit',
   });
+import { locale } from '../i18n';

@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n';
 import React, { useState } from 'react';
 import { Text } from 'react-native';
 import { Button, Card, FadeIn, Field, Notice, Page } from '../components/ui';
@@ -5,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAction } from '../hooks/useAction';
 import { styles } from '../theme';
 export function AuthScreen() {
+  const { t } = useTranslation();
   const { signIn, baseUrl, setServer, startupError } = useAuth();
   const [register, setRegister] = useState(false);
   const [settings, setSettings] = useState(!baseUrl);
@@ -15,16 +17,23 @@ export function AuthScreen() {
   const action = useAction();
   return (
     <Page
-      title="A calmer school journey."
-      subtitle="Transport, monthly bills and updates. Together in one place."
+      title={t('A calmer school journey.')}
+      subtitle={t(
+        'Transport, monthly bills and updates. Together in one place.',
+      )}
     >
       <FadeIn>
         <Card tinted>
-          <Text style={styles.label}>নিরাপদ যাত্রা, নিশ্চিন্ত অভিভাবক</Text>
-          <Text style={styles.heading}>Stay close, wherever they go.</Text>
+          <Text style={styles.label}>
+            {t('Safe journeys, reassured guardians')}
+          </Text>
+          <Text style={styles.heading}>
+            {t('Stay close, wherever they go.')}
+          </Text>
           <Text style={styles.body}>
-            Follow your assigned vehicle and keep every transport payment in
-            view.
+            {t(
+              'Follow your assigned vehicle and keep every transport payment in view.',
+            )}
           </Text>
         </Card>
       </FadeIn>
@@ -32,9 +41,9 @@ export function AuthScreen() {
       <Notice text={action.success} />
       {settings ? (
         <Card>
-          <Text style={styles.heading}>Connect to your school</Text>
+          <Text style={styles.heading}>{t('Connect to your school')}</Text>
           <Field
-            label="Server address"
+            label={t('Server address')}
             value={url}
             onChangeText={setUrl}
             autoCapitalize="none"
@@ -43,7 +52,7 @@ export function AuthScreen() {
           />
           <Notice text={action.error} kind="error" />
           <Button
-            title="Save server"
+            title={t('Save server')}
             busy={action.busy}
             onPress={() => {
               action.run(async () => {
@@ -56,11 +65,11 @@ export function AuthScreen() {
       ) : (
         <Card>
           <Text style={styles.heading}>
-            {register ? 'Create a guardian account' : 'Welcome back'}
+            {register ? t('Create a guardian account') : t('Welcome back')}
           </Text>
           {register ? (
             <Field
-              label="Your name"
+              label={t('Your name')}
               value={name}
               onChangeText={setName}
               autoComplete="name"
@@ -68,7 +77,7 @@ export function AuthScreen() {
             />
           ) : null}
           <Field
-            label="Phone number"
+            label={t('Phone number')}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -77,18 +86,18 @@ export function AuthScreen() {
             maxLength={11}
           />
           <Field
-            label="Password"
+            label={t('Password')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
             autoCapitalize="none"
             autoComplete={register ? 'new-password' : 'current-password'}
-            hint="At least 8 characters"
+            hint={t('At least 8 characters')}
             maxLength={128}
           />
           <Notice text={action.error} kind="error" />
           <Button
-            title={register ? 'Create account' : 'Sign in'}
+            title={register ? t('Create account') : t('Sign in')}
             busy={action.busy}
             onPress={() => {
               action.run(async () => {
@@ -108,8 +117,8 @@ export function AuthScreen() {
             secondary
             title={
               register
-                ? 'Already registered? Sign in'
-                : 'New guardian? Create account'
+                ? t('Already registered? Sign in')
+                : t('New guardian? Create account')
             }
             disabled={action.busy}
             onPress={() => setRegister(!register)}
@@ -118,7 +127,7 @@ export function AuthScreen() {
       )}
       <Button
         secondary
-        title={settings ? 'Back to sign in' : 'School server settings'}
+        title={settings ? t('Back to sign in') : t('School server settings')}
         onPress={() => setSettings(!settings)}
       />
     </Page>

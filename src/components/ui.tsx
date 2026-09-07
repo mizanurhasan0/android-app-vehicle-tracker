@@ -17,7 +17,9 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, styles } from '../theme';
-import { readable } from '../utils/format';
+import { normalizeDigits, readable } from '../utils/format';
+import { translateMessage, useTranslation } from '../i18n';
+import { LanguageSwitcher } from './LanguageSwitcher';
 export function FadeIn({ children }: React.PropsWithChildren) {
   const progress = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -91,7 +93,10 @@ export function Page({
         >
           <View style={ui.content}>
             <View style={ui.header}>
-              <Text style={styles.label}>পথসাথী · PATHSATHI</Text>
+              <View style={styles.between}>
+                <Text style={styles.label}>পথসাথী · PATHSATHI</Text>
+                <LanguageSwitcher />
+              </View>
               {title ? (
                 <Text accessibilityRole="header" style={styles.title}>
                   {title}
@@ -162,6 +167,19 @@ export function Field({
       <Text style={ui.fieldLabel}>{label}</Text>
       <TextInput
         {...props}
+        onChangeText={value =>
+          props.onChangeText?.(
+            [
+              'phone-pad',
+              'number-pad',
+              'decimal-pad',
+              'numeric',
+              'numbers-and-punctuation',
+            ].includes(props.keyboardType || '')
+              ? normalizeDigits(value)
+              : value,
+          )
+        }
         accessibilityLabel={label}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
@@ -188,6 +206,7 @@ export function Select({
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={ui.field}>
       <Text style={ui.fieldLabel}>{label}</Text>
@@ -198,7 +217,7 @@ export function Select({
           onValueChange={item => onChange(String(item))}
           style={ui.picker}
         >
-          <Picker.Item label="Select an option" value="" />
+          <Picker.Item label={t('Select an option')} value="" />
           {options.map(option => (
             <Picker.Item
               key={option.value}
@@ -218,6 +237,7 @@ export function Notice({
   text?: string;
   kind?: 'success' | 'error';
 }) {
+  useTranslation();
   if (!text) return null;
   return (
     <View style={[ui.notice, kind === 'error' && ui.error]}>
@@ -225,12 +245,13 @@ export function Notice({
         accessibilityLiveRegion="polite"
         style={[styles.body, kind === 'error' && ui.errorText]}
       >
-        {text}
+        {translateMessage(text)}
       </Text>
     </View>
   );
 }
 export function Badge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const positive = ['PAID', 'APPROVED', 'ACTIVE', 'RESOLVED', 'live'].includes(
     status,
   );
@@ -254,7 +275,7 @@ export function Badge({ status }: { status: string }) {
           },
         ]}
       >
-        {status === 'PENDING' ? 'Awaiting review' : readable(status)}
+        {status === 'PENDING' ? t('Awaiting review') : readable(status)}
       </Text>
     </View>
   );

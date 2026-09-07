@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { AppState, Text } from 'react-native';
@@ -24,10 +25,12 @@ import {
   shiftPeriod,
 } from '../utils/historyDates';
 import { styles } from '../theme';
+import { numberLabel } from '../utils/format';
 export function VehicleHistoryScreen({
   route: navigationRoute,
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'VehicleHistory'>) {
+  const { t } = useTranslation();
   const { session } = useAuth();
   const { imei, name } = navigationRoute.params;
   const [day, setDay] = useState(dhakaDate());
@@ -67,32 +70,43 @@ export function VehicleHistoryScreen({
   };
   if (session?.user.role !== 'ADMIN')
     return (
-      <Page title="Travel history">
+      <Page title={t('Travel history')}>
         <Notice
           kind="error"
-          text="History is available to administrators only."
+          text={t('History is available to administrators only.')}
         />
       </Page>
     );
   return (
     <Page
-      title={`${name} history`}
-      subtitle={`${imei} · All dates and times: Asia/Dhaka (UTC+6)`}
+      title={t('{{name}} history', { name })}
+      subtitle={t('{{imei}} · All dates and times: Asia/Dhaka (UTC+6)', {
+        imei,
+      })}
       loading={history.loading}
       error={history.error}
     >
       <Button
         secondary
-        title="Back to fleet"
+        title={t('Back to fleet')}
         onPress={() => navigation.goBack()}
       />
       <Select
-        label="Period"
+        label={t('Period')}
         value={period}
         options={[
-          { value: 'day', label: 'Day' },
-          { value: 'week', label: 'Week (Monday–Sunday)' },
-          { value: 'month', label: 'Calendar month' },
+          {
+            value: 'day',
+            label: t('Day'),
+          },
+          {
+            value: 'week',
+            label: t('Week (Monday–Sunday)'),
+          },
+          {
+            value: 'month',
+            label: t('Calendar month'),
+          },
         ]}
         onChange={value => {
           if (['day', 'week', 'month'].includes(value))
@@ -100,7 +114,7 @@ export function VehicleHistoryScreen({
         }}
       />
       <Field
-        label="Date (YYYY-MM-DD)"
+        label={t('Date (YYYY-MM-DD)')}
         value={input}
         onChangeText={setInput}
         autoCapitalize="none"
@@ -108,7 +122,7 @@ export function VehicleHistoryScreen({
       />
       <Notice text={dateError} kind="error" />
       <Button
-        title="Show selected date"
+        title={t('Show selected date')}
         onPress={() => {
           try {
             parseDay(input);
@@ -120,7 +134,7 @@ export function VehicleHistoryScreen({
       />
       <Button
         secondary
-        title="Today"
+        title={t('Today')}
         onPress={() => {
           setPeriod('day');
           selectDay(dhakaDate());
@@ -129,47 +143,61 @@ export function VehicleHistoryScreen({
       <Text style={styles.heading}>{range.label}</Text>
       <Button
         secondary
-        title="Previous period"
+        title={t('Previous period')}
         onPress={() => selectDay(shiftPeriod(day, period, -1))}
       />
       <Button
         secondary
-        title="Next period"
+        title={t('Next period')}
         disabled={range.to > new Date().toISOString()}
         onPress={() => selectDay(shiftPeriod(day, period, 1))}
       />
       <Button
         secondary
-        title={history.error ? 'Retry history' : 'Refresh history'}
+        title={history.error ? t('Retry history') : t('Refresh history')}
         busy={history.loading}
         onPress={history.retry}
       />
       {history.loading ? (
-        <Text style={styles.muted}>Loading recorded journey…</Text>
+        <Text style={styles.muted}>{t('Loading recorded journey…')}</Text>
       ) : null}
       {history.route ? (
         <>
           {!history.route.freshness.complete ? (
             <Notice
               kind="error"
-              text={`${history.route.freshness.pendingPoints} positions are waiting to sync. This history is incomplete; refresh shortly.`}
+              text={t(
+                '{{number}} positions are waiting to sync. This history is incomplete; refresh shortly.',
+                { number: numberLabel(history.route.freshness.pendingPoints) },
+              )}
             />
           ) : null}
           {!points.length ? (
             <Empty
-              title="No recorded positions in this period"
-              detail="History starts when recording is enabled. Earlier journeys cannot be recovered from the latest location."
+              title={t('No recorded positions in this period')}
+              detail={t(
+                'History starts when recording is enabled. Earlier journeys cannot be recovered from the latest location.',
+              )}
             />
           ) : (
             <>
               <Card>
                 <Text style={styles.heading}>
-                  {(history.route.distanceMeters / 1000).toFixed(2)} km
-                  estimated
+                  {t('{{distance}} km estimated', {
+                    distance: numberLabel(
+                      history.route.distanceMeters / 1000,
+                      2,
+                    ),
+                  })}
                 </Text>
                 <Text style={styles.body}>
-                  {history.route.pointCount} recorded positions ·{' '}
-                  {history.route.gapCount} reporting gaps
+                  {t(
+                    '{{positions}} recorded positions · {{gaps}} reporting gaps',
+                    {
+                      positions: numberLabel(history.route.pointCount),
+                      gaps: numberLabel(history.route.gapCount),
+                    },
+                  )}
                 </Text>
                 <Text style={styles.muted}>
                   {historyTime(points[0].gpsTime)} —{' '}
@@ -178,19 +206,27 @@ export function VehicleHistoryScreen({
               </Card>
               <HistoryMap route={history.route} selected={points[index]} />
               <Text style={styles.muted}>
-                Recorded samples show the observed path. Gaps are left
-                disconnected; exact roads between reports are unknown.
+                {t(
+                  'Recorded samples show the observed path. Gaps are left disconnected; exact roads between reports are unknown.',
+                )}
                 {history.route.simplified
-                  ? ` Overview simplified to ${history.route.displayedPointCount} points.`
+                  ? t(' Overview simplified to {{number}} points.', {
+                      number: numberLabel(history.route.displayedPointCount),
+                    })
                   : ''}
               </Text>
               <Text style={styles.body}>
                 {historyTime(points[index]?.gpsTime ?? points[0].gpsTime)} ·{' '}
-                {points[index]?.speed ?? 0} km/h · Point {index + 1}/
-                {points.length}
+                {t('{{speed}} km/h · Point {{index}}/{{total}}', {
+                  speed: numberLabel(points[index]?.speed ?? 0),
+                  index: numberLabel(index + 1),
+                  total: numberLabel(points.length),
+                })}
               </Text>
               <Button
-                title={playing ? 'Pause playback' : 'Play recorded samples'}
+                title={
+                  playing ? t('Pause playback') : t('Play recorded samples')
+                }
                 disabled={points.length < 2}
                 onPress={() => {
                   if (index >= points.length - 1) setIndex(0);
@@ -199,15 +235,16 @@ export function VehicleHistoryScreen({
               />
               <Button
                 secondary
-                title="Restart playback"
+                title={t('Restart playback')}
                 onPress={() => {
                   setPlaying(false);
                   setIndex(0);
                 }}
               />
               <Text style={styles.muted}>
-                Playback advances one displayed sample at a time and skips gaps.
-                It does not reproduce actual journey timing.
+                {t(
+                  'Playback advances one displayed sample at a time and skips gaps. It does not reproduce actual journey timing.',
+                )}
               </Text>
             </>
           )}
@@ -218,12 +255,18 @@ export function VehicleHistoryScreen({
             <Card key={item.date}>
               <Text style={styles.heading}>{item.date}</Text>
               <Text style={styles.body}>
-                {(item.distanceMeters / 1000).toFixed(2)} km · {item.pointCount}{' '}
-                positions · {item.gapCount} gaps
+                {t(
+                  '{{distance}} km · {{positions}} positions · {{gaps}} gaps',
+                  {
+                    distance: numberLabel(item.distanceMeters / 1000, 2),
+                    positions: numberLabel(item.pointCount),
+                    gaps: numberLabel(item.gapCount),
+                  },
+                )}
               </Text>
               <Button
                 secondary
-                title={`View ${item.date} route`}
+                title={t('View {{date}} route', { date: item.date })}
                 onPress={() => {
                   setPeriod('day');
                   selectDay(item.date);

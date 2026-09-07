@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n';
 import React, { useState } from 'react';
 import { Modal, Text, View } from 'react-native';
 import { Bill, PaymentAccount } from '../api/types';
@@ -13,13 +14,14 @@ import {
   SectionTitle,
   Select,
 } from '../components/ui';
-import { ReviewActions } from '../components/ReviewActions';
+import { AdminPaymentDesk } from './AdminPaymentDesk';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
 import { styles } from '../theme';
-import { currentMonth, dateLabel, money, readable } from '../utils/format';
+import { dateLabel, money, readable } from '../utils/format';
 function PaymentForm({ bill, cancel }: { bill: Bill; cancel: () => void }) {
+  const { t } = useTranslation();
   const { data, mutate } = useData();
   const [method, setMethod] = useState('');
   const [senderNumber, setSender] = useState('');
@@ -29,12 +31,12 @@ function PaymentForm({ bill, cancel }: { bill: Bill; cancel: () => void }) {
   const action = useAction();
   return (
     <Card tinted>
-      <Text style={styles.heading}>Submit payment details</Text>
+      <Text style={styles.heading}>{t('Submit payment details')}</Text>
       <Text style={styles.body}>
         {bill.studentName} · {bill.month} · {money(bill.amount)}
       </Text>
       <Select
-        label="Payment method"
+        label={t('Payment method')}
         value={method}
         onChange={value => {
           setMethod(value);
@@ -49,27 +51,33 @@ function PaymentForm({ bill, cancel }: { bill: Bill; cancel: () => void }) {
       />
       {account ? (
         <Card>
-          <Text style={styles.label}>SEND {money(bill.amount)} TO</Text>
+          <Text style={styles.label}>
+            {t('SEND {{amount}} TO', { amount: money(bill.amount) })}
+          </Text>
           <Text selectable style={styles.title}>
             {account.number}
           </Text>
           <Text style={styles.body}>{account.instructions}</Text>
           <Text style={styles.muted}>
-            Pay using your {readable(method)} app or USSD first. This form only
-            submits your payment details for verification.
+            {t(
+              'Pay using your {{method}} app or USSD first. This form only submits your payment details for verification.',
+              { method: readable(method) },
+            )}
           </Text>
         </Card>
       ) : null}
       <Field
-        label="Number you sent money to"
+        label={t('Number you sent money to')}
         value={recipientNumber}
         onChangeText={setRecipient}
         keyboardType="phone-pad"
         maxLength={12}
-        hint="Use the exact admin number you paid, even if it was recently changed."
+        hint={t(
+          'Use the exact admin number you paid, even if it was recently changed.',
+        )}
       />
       <Field
-        label="Number you sent money from"
+        label={t('Number you sent money from')}
         value={senderNumber}
         onChangeText={setSender}
         keyboardType="phone-pad"
@@ -77,17 +85,17 @@ function PaymentForm({ bill, cancel }: { bill: Bill; cancel: () => void }) {
         placeholder="01XXXXXXXXX"
       />
       <Field
-        label="Transaction ID"
+        label={t('Transaction ID')}
         value={transactionId}
         onChangeText={setTransaction}
         autoCapitalize="characters"
         autoCorrect={false}
         maxLength={40}
-        hint="Copy the transaction ID from your payment confirmation."
+        hint={t('Copy the transaction ID from your payment confirmation.')}
       />
       <Notice text={action.error} kind="error" />
       <Button
-        title="Submit for verification"
+        title={t('Submit for verification')}
         busy={action.busy}
         disabled={!account}
         onPress={() => {
@@ -112,7 +120,7 @@ function PaymentForm({ bill, cancel }: { bill: Bill; cancel: () => void }) {
       />
       <Button
         secondary
-        title="Cancel"
+        title={t('Cancel')}
         disabled={action.busy}
         onPress={cancel}
       />
@@ -121,12 +129,19 @@ function PaymentForm({ bill, cancel }: { bill: Bill; cancel: () => void }) {
 }
 export function PaymentsScreen() {
   const { session } = useAuth();
-  const { data, loading, error, refresh, mutate } = useData();
+  return session?.user.role === 'ADMIN' ? (
+    <AdminPaymentDesk />
+  ) : (
+    <GuardianPaymentsScreen />
+  );
+}
+
+function GuardianPaymentsScreen() {
+  const { t } = useTranslation();
+  const { data, loading, error, refresh } = useData();
   const [selectedBill, setSelectedBill] = useState<string | null>(null);
-  const [month, setMonth] = useState(currentMonth());
   const [filter, setFilter] = useState('');
-  const action = useAction();
-  const admin = session!.user.role === 'ADMIN';
+
   const selected = data.bills.find(
     bill =>
       bill.id === selectedBill &&
@@ -138,66 +153,40 @@ export function PaymentsScreen() {
   );
   return (
     <Page
-      title={admin ? 'Payment desk' : 'Monthly bills'}
-      subtitle={
-        admin
-          ? 'Verify the money received, then approve the submission.'
-          : 'Pay manually. Submit the details. We’ll keep you updated.'
-      }
+      title={t('Monthly bills')}
+      subtitle={t('Pay manually. Submit the details. We’ll keep you updated.')}
       loading={loading}
       refresh={refresh}
       error={error}
     >
-      <Notice text={action.error} kind="error" />
-      <Notice text={action.success} />
-      {admin ? (
-        <Card>
-          <Text style={styles.heading}>Create monthly bills</Text>
-          <Field
-            label="Billing month (YYYY-MM)"
-            value={month}
-            onChangeText={setMonth}
-            maxLength={7}
-            hint="Full monthly fee; no automatic proration. Existing bills are never duplicated."
-          />
-          <Button
-            title="Generate bills"
-            busy={action.busy}
-            onPress={() => {
-              action.run(async () => {
-                if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))
-                  throw new Error('Use a valid month such as 2026-09.');
-                await mutate('/admin/bills/generate', { month });
-              }, 'Monthly bills are ready. Guardians have been notified.');
-            }}
-          />
+      <FadeIn>
+        <Card tinted>
+          <Text style={styles.heading}>{t('Your payment, step by step')}</Text>
+          <Text style={styles.body}>
+            {t('1. Send the bill amount to the admin’s number.')}
+            {'\n'}
+            {t('2. Submit your transaction ID below.')}
+            {'\n'}
+            {t('3. Receive confirmation after admin review.')}
+          </Text>
+          <Text style={styles.muted}>
+            {t('Never share your wallet PIN or OTP.')}
+          </Text>
         </Card>
-      ) : (
-        <FadeIn>
-          <Card tinted>
-            <Text style={styles.heading}>Your payment, step by step</Text>
-            <Text style={styles.body}>
-              1. Send the bill amount to the admin’s number.{'\n'}2. Submit your
-              transaction ID below.{'\n'}3. Receive confirmation after admin
-              review.
-            </Text>
-            <Text style={styles.muted}>
-              Never share your wallet PIN or OTP.
-            </Text>
-          </Card>
-        </FadeIn>
-      )}
-      {!admin && !data.accounts.length ? (
+      </FadeIn>
+      {!data.accounts.length ? (
         <Empty
-          title="Payment numbers are not set yet"
-          detail="Please contact your admin before sending money. Payment submission will become available after setup."
+          title={t('Payment numbers are not set yet')}
+          detail={t(
+            'Please contact your admin before sending money. Payment submission will become available after setup.',
+          )}
         />
       ) : null}
       {selected ? (
         <Modal visible onRequestClose={() => setSelectedBill(null)}>
           <Page
-            title="Payment details"
-            subtitle="Submit the transaction you have already completed."
+            title={t('Payment details')}
+            subtitle={t('Submit the transaction you have already completed.')}
           >
             <PaymentForm
               key={selected.id}
@@ -207,11 +196,13 @@ export function PaymentsScreen() {
           </Page>
         </Modal>
       ) : null}
-      <SectionTitle>{admin ? 'Monthly bills' : 'Your bills'}</SectionTitle>
+      <SectionTitle>{t('Your bills')}</SectionTitle>
       {!data.bills.length ? (
         <Empty
-          title="No bills yet"
-          detail="Your admin will create the monthly bill after your service is approved."
+          title={t('No bills yet')}
+          detail={t(
+            'Your admin will create the monthly bill after your service is approved.',
+          )}
         />
       ) : (
         data.bills.map(bill => (
@@ -224,46 +215,53 @@ export function PaymentsScreen() {
                 status={bill.pendingSubmissionId ? 'PENDING' : bill.status}
               />
             </View>
-            <Text style={styles.body}>
-              {bill.studentName}
-              {admin ? ` · ${bill.guardianName}` : ''}
-            </Text>
+            <Text style={styles.body}>{bill.studentName}</Text>
             {bill.paidAt ? (
-              <Text style={styles.muted}>Paid on {dateLabel(bill.paidAt)}</Text>
+              <Text style={styles.muted}>
+                {t('Paid on {{date}}', { date: dateLabel(bill.paidAt) })}
+              </Text>
             ) : null}
-            {!admin && bill.status === 'UNPAID' && !bill.pendingSubmissionId ? (
+            {bill.status === 'UNPAID' && !bill.pendingSubmissionId ? (
               <Button
-                title="I’ve paid · submit details"
+                title={t('I’ve paid · submit details')}
                 disabled={!data.accounts.length || selectedBill === bill.id}
                 onPress={() => setSelectedBill(bill.id)}
               />
             ) : null}
             {bill.pendingSubmissionId ? (
               <Text style={styles.muted}>
-                Your details are with the admin. Please don’t send the payment
-                again.
+                {t(
+                  'Your details are with the admin. Please don’t send the payment again.',
+                )}
               </Text>
             ) : null}
           </Card>
         ))
       )}
-      <SectionTitle>
-        {admin ? 'Review submissions' : 'Payment history'}
-      </SectionTitle>
+      <SectionTitle>{t('Payment history')}</SectionTitle>
       <Select
-        label="Filter submissions"
+        label={t('Filter submissions')}
         value={filter}
         onChange={setFilter}
         options={[
-          { value: 'PENDING', label: 'Awaiting review' },
-          { value: 'APPROVED', label: 'Approved' },
-          { value: 'REJECTED', label: 'Rejected' },
+          {
+            value: 'PENDING',
+            label: t('Awaiting review'),
+          },
+          {
+            value: 'APPROVED',
+            label: t('Approved'),
+          },
+          {
+            value: 'REJECTED',
+            label: t('Rejected'),
+          },
         ]}
       />
       {!payments.length ? (
         <Empty
-          title="No submissions to show"
-          detail="Payment details and admin decisions will appear here."
+          title={t('No submissions to show')}
+          detail={t('Payment details and admin decisions will appear here.')}
         />
       ) : (
         payments.map(payment => (
@@ -274,34 +272,21 @@ export function PaymentsScreen() {
               </Text>
               <Badge status={payment.status} />
             </View>
-            <Text style={styles.body}>
-              {payment.studentName}
-              {admin ? ` · ${payment.guardianName}` : ''}
-            </Text>
+            <Text style={styles.body}>{payment.studentName}</Text>
             <Text selectable style={styles.body}>
               {readable(payment.method)} · {payment.transactionId}
             </Text>
             <Text selectable style={styles.muted}>
-              From {payment.senderNumber}
-              {'\n'}To {payment.recipientNumber}
+              {t('From {{sender}}\nTo {{recipient}}', {
+                sender: payment.senderNumber,
+                recipient: payment.recipientNumber,
+              })}
             </Text>
             <Text style={styles.muted}>{dateLabel(payment.createdAt)}</Text>
             {payment.note ? (
               <Notice
-                text={`Admin note: ${payment.note}`}
+                text={t('Admin note: {{note}}', { note: payment.note })}
                 kind={payment.status === 'REJECTED' ? 'error' : 'success'}
-              />
-            ) : null}
-            {admin && payment.status === 'PENDING' ? (
-              <ReviewActions
-                path={`/admin/payments/${payment.id}/decision`}
-                confirmation={`Have you verified ${money(
-                  payment.amount,
-                )} in your ${payment.method} account ${
-                  payment.recipientNumber
-                }? Transaction: ${
-                  payment.transactionId
-                }. This will mark the bill as paid.`}
               />
             ) : null}
           </Card>

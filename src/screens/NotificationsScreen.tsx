@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n';
 import React, { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import { Badge, Button, Card, Empty, Notice, Page } from '../components/ui';
@@ -5,7 +6,9 @@ import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
 import { styles } from '../theme';
 import { dateLabel } from '../utils/format';
+import { notificationText } from '../i18n/notifications';
 export function NotificationsScreen() {
+  const { t } = useTranslation();
   const { data, loading, error, refresh, mutate } = useData();
   const action = useAction();
   const updates = useMemo(
@@ -17,7 +20,7 @@ export function NotificationsScreen() {
   );
   return (
     <Page
-      title="Latest updates"
+      title={t('Latest updates')}
       loading={loading}
       refresh={refresh}
       error={error}
@@ -25,22 +28,22 @@ export function NotificationsScreen() {
       <Notice text={action.error} kind="error" />
       {!data.notifications.length ? (
         <Empty
-          title={loading ? 'Loading updates…' : 'No updates yet'}
-          detail="Service and payment updates appear here."
+          title={loading ? t('Loading updates…') : t('No updates yet')}
+          detail={t('Service and payment updates appear here.')}
         />
       ) : (
         updates.map(item => (
           <Card key={item.id} tinted={!item.readAt}>
             <View style={styles.between}>
-              <Text style={styles.heading}>{item.title}</Text>
+              <Text style={styles.heading}>{notificationText(item).title}</Text>
               {!item.readAt ? <Badge status="NEW" /> : null}
             </View>
-            <Text style={styles.body}>{item.body}</Text>
+            <Text style={styles.body}>{notificationText(item).body}</Text>
             <Text style={styles.muted}>{dateLabel(item.createdAt)}</Text>
             {!item.readAt ? (
               <Button
                 secondary
-                title="Mark as read"
+                title={t('Mark as read')}
                 busy={action.busy}
                 onPress={() => {
                   action.run(

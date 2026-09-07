@@ -24,6 +24,8 @@ import { RequestsScreen } from './src/screens/RequestsScreen';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { colors } from './src/theme';
+import { useTranslation } from './src/i18n';
+import { LanguageProvider } from './src/i18n/LanguageProvider';
 const Tab = createBottomTabNavigator<RootTabParams>();
 const HomeStack = createNativeStackNavigator<HomeStackParams>();
 function HomeNavigator() {
@@ -61,6 +63,7 @@ const tabIcons = Object.fromEntries(
   ]),
 );
 function Tabs() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const { data } = useData();
@@ -70,6 +73,7 @@ function Tabs() {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
+          title: t(route.name === 'Inbox' ? 'Updates' : route.name),
           tabBarActiveTintColor: colors.primary,
           tabBarInactiveTintColor: colors.muted,
           tabBarStyle: [
@@ -93,7 +97,6 @@ function Tabs() {
           name="Inbox"
           component={NotificationsScreen}
           options={{
-            title: 'Updates',
             tabBarBadge: unread ? (unread > 99 ? '99+' : unread) : undefined,
             tabBarBadgeStyle: local.badge,
           }}
@@ -103,12 +106,13 @@ function Tabs() {
   );
 }
 function Root() {
+  const { t } = useTranslation();
   const { ready, session } = useAuth();
   if (!ready)
     return (
       <View style={local.splash}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={local.splashText}>Opening PathSathi…</Text>
+        <Text style={local.splashText}>{t('Opening PathSathi…')}</Text>
       </View>
     );
   if (!session) return <AuthScreen />;
@@ -122,9 +126,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <AuthProvider>
-        <Root />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <Root />
+        </AuthProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n';
 import React, { useState } from 'react';
 import { Linking, Text, View } from 'react-native';
 import {
@@ -18,6 +19,7 @@ import { useAction } from '../hooks/useAction';
 import { styles } from '../theme';
 import { money, readable } from '../utils/format';
 function CallGuardian({ id, phone }: { id: string; phone: string }) {
+  const { t } = useTranslation();
   const { mutate } = useData();
   const action = useAction();
   const [note, setNote] = useState('');
@@ -25,7 +27,7 @@ function CallGuardian({ id, phone }: { id: string; phone: string }) {
     <View style={styles.section}>
       <Button
         secondary
-        title={`Call guardian · ${phone}`}
+        title={t('Call guardian · {{phone}}', { phone })}
         onPress={() => {
           action.run(
             () => Linking.openURL(`tel:${phone.replace(/[^+\d]/g, '')}`),
@@ -34,19 +36,21 @@ function CallGuardian({ id, phone }: { id: string; phone: string }) {
         }}
       />
       <Field
-        label="Call note"
+        label={t('Call note')}
         value={note}
         onChangeText={setNote}
         maxLength={500}
       />
       <Button
         secondary
-        title="Save call note"
+        title={t('Save call note')}
         busy={action.busy}
         onPress={() => {
           action.run(async () => {
             if (!note.trim()) throw new Error('Add a call note first.');
-            await mutate(`/admin/requests/${id}/call-notes`, { note });
+            await mutate(`/admin/requests/${id}/call-notes`, {
+              note,
+            });
             setNote('');
           });
         }}
@@ -57,6 +61,7 @@ function CallGuardian({ id, phone }: { id: string; phone: string }) {
   );
 }
 export function RequestsScreen() {
+  const { t } = useTranslation();
   const { session } = useAuth();
   const { data, loading, error, refresh, mutate } = useData();
   const [studentName, setStudentName] = useState('');
@@ -72,11 +77,11 @@ export function RequestsScreen() {
   const active = data.subscriptions.filter(item => item.status === 'ACTIVE');
   return (
     <Page
-      title={admin ? 'Service requests' : 'Your transport service'}
+      title={admin ? t('Service requests') : t('Your transport service')}
       subtitle={
         admin
-          ? 'Review coverage, speak with guardians and manage service.'
-          : 'Find your route and let us take care of the next step.'
+          ? t('Review coverage, speak with guardians and manage service.')
+          : t('Find your route and let us take care of the next step.')
       }
       loading={loading}
       refresh={refresh}
@@ -86,15 +91,15 @@ export function RequestsScreen() {
       <Notice text={action.success} />
       {!admin ? (
         <Card>
-          <Text style={styles.heading}>Request a transport service</Text>
+          <Text style={styles.heading}>{t('Request a transport service')}</Text>
           <Field
-            label="Student name"
+            label={t('Student name')}
             value={studentName}
             onChangeText={setStudentName}
             maxLength={100}
           />
           <Select
-            label="Route / road"
+            label={t('Route / road')}
             value={routeId}
             onChange={value => {
               setRouteId(value);
@@ -102,11 +107,14 @@ export function RequestsScreen() {
             }}
             options={data.routes.map(item => ({
               value: item.id,
-              label: `${item.name} · ${money(item.monthlyAmount)}/month`,
+              label: t('{{route}} · {{amount}}/month', {
+                route: item.name,
+                amount: money(item.monthlyAmount),
+              }),
             }))}
           />
           <Select
-            label="Pickup stop"
+            label={t('Pickup stop')}
             value={stopId}
             onChange={setStopId}
             options={(route?.stops || []).map(item => ({
@@ -116,17 +124,19 @@ export function RequestsScreen() {
           />
           {route ? (
             <Text style={styles.muted}>
-              Vehicle: {route.vehicleName} · Full monthly fee{' '}
-              {money(route.monthlyAmount)}. The admin will confirm your service.
+              {t(
+                'Vehicle: {{name}} · Full monthly fee {{amount}}. The admin will confirm your service.',
+                { name: route.vehicleName, amount: money(route.monthlyAmount) },
+              )}
             </Text>
           ) : null}
           {!data.routes.length ? (
             <Text style={styles.muted}>
-              The admin has not added routes yet. Please check back soon.
+              {t('The admin has not added routes yet. Please check back soon.')}
             </Text>
           ) : null}
           <Button
-            title="Send service request"
+            title={t('Send service request')}
             busy={action.busy}
             disabled={!data.routes.length}
             onPress={() => {
@@ -148,11 +158,13 @@ export function RequestsScreen() {
           />
         </Card>
       ) : null}
-      <SectionTitle>Applications</SectionTitle>
+      <SectionTitle>{t('Applications')}</SectionTitle>
       {!data.requests.length ? (
         <Empty
-          title="No applications yet"
-          detail="Submitted service requests will appear here with their status."
+          title={t('No applications yet')}
+          detail={t(
+            'Submitted service requests will appear here with their status.',
+          )}
         />
       ) : (
         data.requests.map(request => (
@@ -169,14 +181,19 @@ export function RequestsScreen() {
               {admin ? ` · ${request.guardianName}` : ''}
             </Text>
             {request.note ? (
-              <Text style={styles.body}>Admin note: {request.note}</Text>
+              <Text style={styles.body}>
+                {t('Admin note: ')}
+                {request.note}
+              </Text>
             ) : null}
             {admin && request.status === 'PENDING' ? (
               <>
                 <CallGuardian id={request.id} phone={request.guardianPhone} />
                 <ReviewActions
                   path={`/admin/requests/${request.id}/decision`}
-                  confirmation="Approve the selected route and stop? The guardian will gain tracking access to the assigned vehicle."
+                  confirmation={t(
+                    'Approve the selected route and stop? The guardian will gain tracking access to the assigned vehicle.',
+                  )}
                 />
               </>
             ) : null}
@@ -185,9 +202,11 @@ export function RequestsScreen() {
       )}
       {!admin && active.length ? (
         <Card>
-          <Text style={styles.heading}>Need help with your service?</Text>
+          <Text style={styles.heading}>
+            {t('Need help with your service?')}
+          </Text>
           <Select
-            label="Active service"
+            label={t('Active service')}
             value={subscriptionId}
             onChange={setSubscriptionId}
             options={active.map(item => ({
@@ -196,7 +215,7 @@ export function RequestsScreen() {
             }))}
           />
           <Select
-            label="Complaint category"
+            label={t('Complaint category')}
             value={category}
             onChange={setCategory}
             options={[
@@ -205,10 +224,13 @@ export function RequestsScreen() {
               'VEHICLE_SAFETY',
               'PAYMENT',
               'OTHER',
-            ].map(value => ({ value, label: readable(value) }))}
+            ].map(value => ({
+              value,
+              label: readable(value),
+            }))}
           />
           <Field
-            label="Tell us what happened"
+            label={t('Tell us what happened')}
             value={description}
             onChangeText={setDescription}
             multiline
@@ -217,7 +239,7 @@ export function RequestsScreen() {
           <Notice text={action.error} kind="error" />
           <Notice text={action.success} />
           <Button
-            title="Submit complaint"
+            title={t('Submit complaint')}
             busy={action.busy}
             onPress={() => {
               action.run(async () => {
@@ -239,21 +261,22 @@ export function RequestsScreen() {
             }}
           />
           <Field
-            label="Reason for stopping service"
+            label={t('Reason for stopping service')}
             value={reason}
             onChangeText={setReason}
             multiline
             maxLength={500}
           />
           <Text style={styles.muted}>
-            Your service continues until the admin approves. Existing monthly
-            bills remain payable; no automatic refund or proration.
+            {t(
+              'Your service continues until the admin approves. Existing monthly bills remain payable; no automatic refund or proration.',
+            )}
           </Text>
           <Notice text={action.error} kind="error" />
           <Notice text={action.success} />
           <Button
             secondary
-            title="Request to stop service"
+            title={t('Request to stop service')}
             busy={action.busy}
             onPress={() => {
               action.run(async () => {
@@ -261,7 +284,10 @@ export function RequestsScreen() {
                   throw new Error(
                     'Select a service and add a reason (at least 5 characters).',
                   );
-                await mutate('/stop-requests', { subscriptionId, reason });
+                await mutate('/stop-requests', {
+                  subscriptionId,
+                  reason,
+                });
                 setReason('');
               }, 'Stop request submitted. Your service remains active until approved.');
             }}
@@ -269,13 +295,14 @@ export function RequestsScreen() {
         </Card>
       ) : !admin ? (
         <Text style={styles.muted}>
-          Complaint and stop-service forms become available after your transport
-          service is approved.
+          {t(
+            'Complaint and stop-service forms become available after your transport service is approved.',
+          )}
         </Text>
       ) : null}
-      <SectionTitle>Complaints</SectionTitle>
+      <SectionTitle>{t('Complaints')}</SectionTitle>
       {!data.complaints.length ? (
-        <Text style={styles.muted}>No complaints to show.</Text>
+        <Text style={styles.muted}>{t('No complaints to show.')}</Text>
       ) : (
         data.complaints.map(complaint => (
           <Card key={complaint.id}>
@@ -289,21 +316,26 @@ export function RequestsScreen() {
             </Text>
             <Text style={styles.body}>{complaint.description}</Text>
             {complaint.note ? (
-              <Text style={styles.body}>Admin note: {complaint.note}</Text>
+              <Text style={styles.body}>
+                {t('Admin note: ')}
+                {complaint.note}
+              </Text>
             ) : null}
             {admin && complaint.status === 'OPEN' ? (
               <ReviewActions
                 resolve
                 path={`/admin/complaints/${complaint.id}`}
-                confirmation="Mark this complaint as resolved and notify the guardian?"
+                confirmation={t(
+                  'Mark this complaint as resolved and notify the guardian?',
+                )}
               />
             ) : null}
           </Card>
         ))
       )}
-      <SectionTitle>Stop requests</SectionTitle>
+      <SectionTitle>{t('Stop requests')}</SectionTitle>
       {!data.stops.length ? (
-        <Text style={styles.muted}>No stop requests to show.</Text>
+        <Text style={styles.muted}>{t('No stop requests to show.')}</Text>
       ) : (
         data.stops.map(stop => (
           <Card key={stop.id}>
@@ -313,12 +345,17 @@ export function RequestsScreen() {
             </View>
             <Text style={styles.body}>{stop.reason}</Text>
             {stop.note ? (
-              <Text style={styles.body}>Admin note: {stop.note}</Text>
+              <Text style={styles.body}>
+                {t('Admin note: ')}
+                {stop.note}
+              </Text>
             ) : null}
             {admin && stop.status === 'PENDING' ? (
               <ReviewActions
                 path={`/admin/stop-requests/${stop.id}/decision`}
-                confirmation="Stop this service now? Tracking access will end, and existing bills will remain in payment history."
+                confirmation={t(
+                  'Stop this service now? Tracking access will end, and existing bills will remain in payment history.',
+                )}
               />
             ) : null}
           </Card>

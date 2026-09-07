@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n';
 import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useData } from '../context/DataContext';
@@ -13,6 +14,7 @@ export function ReviewActions({
   confirmation?: string;
   resolve?: boolean;
 }) {
+  const { t } = useTranslation();
   const { mutate } = useData();
   const [note, setNote] = useState('');
   const action = useAction();
@@ -28,8 +30,14 @@ export function ReviewActions({
         await mutate(
           path,
           resolve
-            ? { status: 'RESOLVED', note }
-            : { decision: approved ? 'APPROVED' : 'REJECTED', note },
+            ? {
+                status: 'RESOLVED',
+                note,
+              }
+            : {
+                decision: approved ? 'APPROVED' : 'REJECTED',
+                note,
+              },
           'PATCH',
         );
       },
@@ -41,7 +49,9 @@ export function ReviewActions({
   return (
     <View style={styles.section}>
       <Field
-        label={resolve ? 'Resolution note' : 'Review note / rejection reason'}
+        label={
+          resolve ? t('Resolution note') : t('Review note / rejection reason')
+        }
         value={note}
         onChangeText={setNote}
         maxLength={500}
@@ -50,15 +60,21 @@ export function ReviewActions({
       <Notice text={action.error} kind="error" />
       <Notice text={action.success} />
       <Button
-        title={resolve ? 'Mark resolved' : 'Approve'}
+        title={resolve ? t('Mark resolved') : t('Approve')}
         busy={action.busy}
         onPress={() =>
           Alert.alert(
-            resolve ? 'Resolve complaint' : 'Confirm approval',
-            confirmation,
+            resolve ? t('Resolve complaint') : t('Confirm approval'),
+            t(confirmation),
             [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Confirm', onPress: () => decide(true) },
+              {
+                text: t('Cancel'),
+                style: 'cancel',
+              },
+              {
+                text: t('Confirm'),
+                onPress: () => decide(true),
+              },
             ],
           )
         }
@@ -66,7 +82,7 @@ export function ReviewActions({
       {!resolve ? (
         <Button
           secondary
-          title="Reject with reason"
+          title={t('Reject with reason')}
           disabled={action.busy}
           onPress={() => decide(false)}
         />

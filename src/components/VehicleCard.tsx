@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -10,9 +11,8 @@ import {
 } from 'react-native';
 import { Location, Vehicle } from '../api/types';
 import { colors, styles } from '../theme';
-import { dateLabel } from '../utils/format';
+import { dateLabel, numberLabel, readable } from '../utils/format';
 import { Badge, Card } from './ui';
-
 interface VehicleCardProps {
   vehicle: Vehicle;
   location?: Location;
@@ -20,9 +20,7 @@ interface VehicleCardProps {
   onOpenURL: (url: string) => void;
   onHistory?: () => void;
 }
-
 const TRANSITION_DURATION = 300;
-
 export function VehicleCard({
   vehicle,
   location,
@@ -30,11 +28,11 @@ export function VehicleCard({
   onOpenURL,
   onHistory,
 }: VehicleCardProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [detailsHeight, setDetailsHeight] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(true);
   const expansion = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     let active = true;
     let preferenceChanged = false;
@@ -57,7 +55,6 @@ export function VehicleCard({
       listener.remove();
     };
   }, []);
-
   useEffect(() => {
     if (reduceMotion) {
       expansion.setValue(expanded ? 1 : 0);
@@ -72,7 +69,6 @@ export function VehicleCard({
     }
     return () => expansion.stopAnimation();
   }, [expanded, expansion, reduceMotion]);
-
   const toggleExpanded = () => {
     setExpanded(current => !current);
   };
@@ -81,18 +77,17 @@ export function VehicleCard({
     location && Date.now() - Date.parse(location.lastSeen) >= 180_000;
   const status = stale ? 'offline' : location?.status || 'waiting';
   const driverPhone = vehicle.driverPhone?.replace(/[^+\d]/g, '');
-
   return (
     <Card>
       <View>
         <View style={local.header}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${vehicle.name}, ${
-              status === 'lastKnown' ? 'last known' : status
-            }`}
-            accessibilityHint="Show or hide vehicle details"
-            accessibilityState={{ expanded }}
+            accessibilityLabel={`${vehicle.name}, ${readable(status)}`}
+            accessibilityHint={t('Show or hide vehicle details')}
+            accessibilityState={{
+              expanded,
+            }}
             onPress={toggleExpanded}
             style={({ pressed }) => [local.toggle, pressed && local.dimmed]}
           >
@@ -122,14 +117,16 @@ export function VehicleCard({
               {onHistory ? (
                 <VehicleAction
                   icon="history"
-                  label={`View travel history for ${vehicle.name}`}
+                  label={t('View travel history for {{name}}', {
+                    name: vehicle.name,
+                  })}
                   onPress={onHistory}
                 />
               ) : null}
               {driverPhone ? (
                 <VehicleAction
                   icon="call"
-                  label={`Call driver for ${vehicle.name}`}
+                  label={t('Call driver for {{name}}', { name: vehicle.name })}
                   disabled={busy}
                   onPress={() => onOpenURL(`tel:${driverPhone}`)}
                 />
@@ -165,36 +162,38 @@ export function VehicleCard({
                 <View style={local.telemetry}>
                   <View style={local.speed}>
                     <Text style={local.caption}>
-                      {status === 'live' ? 'Speed' : 'Last speed'}
+                      {status === 'live' ? t('Speed') : t('Last speed')}
                     </Text>
                     <Text style={local.speedValue}>
-                      {location?.speed ?? '—'}{' '}
-                      <Text style={local.unit}>km/h</Text>
+                      {location?.speed == null
+                        ? '—'
+                        : numberLabel(location.speed)}{' '}
+                      <Text style={local.unit}>{t('km/h')}</Text>
                     </Text>
                   </View>
                   <View style={local.updated}>
-                    <Text style={local.caption}>Last position</Text>
+                    <Text style={local.caption}>{t('Last position')}</Text>
                     <Text style={local.timestamp}>
                       {location?.positionAt
                         ? dateLabel(location.positionAt)
-                        : 'Unknown'}
+                        : t('Unknown')}
                     </Text>
                   </View>
                 </View>
               ) : (
-                <Text style={styles.muted}>Waiting for location</Text>
+                <Text style={styles.muted}>{t('Waiting for location')}</Text>
               )}
               {vehicle.driverName ? (
                 <View style={local.driver}>
-                  <Text style={styles.muted}>Driver</Text>
+                  <Text style={styles.muted}>{t('Driver')}</Text>
                   <Text style={local.driverName}>{vehicle.driverName}</Text>
                 </View>
               ) : null}
               {hasPosition ? (
                 <VehicleAction
                   primary
-                  title="View map"
-                  label={`View ${vehicle.name} on map`}
+                  title={t('View map')}
+                  label={t('View {{name}} on map', { name: vehicle.name })}
                   disabled={busy}
                   onPress={() =>
                     onOpenURL(
@@ -210,7 +209,6 @@ export function VehicleCard({
     </Card>
   );
 }
-
 function HistoryIcon() {
   return (
     <View accessible={false} style={local.historyIcon}>
@@ -222,7 +220,6 @@ function HistoryIcon() {
     </View>
   );
 }
-
 function VehicleAction({
   title,
   icon,
@@ -242,7 +239,9 @@ function VehicleAction({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled }}
+      accessibilityState={{
+        disabled,
+      }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -270,7 +269,6 @@ function VehicleAction({
     </Pressable>
   );
 }
-
 const local = StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -286,7 +284,10 @@ const local = StyleSheet.create({
     minHeight: 48,
     gap: 12,
   },
-  identity: { flex: 1, gap: 8 },
+  identity: {
+    flex: 1,
+    gap: 8,
+  },
   chevron: {
     width: 8,
     height: 8,
@@ -295,8 +296,13 @@ const local = StyleSheet.create({
     borderBottomWidth: 2,
     borderColor: colors.muted,
   },
-  quickActions: { flexDirection: 'row', gap: 8 },
-  detailsClip: { overflow: 'hidden' },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  detailsClip: {
+    overflow: 'hidden',
+  },
   // Measure natural content height even while the visible container is closed.
   detailsMeasure: {
     position: 'absolute',
@@ -311,7 +317,11 @@ const local = StyleSheet.create({
     borderTopColor: colors.line,
     paddingTop: 16,
   },
-  plate: { color: colors.muted, fontSize: 13, letterSpacing: 0.6 },
+  plate: {
+    color: colors.muted,
+    fontSize: 13,
+    letterSpacing: 0.6,
+  },
   telemetry: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -321,18 +331,41 @@ const local = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.background,
   },
-  speed: { flexGrow: 1, gap: 4 },
-  caption: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  speed: {
+    flexGrow: 1,
+    gap: 4,
+  },
+  caption: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+  },
   speedValue: {
     color: colors.ink,
     fontSize: 28,
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },
-  unit: { color: colors.muted, fontSize: 13, fontWeight: '400' },
-  updated: { flexGrow: 1, flexShrink: 1, gap: 4 },
-  timestamp: { color: colors.ink, fontSize: 13, lineHeight: 20 },
-  driver: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  unit: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '400',
+  },
+  updated: {
+    flexGrow: 1,
+    flexShrink: 1,
+    gap: 4,
+  },
+  timestamp: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  driver: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   driverName: {
     color: colors.ink,
     fontSize: 14,
@@ -354,8 +387,15 @@ const local = StyleSheet.create({
     paddingHorizontal: 0,
     alignItems: 'center',
   },
-  icon: { fontSize: 25, lineHeight: 30, fontWeight: '400' },
-  historyIcon: { width: 24, height: 24 },
+  icon: {
+    fontSize: 25,
+    lineHeight: 30,
+    fontWeight: '400',
+  },
+  historyIcon: {
+    width: 24,
+    height: 24,
+  },
   clockFace: {
     position: 'absolute',
     top: 2,
@@ -384,7 +424,11 @@ const local = StyleSheet.create({
     height: 2,
     borderRadius: 1,
     backgroundColor: colors.primary,
-    transform: [{ rotate: '30deg' }],
+    transform: [
+      {
+        rotate: '30deg',
+      },
+    ],
   },
   historyArrow: {
     position: 'absolute',
@@ -396,13 +440,19 @@ const local = StyleSheet.create({
     borderBottomWidth: 2,
     borderColor: colors.primary,
   },
-  primaryAction: { backgroundColor: colors.primary },
-  dimmed: { opacity: 0.65 },
+  primaryAction: {
+    backgroundColor: colors.primary,
+  },
+  dimmed: {
+    opacity: 0.65,
+  },
   actionText: {
     color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
   },
-  primaryActionText: { color: colors.surface },
+  primaryActionText: {
+    color: colors.surface,
+  },
 });

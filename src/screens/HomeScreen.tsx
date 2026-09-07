@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n';
 import React, { useMemo } from 'react';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -10,14 +11,13 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
 import { colors, styles } from '../theme';
-import { money } from '../utils/format';
-
+import { money, numberLabel } from '../utils/format';
 type HomeScreenProps = CompositeScreenProps<
   NativeStackScreenProps<HomeStackParams, 'Fleet'>,
   BottomTabScreenProps<RootTabParams, 'Home'>
 >;
-
 export function HomeScreen({ navigation }: HomeScreenProps) {
+  const { t } = useTranslation();
   const { session, signOut } = useAuth();
   const { data, loading, error, refresh } = useData();
   const action = useAction();
@@ -45,53 +45,54 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   const openURL = (url: string) => {
     action.run(() => Linking.openURL(url), '');
   };
-
   return (
     <Page loading={loading} refresh={refresh} error={error}>
       <View style={local.summary}>
         <View style={local.balance}>
-          <Text style={local.summaryLabel}>Amount due</Text>
+          <Text style={local.summaryLabel}>{t('Amount due')}</Text>
           <Text style={local.balanceValue}>
             {initialLoading ? '—' : money(due)}
           </Text>
         </View>
         <View style={local.review}>
           <Text style={local.summaryLabel}>
-            {admin ? 'To review' : 'In review'}
+            {admin ? t('To review') : t('In review')}
           </Text>
           <Text style={local.reviewValue}>
-            {initialLoading ? '—' : pending}
+            {initialLoading ? '—' : numberLabel(pending)}
           </Text>
           <Text style={local.summaryLabel}>
-            {pending === 1 ? 'payment' : 'payments'}
+            {pending === 1 ? t('payment') : t('payments')}
           </Text>
         </View>
       </View>
       <Notice text={action.error} kind="error" />
       <View style={styles.section}>
         <View style={styles.between}>
-          <SectionTitle>{admin ? 'Your fleet' : 'Your vehicle'}</SectionTitle>
+          <SectionTitle>
+            {admin ? t('Your fleet') : t('Your vehicle')}
+          </SectionTitle>
           {data.vehicles.length ? (
-            <Text style={local.count}>{data.vehicles.length}</Text>
+            <Text style={local.count}>{numberLabel(data.vehicles.length)}</Text>
           ) : null}
         </View>
         {!data.vehicles.length ? (
           <Empty
             title={
               loading
-                ? 'Loading vehicles…'
+                ? t('Loading vehicles…')
                 : admin
-                ? 'No vehicles yet'
-                : 'No vehicle assigned'
+                ? t('No vehicles yet')
+                : t('No vehicle assigned')
             }
             detail={
               loading
-                ? 'Checking for updates.'
+                ? t('Checking for updates.')
                 : admin
-                ? 'Add a vehicle in Setup.'
+                ? t('Add a vehicle in Setup.')
                 : awaitingVehicle
-                ? 'Your assigned vehicle will appear here.'
-                : 'Request a route in Requests to get started.'
+                ? t('Your assigned vehicle will appear here.')
+                : t('Request a route in Requests to get started.')
             }
           />
         ) : (
@@ -117,25 +118,33 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Latest updates${
-          unread ? `, ${unread} unread` : ''
-        }`}
+        accessibilityLabel={
+          unread
+            ? t('Latest updates, {{number}} unread', {
+                number: numberLabel(unread),
+              })
+            : t('Latest updates')
+        }
         onPress={() => navigation.navigate('Inbox')}
         style={({ pressed }) => [
           local.updatesButton,
           pressed && local.updatesPressed,
         ]}
       >
-        <Text style={local.updatesTitle}>Latest updates</Text>
+        <Text style={local.updatesTitle}>{t('Latest updates')}</Text>
         {unread ? (
-          <Text style={local.count}>{unread > 99 ? '99+' : unread} new</Text>
+          <Text style={local.count}>
+            {t('{{number}} new', {
+              number: unread > 99 ? `${numberLabel(99)}+` : numberLabel(unread),
+            })}
+          </Text>
         ) : null}
         <View accessible={false} style={local.updatesChevron} />
       </Pressable>
       <View style={local.footer}>
         <Button
           secondary
-          title="Sign out"
+          title={t('Sign out')}
           busy={action.busy}
           onPress={() => {
             action.run(signOut, '');
@@ -145,7 +154,6 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
     </Page>
   );
 }
-
 const local = StyleSheet.create({
   summary: {
     flexDirection: 'row',
@@ -156,8 +164,16 @@ const local = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: colors.primary,
   },
-  balance: { flexGrow: 2, flexBasis: 140, gap: 8 },
-  summaryLabel: { color: colors.mint, fontSize: 13, lineHeight: 19 },
+  balance: {
+    flexGrow: 2,
+    flexBasis: 140,
+    gap: 8,
+  },
+  summaryLabel: {
+    color: colors.mint,
+    fontSize: 13,
+    lineHeight: 19,
+  },
   balanceValue: {
     color: colors.surface,
     fontSize: 32,
@@ -165,7 +181,11 @@ const local = StyleSheet.create({
     letterSpacing: -1,
     fontVariant: ['tabular-nums'],
   },
-  review: { flexGrow: 1, flexBasis: 80, gap: 4 },
+  review: {
+    flexGrow: 1,
+    flexBasis: 80,
+    gap: 4,
+  },
   reviewValue: {
     color: colors.surface,
     fontSize: 24,
@@ -194,7 +214,9 @@ const local = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
-  updatesPressed: { backgroundColor: colors.mint },
+  updatesPressed: {
+    backgroundColor: colors.mint,
+  },
   updatesTitle: {
     flexGrow: 1,
     color: colors.ink,
@@ -207,7 +229,14 @@ const local = StyleSheet.create({
     borderTopWidth: 2,
     borderRightWidth: 2,
     borderColor: colors.primary,
-    transform: [{ rotate: '45deg' }],
+    transform: [
+      {
+        rotate: '45deg',
+      },
+    ],
   },
-  footer: { alignSelf: 'center', marginTop: 4 },
+  footer: {
+    alignSelf: 'center',
+    marginTop: 4,
+  },
 });

@@ -1,3 +1,4 @@
+import { useTranslation } from '../i18n';
 import React, { useState } from 'react';
 import { Text } from 'react-native';
 import { Button, Card, Field, Notice, Page, Select } from '../components/ui';
@@ -6,6 +7,7 @@ import { useAction } from '../hooks/useAction';
 import { styles } from '../theme';
 import { toPoisha } from '../utils/format';
 function AccountForm() {
+  const { t } = useTranslation();
   const { data, mutate } = useData();
   const [method, setMethod] = useState('BKASH');
   const [number, setNumber] = useState(
@@ -18,9 +20,9 @@ function AccountForm() {
   const action = useAction();
   return (
     <Card>
-      <Text style={styles.heading}>Where guardians send money</Text>
+      <Text style={styles.heading}>{t('Where guardians send money')}</Text>
       <Select
-        label="Payment method"
+        label={t('Payment method')}
         value={method}
         onChange={value => {
           setMethod(value);
@@ -31,29 +33,35 @@ function AccountForm() {
           );
         }}
         options={[
-          { value: 'BKASH', label: 'bKash' },
-          { value: 'ROCKET', label: 'Rocket' },
+          {
+            value: 'BKASH',
+            label: t('bKash'),
+          },
+          {
+            value: 'ROCKET',
+            label: t('Rocket'),
+          },
         ]}
       />
       <Field
-        label="Receiving account number"
+        label={t('Receiving account number')}
         value={number}
         onChangeText={setNumber}
         keyboardType="phone-pad"
         maxLength={12}
       />
       <Field
-        label="Payment instructions"
+        label={t('Payment instructions')}
         value={instructions}
         onChangeText={setInstructions}
         multiline
         maxLength={300}
-        hint="Specify Send Money or Payment and the account holder’s name."
+        hint={t('Specify Send Money or Payment and the account holder’s name.')}
       />
       <Notice text={action.error} kind="error" />
       <Notice text={action.success} />
       <Button
-        title="Save payment number"
+        title={t('Save payment number')}
         busy={action.busy}
         onPress={() => {
           action.run(async () => {
@@ -67,7 +75,10 @@ function AccountForm() {
               );
             await mutate(
               `/admin/payment-accounts/${method}`,
-              { number, instructions },
+              {
+                number,
+                instructions,
+              },
               'PUT',
             );
           }, 'Payment details saved. Guardians can now use this number.');
@@ -77,6 +88,7 @@ function AccountForm() {
   );
 }
 function VehicleForm() {
+  const { t } = useTranslation();
   const { mutate } = useData();
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
@@ -86,34 +98,34 @@ function VehicleForm() {
   const action = useAction();
   return (
     <Card>
-      <Text style={styles.heading}>Add a vehicle</Text>
+      <Text style={styles.heading}>{t('Add a vehicle')}</Text>
       <Field
-        label="Vehicle name"
+        label={t('Vehicle name')}
         value={name}
         onChangeText={setName}
         maxLength={60}
       />
       <Field
-        label="Registration plate"
+        label={t('Registration plate')}
         value={plate}
         onChangeText={setPlate}
         maxLength={30}
       />
       <Field
-        label="GPS device IMEI"
+        label={t('GPS device IMEI')}
         value={imei}
         onChangeText={setImei}
         keyboardType="number-pad"
         maxLength={17}
       />
       <Field
-        label="Driver name (optional)"
+        label={t('Driver name (optional)')}
         value={driverName}
         onChangeText={setDriverName}
         maxLength={60}
       />
       <Field
-        label="Driver phone (optional)"
+        label={t('Driver phone (optional)')}
         value={driverPhone}
         onChangeText={setDriverPhone}
         keyboardType="phone-pad"
@@ -122,7 +134,7 @@ function VehicleForm() {
       <Notice text={action.error} kind="error" />
       <Notice text={action.success} />
       <Button
-        title="Add vehicle"
+        title={t('Add vehicle')}
         busy={action.busy}
         onPress={() => {
           action.run(async () => {
@@ -149,6 +161,7 @@ function VehicleForm() {
   );
 }
 function RouteForm() {
+  const { t } = useTranslation();
   const { data, mutate } = useData();
   const [name, setName] = useState('');
   const [vehicleId, setVehicleId] = useState('');
@@ -157,15 +170,15 @@ function RouteForm() {
   const action = useAction();
   return (
     <Card>
-      <Text style={styles.heading}>Create a route</Text>
+      <Text style={styles.heading}>{t('Create a route')}</Text>
       <Field
-        label="Route / road name"
+        label={t('Route / road name')}
         value={name}
         onChangeText={setName}
         maxLength={100}
       />
       <Select
-        label="Assigned vehicle"
+        label={t('Assigned vehicle')}
         value={vehicleId}
         onChange={setVehicleId}
         options={data.vehicles.map(item => ({
@@ -174,22 +187,22 @@ function RouteForm() {
         }))}
       />
       <Field
-        label="Monthly fee (৳)"
+        label={t('Monthly fee (৳)')}
         value={amount}
         onChangeText={setAmount}
         keyboardType="decimal-pad"
       />
       <Field
-        label="Pickup stops — one per line"
+        label={t('Pickup stops — one per line')}
         value={stops}
         onChangeText={setStops}
         multiline
-        placeholder={'Main gate\nCentral road\nSchool entrance'}
+        placeholder={t('Main gate\nCentral road\nSchool entrance')}
       />
       <Notice text={action.error} kind="error" />
       <Notice text={action.success} />
       <Button
-        title="Create route"
+        title={t('Create route')}
         busy={action.busy}
         onPress={() => {
           action.run(async () => {
@@ -218,11 +231,12 @@ function RouteForm() {
   );
 }
 export function SetupScreen() {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
   return (
     <Page
-      title="Service setup"
-      subtitle="Add payment details, vehicles and the routes you cover."
+      title={t('Service setup')}
+      subtitle={t('Add payment details, vehicles and the routes you cover.')}
       loading={loading}
       refresh={refresh}
       error={error}
