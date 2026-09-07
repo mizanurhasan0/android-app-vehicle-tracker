@@ -75,7 +75,7 @@ numbers are included.
   stored in AsyncStorage. Server logout must succeed before signing out locally.
 - The UI supports scrolling, phone/tablet content widths, accessible controls,
   keyboard-aware forms, submission locks and entrance animations that respect
-  reduced-motion settings. English interface with Bengali branding.
+  reduced-motion settings. Bangla and English interfaces with Bengali branding.
 
 ## Project structure
 
@@ -138,3 +138,20 @@ before production distribution. Public OSM tiles are best-effort, without an SLA
 large deployments should configure their own permitted tile provider. The current
 tile URL and matching CSP host are in HistoryMap.tsx; changing providers requires
 an app build, and the provider's attribution/cache requirements must be retained.
+
+## Languages
+
+Use **English / বাংলা** in the page header to change language, including before
+signing in. English is the default; the selected language is saved on the device
+and restored after restarting. Switching language keeps form input and the current
+screen. Translation dictionaries are bundled and work offline.
+
+Labels, validation messages, statuses, dates, amounts, map controls and recognized
+server notification templates are localized. Names, phone numbers, transaction IDs
+and custom school/admin notes remain as entered. Numeric fields accept English
+and Bangla digits; API values and date input formats stay unchanged.
+
+Translations live in `src/i18n/en.json` and `src/i18n/bn.json`. Add new interface
+copy to both dictionaries with matching interpolation placeholders, then use
+`useTranslation` from `src/i18n`. Tests check catalog coverage, language persistence,
+form preservation and localized map controls.

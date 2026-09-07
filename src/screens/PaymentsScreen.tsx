@@ -1,4 +1,4 @@
-import { useTranslation } from '../i18n';
+import { translateMessage, useTranslation } from '../i18n';
 import React, { useState } from 'react';
 import { Modal, Text, View } from 'react-native';
 import { Bill, PaymentAccount } from '../api/types';
@@ -57,7 +57,9 @@ function PaymentForm({ bill, cancel }: { bill: Bill; cancel: () => void }) {
           <Text selectable style={styles.title}>
             {account.number}
           </Text>
-          <Text style={styles.body}>{account.instructions}</Text>
+          <Text style={styles.body}>
+            {translateMessage(account.instructions)}
+          </Text>
           <Text style={styles.muted}>
             {t(
               'Pay using your {{method}} app or USSD first. This form only submits your payment details for verification.',

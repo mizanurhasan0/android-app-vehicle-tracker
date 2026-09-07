@@ -1,249 +1,342 @@
-import { useTranslation } from '../i18n';
-import React, { useState } from 'react';
-import { Text } from 'react-native';
-import { Button, Card, Field, Notice, Page, Select } from '../components/ui';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  Animated,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import {
+  AccountForm,
+  RouteForm,
+  VehicleForm,
+} from '../components/setup/SetupForms';
+import { SetupIcon, SetupSection } from '../components/setup/SetupIcon';
+import { Card, Page } from '../components/ui';
 import { useData } from '../context/DataContext';
-import { useAction } from '../hooks/useAction';
-import { styles } from '../theme';
-import { toPoisha } from '../utils/format';
-function AccountForm() {
-  const { t } = useTranslation();
-  const { data, mutate } = useData();
-  const [method, setMethod] = useState('BKASH');
-  const [number, setNumber] = useState(
-    data.accounts.find(item => item.method === 'BKASH')?.number || '',
-  );
-  const [instructions, setInstructions] = useState(
-    data.accounts.find(item => item.method === 'BKASH')?.instructions ||
-      'Use Send Money to this personal account.',
-  );
-  const action = useAction();
+import { useTranslation } from '../i18n';
+import { colors, styles } from '../theme';
+import { money, numberLabel } from '../utils/format';
+
+const sections: { id: SetupSection; label: string }[] = [
+  { id: 'payments', label: 'Payment accounts' },
+  { id: 'vehicles', label: 'Vehicles' },
+  { id: 'routes', label: 'Routes' },
+];
+
+function SetupPanel({
+  section,
+  active,
+  children,
+}: React.PropsWithChildren<{
+  section: SetupSection;
+  active: boolean;
+}>) {
+  const progress = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    let cancelled = false;
+    const showImmediately = () => {
+      progress.stopAnimation();
+      progress.setValue(1);
+    };
+    const subscription = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      reduced => {
+        if (reduced) showImmediately();
+      },
+    );
+    if (active) {
+      AccessibilityInfo.isReduceMotionEnabled()
+        .then(reduced => {
+          if (cancelled) return;
+          if (reduced) {
+            showImmediately();
+            return;
+          }
+          progress.setValue(0);
+          Animated.timing(progress, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }).start();
+        })
+        .catch(() => {
+          if (!cancelled) showImmediately();
+        });
+    }
+    return () => {
+      cancelled = true;
+      subscription.remove();
+      progress.stopAnimation();
+    };
+  }, [active, progress]);
+
+  // Keep drafts mounted while hiding inactive fields from touch and screen readers.
   return (
-    <Card>
-      <Text style={styles.heading}>{t('Where guardians send money')}</Text>
-      <Select
-        label={t('Payment method')}
-        value={method}
-        onChange={value => {
-          setMethod(value);
-          const account = data.accounts.find(item => item.method === value);
-          setNumber(account?.number || '');
-          setInstructions(
-            account?.instructions || 'Use Send Money to this personal account.',
-          );
+    <View
+      testID={`setup-panel-${section}`}
+      style={!active && local.hidden}
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}
+    >
+      <Animated.View
+        style={{
+          opacity: progress,
+          transform: [
+            {
+              translateY: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [6, 0],
+              }),
+            },
+          ],
         }}
-        options={[
-          {
-            value: 'BKASH',
-            label: t('bKash'),
-          },
-          {
-            value: 'ROCKET',
-            label: t('Rocket'),
-          },
-        ]}
-      />
-      <Field
-        label={t('Receiving account number')}
-        value={number}
-        onChangeText={setNumber}
-        keyboardType="phone-pad"
-        maxLength={12}
-      />
-      <Field
-        label={t('Payment instructions')}
-        value={instructions}
-        onChangeText={setInstructions}
-        multiline
-        maxLength={300}
-        hint={t('Specify Send Money or Payment and the account holder’s name.')}
-      />
-      <Notice text={action.error} kind="error" />
-      <Notice text={action.success} />
-      <Button
-        title={t('Save payment number')}
-        busy={action.busy}
-        onPress={() => {
-          action.run(async () => {
-            if (
-              !method ||
-              !/^01[3-9]\d{8,9}$/.test(number) ||
-              !instructions.trim()
-            )
-              throw new Error(
-                'Select a method and enter a valid number and payment instructions.',
-              );
-            await mutate(
-              `/admin/payment-accounts/${method}`,
-              {
-                number,
-                instructions,
-              },
-              'PUT',
-            );
-          }, 'Payment details saved. Guardians can now use this number.');
-        }}
-      />
-    </Card>
+      >
+        <View style={styles.section}>{children}</View>
+      </Animated.View>
+    </View>
   );
 }
-function VehicleForm() {
-  const { t } = useTranslation();
-  const { mutate } = useData();
-  const [name, setName] = useState('');
-  const [plate, setPlate] = useState('');
-  const [imei, setImei] = useState('');
-  const [driverName, setDriverName] = useState('');
-  const [driverPhone, setDriverPhone] = useState('');
-  const action = useAction();
-  return (
-    <Card>
-      <Text style={styles.heading}>{t('Add a vehicle')}</Text>
-      <Field
-        label={t('Vehicle name')}
-        value={name}
-        onChangeText={setName}
-        maxLength={60}
-      />
-      <Field
-        label={t('Registration plate')}
-        value={plate}
-        onChangeText={setPlate}
-        maxLength={30}
-      />
-      <Field
-        label={t('GPS device IMEI')}
-        value={imei}
-        onChangeText={setImei}
-        keyboardType="number-pad"
-        maxLength={17}
-      />
-      <Field
-        label={t('Driver name (optional)')}
-        value={driverName}
-        onChangeText={setDriverName}
-        maxLength={60}
-      />
-      <Field
-        label={t('Driver phone (optional)')}
-        value={driverPhone}
-        onChangeText={setDriverPhone}
-        keyboardType="phone-pad"
-        maxLength={15}
-      />
-      <Notice text={action.error} kind="error" />
-      <Notice text={action.success} />
-      <Button
-        title={t('Add vehicle')}
-        busy={action.busy}
-        onPress={() => {
-          action.run(async () => {
-            if (!name.trim() || !plate.trim() || !/^\d{14,17}$/.test(imei))
-              throw new Error(
-                'Enter a vehicle name, plate and a 14–17 digit IMEI.',
-              );
-            await mutate('/vehicles', {
-              name: name.trim(),
-              plate: plate.trim(),
-              imei,
-              driverName,
-              driverPhone,
-            });
-            setName('');
-            setPlate('');
-            setImei('');
-            setDriverName('');
-            setDriverPhone('');
-          }, 'Vehicle added. You can now assign it to a route.');
-        }}
-      />
-    </Card>
-  );
-}
-function RouteForm() {
-  const { t } = useTranslation();
-  const { data, mutate } = useData();
-  const [name, setName] = useState('');
-  const [vehicleId, setVehicleId] = useState('');
-  const [amount, setAmount] = useState('');
-  const [stops, setStops] = useState('');
-  const action = useAction();
-  return (
-    <Card>
-      <Text style={styles.heading}>{t('Create a route')}</Text>
-      <Field
-        label={t('Route / road name')}
-        value={name}
-        onChangeText={setName}
-        maxLength={100}
-      />
-      <Select
-        label={t('Assigned vehicle')}
-        value={vehicleId}
-        onChange={setVehicleId}
-        options={data.vehicles.map(item => ({
-          value: item.id,
-          label: item.name,
-        }))}
-      />
-      <Field
-        label={t('Monthly fee (৳)')}
-        value={amount}
-        onChangeText={setAmount}
-        keyboardType="decimal-pad"
-      />
-      <Field
-        label={t('Pickup stops — one per line')}
-        value={stops}
-        onChangeText={setStops}
-        multiline
-        placeholder={t('Main gate\nCentral road\nSchool entrance')}
-      />
-      <Notice text={action.error} kind="error" />
-      <Notice text={action.success} />
-      <Button
-        title={t('Create route')}
-        busy={action.busy}
-        onPress={() => {
-          action.run(async () => {
-            const stopNames = stops
-              .split('\n')
-              .map(value => value.trim())
-              .filter(Boolean);
-            if (name.trim().length < 2 || !vehicleId || !stopNames.length)
-              throw new Error(
-                'Enter a route name, select a vehicle and add at least one stop.',
-              );
-            await mutate('/admin/routes', {
-              name: name.trim(),
-              vehicleId,
-              monthlyAmount: toPoisha(amount),
-              stops: stopNames,
-            });
-            setName('');
-            setVehicleId('');
-            setAmount('');
-            setStops('');
-          }, 'Route created. Guardians can now apply for this route.');
-        }}
-      />
-    </Card>
-  );
-}
+
 export function SetupScreen() {
   const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
+  const [active, setActive] = useState<SetupSection>('payments');
+  const counts = {
+    payments: data.accounts.length,
+    vehicles: data.vehicles.length,
+    routes: data.routes.length,
+  };
+  const completed = sections.filter(section => counts[section.id] > 0).length;
+  const selectSection = (section: SetupSection) => {
+    Keyboard.dismiss();
+    setActive(section);
+  };
+
   return (
     <Page
       title={t('Service setup')}
-      subtitle={t('Add payment details, vehicles and the routes you cover.')}
+      subtitle={t('Payment accounts, vehicles and routes — all in one place.')}
       loading={loading}
       refresh={refresh}
       error={error}
     >
-      <AccountForm key={JSON.stringify(data.accounts)} />
-      <VehicleForm />
-      <RouteForm />
+      <View style={local.overview}>
+        <View style={styles.between}>
+          <Text style={styles.heading}>{t('Service essentials')}</Text>
+          <Text style={local.progressLabel}>
+            {t('{{number}} of 3 ready', { number: numberLabel(completed) })}
+          </Text>
+        </View>
+        <View
+          accessibilityRole="progressbar"
+          accessibilityLabel={t('Service essentials')}
+          accessibilityValue={{ min: 0, max: 3, now: completed }}
+          style={local.progress}
+        >
+          {sections.map(section => (
+            <View
+              key={section.id}
+              style={[
+                local.progressTrack,
+                counts[section.id] > 0 && local.progressComplete,
+              ]}
+            />
+          ))}
+        </View>
+        <Text style={styles.muted}>
+          {t(
+            completed === 3
+              ? 'Your payment accounts, fleet and routes are set up.'
+              : 'Add a payment account, a vehicle and a route to get started.',
+          )}
+        </Text>
+      </View>
+      <View
+        accessibilityRole="tablist"
+        accessibilityLabel={t('Service setup sections')}
+        style={local.tabs}
+      >
+        {sections.map(section => {
+          const selected = active === section.id;
+          return (
+            <Pressable
+              key={section.id}
+              accessibilityRole="tab"
+              accessibilityLabel={t(section.label)}
+              accessibilityState={{ selected }}
+              onPress={() => selectSection(section.id)}
+              style={({ pressed }) => [
+                local.tab,
+                selected && local.selectedTab,
+                pressed && local.pressed,
+              ]}
+            >
+              <View style={local.tabTop}>
+                <View style={[local.icon, selected && local.selectedIcon]}>
+                  <SetupIcon kind={section.id} selected={selected} />
+                </View>
+                <Text style={[local.count, selected && local.selectedText]}>
+                  {numberLabel(counts[section.id])}
+                </Text>
+              </View>
+              <Text style={[local.tabLabel, selected && local.selectedText]}>
+                {t(section.label)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <SetupPanel section="payments" active={active === 'payments'}>
+        <AccountForm />
+      </SetupPanel>
+      <SetupPanel section="vehicles" active={active === 'vehicles'}>
+        <VehicleForm />
+        {data.vehicles.length ? (
+          <Card>
+            <Text accessibilityRole="header" style={styles.heading}>
+              {t('Your vehicles')} · {numberLabel(data.vehicles.length)}
+            </Text>
+            {data.vehicles.map(vehicle => (
+              <View key={vehicle.id} style={local.record}>
+                <View style={local.recordIcon}>
+                  <SetupIcon kind="vehicles" />
+                </View>
+                <View style={local.recordBody}>
+                  <Text style={local.recordTitle}>{vehicle.name}</Text>
+                  <Text style={styles.muted}>{vehicle.plate}</Text>
+                  {vehicle.driverName ? (
+                    <Text style={styles.muted}>{vehicle.driverName}</Text>
+                  ) : null}
+                </View>
+              </View>
+            ))}
+          </Card>
+        ) : null}
+      </SetupPanel>
+      <SetupPanel section="routes" active={active === 'routes'}>
+        <RouteForm onAddVehicle={() => selectSection('vehicles')} />
+        {data.routes.length ? (
+          <Card>
+            <Text accessibilityRole="header" style={styles.heading}>
+              {t('Your routes')} · {numberLabel(data.routes.length)}
+            </Text>
+            {data.routes.map(route => (
+              <View key={route.id} style={local.record}>
+                <View style={local.recordIcon}>
+                  <SetupIcon kind="routes" />
+                </View>
+                <View style={local.recordBody}>
+                  <Text style={local.recordTitle}>{route.name}</Text>
+                  <Text style={styles.muted}>
+                    {route.vehicleName} ·{' '}
+                    {t('{{number}} pickup stops', {
+                      number: numberLabel(route.stops.length),
+                    })}
+                  </Text>
+                  <Text style={local.routeFee}>
+                    {t('{{amount}} / month', {
+                      amount: money(route.monthlyAmount),
+                    })}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </Card>
+        ) : null}
+      </SetupPanel>
     </Page>
   );
 }
+
+const local = StyleSheet.create({
+  hidden: { display: 'none' },
+  overview: {
+    backgroundColor: colors.mint,
+    borderRadius: 20,
+    padding: 18,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  progressLabel: { color: colors.primary, fontSize: 13, fontWeight: '700' },
+  progress: { flexDirection: 'row', gap: 6 },
+  progressTrack: {
+    flex: 1,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#C6DBCF',
+  },
+  progressComplete: { backgroundColor: colors.primary },
+  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tab: {
+    flex: 1,
+    minWidth: 90,
+    padding: 12,
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 18,
+  },
+  selectedTab: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tabTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 4,
+  },
+  icon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: colors.mint,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedIcon: { backgroundColor: colors.primary },
+  count: {
+    fontSize: 13,
+    color: colors.muted,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  tabLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  selectedText: { color: colors.surface },
+  pressed: { opacity: 0.78 },
+  record: {
+    flexDirection: 'row',
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingTop: 14,
+  },
+  recordIcon: {
+    backgroundColor: colors.mint,
+    height: 42,
+    width: 42,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recordBody: { flex: 1, gap: 3 },
+  recordTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 23,
+    fontWeight: '700',
+  },
+  routeFee: {
+    color: colors.primary,
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '600',
+  },
+});

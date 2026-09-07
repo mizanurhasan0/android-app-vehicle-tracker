@@ -16,7 +16,13 @@ import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
 import { useTranslation } from '../i18n';
 import { colors, styles } from '../theme';
-import { currentMonth, dateLabel, money, readable } from '../utils/format';
+import {
+  currentMonth,
+  dateLabel,
+  money,
+  numberLabel,
+  readable,
+} from '../utils/format';
 
 type DeskTab = 'review' | 'bills' | 'history';
 
@@ -269,7 +275,7 @@ export function AdminPaymentDesk() {
     >
       <View style={desk.overview}>
         <Text style={desk.overviewLabel}>
-          {t('Awaiting review')} · {pending.length}
+          {t('Awaiting review')} · {numberLabel(pending.length)}
         </Text>
         <Text style={desk.overviewAmount}>
           {money(pending.reduce((sum, payment) => sum + payment.amount, 0))}
@@ -290,7 +296,9 @@ export function AdminPaymentDesk() {
           <View style={desk.stat}>
             <Text style={desk.overviewLabel}>{t('Paid bills')}</Text>
             <Text style={desk.statValue}>
-              {data.bills.filter(bill => bill.status === 'PAID').length}
+              {numberLabel(
+                data.bills.filter(bill => bill.status === 'PAID').length,
+              )}
             </Text>
             <Text style={desk.overviewHint}>{t('Across all months')}</Text>
           </View>
@@ -299,7 +307,7 @@ export function AdminPaymentDesk() {
       <View accessibilityRole="tablist" style={desk.choices}>
         <Choice
           tab
-          label={`${t('To review')} · ${pending.length}`}
+          label={`${t('To review')} · ${numberLabel(pending.length)}`}
           selected={tab === 'review'}
           onPress={() => changeTab('review')}
         />
@@ -393,7 +401,7 @@ export function AdminPaymentDesk() {
               ? 'Monthly bills'
               : 'Payment history',
           )}{' '}
-          · {resultCount}
+          · {numberLabel(resultCount)}
         </Text>
         <Text style={styles.muted}>
           {t(tab === 'review' ? 'Oldest first' : 'Newest first')}

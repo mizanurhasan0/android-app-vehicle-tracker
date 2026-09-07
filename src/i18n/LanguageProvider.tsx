@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { i18n, Language } from './index';
+import { LanguageContext } from './LanguageContext';
 
 export const LANGUAGE_STORAGE_KEY = 'transport.language';
-import { LanguageContext } from './LanguageContext';
 
 export function LanguageProvider({ children }: React.PropsWithChildren) {
   const [ready, setReady] = useState(false);
@@ -30,7 +30,7 @@ export function LanguageProvider({ children }: React.PropsWithChildren) {
   }, []);
 
   async function changeLanguage(language: Language) {
-    if (locked.current || language === i18n.language) return;
+    if (locked.current) return;
     locked.current = true;
     setBusy(true);
     setError('');

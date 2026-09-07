@@ -32,34 +32,37 @@ export function NotificationsScreen() {
           detail={t('Service and payment updates appear here.')}
         />
       ) : (
-        updates.map(item => (
-          <Card key={item.id} tinted={!item.readAt}>
-            <View style={styles.between}>
-              <Text style={styles.heading}>{notificationText(item).title}</Text>
-              {!item.readAt ? <Badge status="NEW" /> : null}
-            </View>
-            <Text style={styles.body}>{notificationText(item).body}</Text>
-            <Text style={styles.muted}>{dateLabel(item.createdAt)}</Text>
-            {!item.readAt ? (
-              <Button
-                secondary
-                title={t('Mark as read')}
-                busy={action.busy}
-                onPress={() => {
-                  action.run(
-                    () =>
-                      mutate(
-                        `/notifications/${item.id}/read`,
-                        undefined,
-                        'PATCH',
-                      ),
-                    '',
-                  );
-                }}
-              />
-            ) : null}
-          </Card>
-        ))
+        updates.map(item => {
+          const translated = notificationText(item);
+          return (
+            <Card key={item.id} tinted={!item.readAt}>
+              <View style={styles.between}>
+                <Text style={styles.heading}>{translated.title}</Text>
+                {!item.readAt ? <Badge status="NEW" /> : null}
+              </View>
+              <Text style={styles.body}>{translated.body}</Text>
+              <Text style={styles.muted}>{dateLabel(item.createdAt)}</Text>
+              {!item.readAt ? (
+                <Button
+                  secondary
+                  title={t('Mark as read')}
+                  busy={action.busy}
+                  onPress={() => {
+                    action.run(
+                      () =>
+                        mutate(
+                          `/notifications/${item.id}/read`,
+                          undefined,
+                          'PATCH',
+                        ),
+                      '',
+                    );
+                  }}
+                />
+              ) : null}
+            </Card>
+          );
+        })
       )}
     </Page>
   );

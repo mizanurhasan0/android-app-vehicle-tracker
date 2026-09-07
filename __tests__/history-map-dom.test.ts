@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { JSDOM, VirtualConsole } from 'jsdom';
-import { historyMapHtml } from '../src/components/HistoryMap';
+import { historyMapHtml, historyMapLabels } from '../src/components/HistoryMap';
 import { HistoryRoute } from '../src/api/types';
 jest.mock('react-native-webview', () => ({ WebView: 'WebView' }));
 it('parses real map controls and executes initial rendering, zoom, fit and playback', () => {
@@ -59,6 +59,24 @@ it('parses real map controls and executes initial rendering, zoom, fit and playb
     expect(
       document.querySelector('#route polyline')?.getAttribute('points'),
     ).not.toBe(beforeZoom);
+    const zoomedRoute = document
+      .querySelector('#route polyline')
+      ?.getAttribute('points');
+    dom.window.eval(
+      `window.setHistoryLabels(${JSON.stringify(historyMapLabels('bn'))})`,
+    );
+    expect(document.getElementById('fit')?.textContent).toBe('পুরো রুট');
+    expect(document.getElementById('plus')?.getAttribute('aria-label')).toBe(
+      'বড় করুন',
+    );
+    expect(document.querySelector('#route')?.textContent).toContain('শুরু');
+    expect(
+      document.querySelector('#route polyline')?.getAttribute('points'),
+    ).toBe(zoomedRoute);
+    dom.window.eval(
+      `window.setHistoryLabels(${JSON.stringify(historyMapLabels('en'))})`,
+    );
+    expect(document.getElementById('fit')?.textContent).toBe('Fit');
     (document.getElementById('minus') as HTMLButtonElement).click();
     (document.getElementById('fit') as HTMLButtonElement).click();
     dom.window.eval('window.selectHistoryPoint([23.8,90.4])');

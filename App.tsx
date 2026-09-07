@@ -26,6 +26,7 @@ import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { colors } from './src/theme';
 import { useTranslation } from './src/i18n';
 import { LanguageProvider } from './src/i18n/LanguageProvider';
+import { numberLabel } from './src/utils/format';
 const Tab = createBottomTabNavigator<RootTabParams>();
 const HomeStack = createNativeStackNavigator<HomeStackParams>();
 function HomeNavigator() {
@@ -97,7 +98,11 @@ function Tabs() {
           name="Inbox"
           component={NotificationsScreen}
           options={{
-            tabBarBadge: unread ? (unread > 99 ? '99+' : unread) : undefined,
+            tabBarBadge: unread
+              ? unread > 99
+                ? `${numberLabel(99)}+`
+                : numberLabel(unread)
+              : undefined,
             tabBarBadgeStyle: local.badge,
           }}
         />

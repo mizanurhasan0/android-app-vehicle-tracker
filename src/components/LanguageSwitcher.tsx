@@ -67,7 +67,7 @@ const local = StyleSheet.create({
     backgroundColor: colors.mint,
   },
   option: {
-    minHeight: 44,
+    minHeight: 48,
     minWidth: 60,
     paddingHorizontal: 10,
     justifyContent: 'center',

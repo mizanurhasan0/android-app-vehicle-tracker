@@ -200,11 +200,13 @@ export function Select({
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   label: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -214,6 +216,8 @@ export function Select({
         <Picker
           accessibilityLabel={label}
           selectedValue={value}
+          enabled={!disabled}
+          accessibilityState={{ disabled }}
           onValueChange={item => onChange(String(item))}
           style={ui.picker}
         >
@@ -329,6 +333,7 @@ const ui = StyleSheet.create({
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8, transform: [{ scale: 0.985 }] },
   buttonText: {
+    flexShrink: 1,
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
