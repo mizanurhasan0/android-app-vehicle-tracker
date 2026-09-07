@@ -64,7 +64,7 @@ export function Page({
   refresh,
   error,
 }: React.PropsWithChildren<{
-  title: string;
+  title?: string;
   subtitle?: string;
   loading?: boolean;
   refresh?: () => Promise<void>;
@@ -92,9 +92,11 @@ export function Page({
           <View style={ui.content}>
             <View style={ui.header}>
               <Text style={styles.label}>পথসাথী · PATHSATHI</Text>
-              <Text accessibilityRole="header" style={styles.title}>
-                {title}
-              </Text>
+              {title ? (
+                <Text accessibilityRole="header" style={styles.title}>
+                  {title}
+                </Text>
+              ) : null}
               {subtitle ? <Text style={styles.muted}>{subtitle}</Text> : null}
             </View>
             <Notice text={error} kind="error" />

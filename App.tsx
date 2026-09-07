@@ -9,7 +9,7 @@ import {
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { VehicleHistoryScreen } from './src/screens/VehicleHistoryScreen';
-import { HomeStackParams } from './src/navigation/types';
+import { HomeStackParams, RootTabParams } from './src/navigation/types';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   SafeAreaProvider,
@@ -24,7 +24,7 @@ import { RequestsScreen } from './src/screens/RequestsScreen';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { colors } from './src/theme';
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<RootTabParams>();
 const HomeStack = createNativeStackNavigator<HomeStackParams>();
 function HomeNavigator() {
   const { session } = useAuth();
@@ -93,6 +93,7 @@ function Tabs() {
           name="Inbox"
           component={NotificationsScreen}
           options={{
+            title: 'Updates',
             tabBarBadge: unread ? (unread > 99 ? '99+' : unread) : undefined,
             tabBarBadgeStyle: local.badge,
           }}
