@@ -16,10 +16,10 @@ import {
   Field,
   Notice,
   Page,
-  SectionTitle,
   Select,
 } from '../components/ui';
 import { ReviewActions } from '../components/ReviewActions';
+import { RequestIconKind, RequestTabIcon } from '../components/RequestTabIcon';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
@@ -27,28 +27,27 @@ import { colors, styles } from '../theme';
 import { money, readable } from '../utils/format';
 
 const requestTabs = ['Applications', 'Complaints', 'Stop requests'] as const;
-type RequestTab = (typeof requestTabs)[number];
+const guardianTabs = ['Form', ...requestTabs] as const;
+type RequestTab = (typeof guardianTabs)[number];
+const guardianTabDetails: Record<
+  RequestTab,
+  { label: string; icon: RequestIconKind }
+> = {
+  Form: { label: 'Request forms', icon: 'form' },
+  Applications: { label: 'My applications', icon: 'applications' },
+  Complaints: { label: 'My complaints', icon: 'complaints' },
+  'Stop requests': { label: 'Stop requests', icon: 'stop' },
+};
 
 function RequestSection({
   label,
-  tabbed,
   visible,
   children,
 }: React.PropsWithChildren<{
   label: RequestTab;
-  tabbed: boolean;
   visible: boolean;
 }>) {
-  const { t } = useTranslation();
-  if (!tabbed) {
-    return (
-      <>
-        <SectionTitle>{t(label)}</SectionTitle>
-        {children}
-      </>
-    );
-  }
-  // Keep review drafts mounted when switching tabs.
+  // Keep form and review drafts mounted when switching tabs.
   return (
     <View
       testID={`request-section-${label}`}
@@ -154,7 +153,8 @@ export function RequestsScreen() {
   const { t } = useTranslation();
   const { session } = useAuth();
   const { data, loading, error, refresh, mutate } = useData();
-  const [tab, setTab] = useState<RequestTab>('Applications');
+  const admin = session!.user.role === 'ADMIN';
+  const [tab, setTab] = useState<RequestTab>(admin ? 'Applications' : 'Form');
   const [studentName, setStudentName] = useState('');
   const [routeId, setRouteId] = useState('');
   const [stopId, setStopId] = useState('');
@@ -163,128 +163,231 @@ export function RequestsScreen() {
   const [description, setDescription] = useState('');
   const [reason, setReason] = useState('');
   const action = useAction();
-  const admin = session!.user.role === 'ADMIN';
   const route = data.routes.find(item => item.id === routeId);
   const active = data.subscriptions.filter(item => item.status === 'ACTIVE');
   return (
-    <Page
-      title={admin ? undefined : t('Your transport service')}
-      subtitle={
-        admin
-          ? undefined
-          : t('Find your route and let us take care of the next step.')
-      }
-      loading={loading}
-      refresh={refresh}
-      error={error}
-    >
+    <Page loading={loading} refresh={refresh} error={error}>
       <Notice text={action.error} kind="error" />
       <Notice text={action.success} />
-      {admin ? (
-        <View
-          accessibilityRole="tablist"
-          accessibilityLabel={t('Service requests')}
-          style={local.tabs}
-        >
-          {requestTabs.map(label => (
-            <Pressable
-              key={label}
-              accessibilityRole="tab"
-              accessibilityLabel={t(label)}
-              accessibilityState={{ selected: tab === label }}
-              onPress={() => {
-                Keyboard.dismiss();
-                setTab(label);
-              }}
-              style={({ pressed }) => [
-                local.tab,
-                tab === label && local.selectedTab,
-                pressed && local.pressed,
-              ]}
-            >
-              <Text
-                style={[local.tabText, tab === label && local.selectedTabText]}
-              >
-                {t(label)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-      {!admin ? (
-        <Card>
-          <Text style={styles.heading}>{t('Request a transport service')}</Text>
-          <Field
-            label={t('Student name')}
-            value={studentName}
-            onChangeText={setStudentName}
-            maxLength={100}
-          />
-          <Select
-            label={t('Route / road')}
-            value={routeId}
-            onChange={value => {
-              setRouteId(value);
-              setStopId('');
+      <View
+        accessibilityRole="tablist"
+        accessibilityLabel={t(
+          admin ? 'Service requests' : 'Your transport service',
+        )}
+        style={local.tabs}
+      >
+        {(admin ? requestTabs : guardianTabs).map(label => (
+          <Pressable
+            key={label}
+            accessibilityRole="tab"
+            accessibilityLabel={t(
+              admin ? label : guardianTabDetails[label].label,
+            )}
+            accessibilityState={{ selected: tab === label }}
+            onPress={() => {
+              Keyboard.dismiss();
+              setTab(label);
             }}
-            options={data.routes.map(item => ({
-              value: item.id,
-              label: t('{{route}} · {{amount}}/month', {
-                route: item.name,
-                amount: money(item.monthlyAmount),
-              }),
-            }))}
-          />
-          <Select
-            label={t('Pickup stop')}
-            value={stopId}
-            onChange={setStopId}
-            options={(route?.stops || []).map(item => ({
-              value: item.id,
-              label: item.name,
-            }))}
-          />
-          {route ? (
+            style={({ pressed }) => [
+              local.tab,
+              !admin && local.guardianTab,
+              tab === label && local.selectedTab,
+              pressed && local.pressed,
+            ]}
+          >
+            {!admin ? (
+              <RequestTabIcon
+                kind={guardianTabDetails[label].icon}
+                selected={tab === label}
+              />
+            ) : null}
+            <Text
+              style={[local.tabText, tab === label && local.selectedTabText]}
+            >
+              {t(admin ? label : guardianTabDetails[label].label)}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {!admin ? (
+        <RequestSection label="Form" visible={tab === 'Form'}>
+          <Card>
+            <Text style={styles.heading}>
+              {t('Request a transport service')}
+            </Text>
+            <Field
+              label={t('Student name')}
+              value={studentName}
+              onChangeText={setStudentName}
+              maxLength={100}
+            />
+            <Select
+              label={t('Route / road')}
+              value={routeId}
+              onChange={value => {
+                setRouteId(value);
+                setStopId('');
+              }}
+              options={data.routes.map(item => ({
+                value: item.id,
+                label: t('{{route}} · {{amount}}/month', {
+                  route: item.name,
+                  amount: money(item.monthlyAmount),
+                }),
+              }))}
+            />
+            <Select
+              label={t('Pickup stop')}
+              value={stopId}
+              onChange={setStopId}
+              options={(route?.stops || []).map(item => ({
+                value: item.id,
+                label: item.name,
+              }))}
+            />
+            {route ? (
+              <Text style={styles.muted}>
+                {t(
+                  'Vehicle: {{name}} · Full monthly fee {{amount}}. The admin will confirm your service.',
+                  {
+                    name: route.vehicleName,
+                    amount: money(route.monthlyAmount),
+                  },
+                )}
+              </Text>
+            ) : null}
+            {!data.routes.length ? (
+              <Text style={styles.muted}>
+                {t(
+                  'The admin has not added routes yet. Please check back soon.',
+                )}
+              </Text>
+            ) : null}
+            <Button
+              title={t('Send service request')}
+              busy={action.busy}
+              disabled={!data.routes.length}
+              onPress={() => {
+                action.run(async () => {
+                  if (studentName.trim().length < 2 || !routeId || !stopId)
+                    throw new Error(
+                      'Enter the student’s name and select a route and pickup stop.',
+                    );
+                  await mutate('/requests/guardian/new', {
+                    studentName: studentName.trim(),
+                    routeId,
+                    stopId,
+                  });
+                  setStudentName('');
+                  setRouteId('');
+                  setStopId('');
+                }, 'Request sent. You’ll receive an update after admin review.');
+              }}
+            />
+          </Card>
+          {!admin && active.length ? (
+            <Card>
+              <Text style={styles.heading}>
+                {t('Need help with your service?')}
+              </Text>
+              <Select
+                label={t('Active service')}
+                value={subscriptionId}
+                onChange={setSubscriptionId}
+                options={active.map(item => ({
+                  value: item.id,
+                  label: `${item.studentName} · ${item.routeName}`,
+                }))}
+              />
+              <Select
+                label={t('Complaint category')}
+                value={category}
+                onChange={setCategory}
+                options={[
+                  'LATE_PICKUP',
+                  'DRIVER_BEHAVIOUR',
+                  'VEHICLE_SAFETY',
+                  'PAYMENT',
+                  'OTHER',
+                ].map(value => ({
+                  value,
+                  label: readable(value),
+                }))}
+              />
+              <Field
+                label={t('Tell us what happened')}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                maxLength={2000}
+              />
+              <Notice text={action.error} kind="error" />
+              <Notice text={action.success} />
+              <Button
+                title={t('Submit complaint')}
+                busy={action.busy}
+                onPress={() => {
+                  action.run(async () => {
+                    if (
+                      !subscriptionId ||
+                      !category ||
+                      description.trim().length < 10
+                    )
+                      throw new Error(
+                        'Select a service, category and add at least 10 characters of detail.',
+                      );
+                    await mutate('/complaints', {
+                      subscriptionId,
+                      category,
+                      description,
+                    });
+                    setDescription('');
+                  }, 'Complaint submitted. The admin has been notified.');
+                }}
+              />
+              <Field
+                label={t('Reason for stopping service')}
+                value={reason}
+                onChangeText={setReason}
+                multiline
+                maxLength={500}
+              />
+              <Text style={styles.muted}>
+                {t(
+                  'Your service continues until the admin approves. Existing monthly bills remain payable; no automatic refund or proration.',
+                )}
+              </Text>
+              <Notice text={action.error} kind="error" />
+              <Notice text={action.success} />
+              <Button
+                secondary
+                title={t('Request to stop service')}
+                busy={action.busy}
+                onPress={() => {
+                  action.run(async () => {
+                    if (!subscriptionId || reason.trim().length < 5)
+                      throw new Error(
+                        'Select a service and add a reason (at least 5 characters).',
+                      );
+                    await mutate('/stop-requests', {
+                      subscriptionId,
+                      reason,
+                    });
+                    setReason('');
+                  }, 'Stop request submitted. Your service remains active until approved.');
+                }}
+              />
+            </Card>
+          ) : !admin ? (
             <Text style={styles.muted}>
               {t(
-                'Vehicle: {{name}} · Full monthly fee {{amount}}. The admin will confirm your service.',
-                { name: route.vehicleName, amount: money(route.monthlyAmount) },
+                'Complaint and stop-service forms become available after your transport service is approved.',
               )}
             </Text>
           ) : null}
-          {!data.routes.length ? (
-            <Text style={styles.muted}>
-              {t('The admin has not added routes yet. Please check back soon.')}
-            </Text>
-          ) : null}
-          <Button
-            title={t('Send service request')}
-            busy={action.busy}
-            disabled={!data.routes.length}
-            onPress={() => {
-              action.run(async () => {
-                if (studentName.trim().length < 2 || !routeId || !stopId)
-                  throw new Error(
-                    'Enter the student’s name and select a route and pickup stop.',
-                  );
-                await mutate('/requests/guardian/new', {
-                  studentName: studentName.trim(),
-                  routeId,
-                  stopId,
-                });
-                setStudentName('');
-                setRouteId('');
-                setStopId('');
-              }, 'Request sent. You’ll receive an update after admin review.');
-            }}
-          />
-        </Card>
+        </RequestSection>
       ) : null}
-      <RequestSection
-        label="Applications"
-        tabbed={admin}
-        visible={tab === 'Applications'}
-      >
+      <RequestSection label="Applications" visible={tab === 'Applications'}>
         {!data.requests.length ? (
           <Empty
             title={t('No applications yet')}
@@ -329,111 +432,7 @@ export function RequestsScreen() {
           ))
         )}
       </RequestSection>
-      {!admin && active.length ? (
-        <Card>
-          <Text style={styles.heading}>
-            {t('Need help with your service?')}
-          </Text>
-          <Select
-            label={t('Active service')}
-            value={subscriptionId}
-            onChange={setSubscriptionId}
-            options={active.map(item => ({
-              value: item.id,
-              label: `${item.studentName} · ${item.routeName}`,
-            }))}
-          />
-          <Select
-            label={t('Complaint category')}
-            value={category}
-            onChange={setCategory}
-            options={[
-              'LATE_PICKUP',
-              'DRIVER_BEHAVIOUR',
-              'VEHICLE_SAFETY',
-              'PAYMENT',
-              'OTHER',
-            ].map(value => ({
-              value,
-              label: readable(value),
-            }))}
-          />
-          <Field
-            label={t('Tell us what happened')}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            maxLength={2000}
-          />
-          <Notice text={action.error} kind="error" />
-          <Notice text={action.success} />
-          <Button
-            title={t('Submit complaint')}
-            busy={action.busy}
-            onPress={() => {
-              action.run(async () => {
-                if (
-                  !subscriptionId ||
-                  !category ||
-                  description.trim().length < 10
-                )
-                  throw new Error(
-                    'Select a service, category and add at least 10 characters of detail.',
-                  );
-                await mutate('/complaints', {
-                  subscriptionId,
-                  category,
-                  description,
-                });
-                setDescription('');
-              }, 'Complaint submitted. The admin has been notified.');
-            }}
-          />
-          <Field
-            label={t('Reason for stopping service')}
-            value={reason}
-            onChangeText={setReason}
-            multiline
-            maxLength={500}
-          />
-          <Text style={styles.muted}>
-            {t(
-              'Your service continues until the admin approves. Existing monthly bills remain payable; no automatic refund or proration.',
-            )}
-          </Text>
-          <Notice text={action.error} kind="error" />
-          <Notice text={action.success} />
-          <Button
-            secondary
-            title={t('Request to stop service')}
-            busy={action.busy}
-            onPress={() => {
-              action.run(async () => {
-                if (!subscriptionId || reason.trim().length < 5)
-                  throw new Error(
-                    'Select a service and add a reason (at least 5 characters).',
-                  );
-                await mutate('/stop-requests', {
-                  subscriptionId,
-                  reason,
-                });
-                setReason('');
-              }, 'Stop request submitted. Your service remains active until approved.');
-            }}
-          />
-        </Card>
-      ) : !admin ? (
-        <Text style={styles.muted}>
-          {t(
-            'Complaint and stop-service forms become available after your transport service is approved.',
-          )}
-        </Text>
-      ) : null}
-      <RequestSection
-        label="Complaints"
-        tabbed={admin}
-        visible={tab === 'Complaints'}
-      >
+      <RequestSection label="Complaints" visible={tab === 'Complaints'}>
         {!data.complaints.length ? (
           <Text style={styles.muted}>{t('No complaints to show.')}</Text>
         ) : (
@@ -477,11 +476,7 @@ export function RequestsScreen() {
           ))
         )}
       </RequestSection>
-      <RequestSection
-        label="Stop requests"
-        tabbed={admin}
-        visible={tab === 'Stop requests'}
-      >
+      <RequestSection label="Stop requests" visible={tab === 'Stop requests'}>
         {!data.stops.length ? (
           <Text style={styles.muted}>{t('No stop requests to show.')}</Text>
         ) : (
@@ -538,7 +533,9 @@ const local = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   selectedTab: { backgroundColor: colors.primary, borderColor: colors.primary },
+  guardianTab: { flexBasis: '40%', flexDirection: 'row', gap: 8 },
   tabText: {
+    flexShrink: 1,
     color: colors.ink,
     fontSize: 13,
     lineHeight: 19,

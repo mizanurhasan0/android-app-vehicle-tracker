@@ -2,7 +2,7 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { Alert, StyleSheet } from 'react-native';
 import { DashboardData, User } from '../src/api/types';
-import { Button, Field } from '../src/components/ui';
+import { Button, Field, Select } from '../src/components/ui';
 import { RequestsScreen } from '../src/screens/RequestsScreen';
 
 const mockMutate = jest.fn();
@@ -116,10 +116,17 @@ function actionPanels() {
 }
 
 function tab(label: string) {
+  const guardianLabels: Record<string, string> = {
+    Form: 'Request forms',
+    Applications: 'My applications',
+    Complaints: 'My complaints',
+    'Stop requests': 'Stop requests',
+  };
   return screen.root.findAll(
     node =>
       node.props.accessibilityRole === 'tab' &&
-      node.props.accessibilityLabel === label &&
+      node.props.accessibilityLabel ===
+        (mockRole === 'GUARDIAN' ? guardianLabels[label] : label) &&
       typeof node.props.onPress === 'function',
     { deep: false },
   )[0];
@@ -246,11 +253,146 @@ it('does not expose admin actions in the guardian view', async () => {
   mockRole = 'GUARDIAN';
   await renderScreen();
   expect(disclosures()).toHaveLength(0);
-  expect(tab('Applications')).toBeUndefined();
+  expect(tab('Form').props.accessibilityState.selected).toBe(true);
+  expect(section('Applications').props.accessibilityElementsHidden).toBe(true);
   expect(
     screen.root
       .findAllByType(Button)
       .some(button => button.props.title === 'Send service request'),
   ).toBe(true);
   expect(mockMutate).not.toHaveBeenCalled();
+});
+
+function seedGuardianService() {
+  mockRole = 'GUARDIAN';
+  mockData.routes = [
+    {
+      id: 'route-1',
+      name: 'Central road',
+      vehicleId: 'bus-1',
+      vehicleName: 'Morning bus',
+      monthlyAmount: 150000,
+      stops: [{ id: 'stop-1', name: 'Main gate' }],
+    },
+  ];
+  mockData.subscriptions = [
+    {
+      id: 'service-1',
+      studentName: 'Student One',
+      routeName: 'Central road',
+      stopName: 'Main gate',
+      vehicleName: 'Morning bus',
+      vehicleId: 'bus-1',
+      status: 'ACTIVE',
+    },
+  ];
+}
+
+function guardianField(label: string) {
+  return section('Form')
+    .findAllByType(Field)
+    .find(field => field.props.label === label)!;
+}
+
+function guardianSelect(label: string) {
+  return section('Form')
+    .findAllByType(Select)
+    .find(select => select.props.label === label)!;
+}
+
+async function pressGuardianButton(title: string) {
+  await act(async () => {
+    section('Form')
+      .findAllByType(Button)
+      .find(button => button.props.title === title)!
+      .props.onPress();
+  });
+}
+
+it('preserves all guardian form drafts while showing only the selected tab', async () => {
+  seedGuardianService();
+  await renderScreen();
+  await act(async () => {
+    guardianField('Student name').props.onChangeText('Student Two');
+    guardianSelect('Route / road').props.onChange('route-1');
+    guardianSelect('Active service').props.onChange('service-1');
+    guardianSelect('Complaint category').props.onChange('LATE_PICKUP');
+    guardianField('Tell us what happened').props.onChangeText(
+      'The bus arrived late today.',
+    );
+    guardianField('Reason for stopping service').props.onChangeText(
+      'Moving to another school',
+    );
+  });
+  await act(async () => guardianSelect('Pickup stop').props.onChange('stop-1'));
+  const labels = ['Form', 'Applications', 'Complaints', 'Stop requests'];
+  for (const selected of labels) {
+    await selectTab(selected);
+    labels.forEach(label => {
+      const visible = label === selected;
+      expect(tab(label).props.accessibilityState.selected).toBe(visible);
+      expect(section(label).props.accessibilityElementsHidden).toBe(!visible);
+      expect(section(label).props.importantForAccessibility).toBe(
+        visible ? 'auto' : 'no-hide-descendants',
+      );
+      expect(StyleSheet.flatten(section(label).props.style).display).toBe(
+        visible ? undefined : 'none',
+      );
+    });
+  }
+  await selectTab('Form');
+  expect(guardianField('Student name').props.value).toBe('Student Two');
+  expect(guardianSelect('Route / road').props.value).toBe('route-1');
+  expect(guardianSelect('Pickup stop').props.value).toBe('stop-1');
+  expect(guardianSelect('Active service').props.value).toBe('service-1');
+  expect(guardianSelect('Complaint category').props.value).toBe('LATE_PICKUP');
+  expect(guardianField('Tell us what happened').props.value).toBe(
+    'The bus arrived late today.',
+  );
+  expect(guardianField('Reason for stopping service').props.value).toBe(
+    'Moving to another school',
+  );
+  expect(mockMutate).not.toHaveBeenCalled();
+});
+
+it('keeps all three guardian submission flows available from the Form tab', async () => {
+  seedGuardianService();
+  await renderScreen();
+  await pressGuardianButton('Send service request');
+  expect(mockMutate).not.toHaveBeenCalled();
+  await act(async () => {
+    guardianField('Student name').props.onChangeText('Student Two');
+    guardianSelect('Route / road').props.onChange('route-1');
+  });
+  await act(async () => guardianSelect('Pickup stop').props.onChange('stop-1'));
+  await pressGuardianButton('Send service request');
+  expect(mockMutate).toHaveBeenLastCalledWith('/requests/guardian/new', {
+    studentName: 'Student Two',
+    routeId: 'route-1',
+    stopId: 'stop-1',
+  });
+  await act(async () => {
+    guardianSelect('Active service').props.onChange('service-1');
+    guardianSelect('Complaint category').props.onChange('LATE_PICKUP');
+    guardianField('Tell us what happened').props.onChangeText(
+      'The bus arrived late today.',
+    );
+    guardianField('Reason for stopping service').props.onChangeText(
+      'Moving to another school',
+    );
+  });
+  await selectTab('Complaints');
+  await selectTab('Form');
+  await pressGuardianButton('Submit complaint');
+  expect(mockMutate).toHaveBeenLastCalledWith('/complaints', {
+    subscriptionId: 'service-1',
+    category: 'LATE_PICKUP',
+    description: 'The bus arrived late today.',
+  });
+  await pressGuardianButton('Request to stop service');
+  expect(mockMutate).toHaveBeenLastCalledWith('/stop-requests', {
+    subscriptionId: 'service-1',
+    reason: 'Moving to another school',
+  });
+  expect(mockMutate).toHaveBeenCalledTimes(3);
 });
