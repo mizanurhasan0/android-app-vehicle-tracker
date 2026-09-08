@@ -20,6 +20,7 @@ import { colors, styles } from '../theme';
 import { normalizeDigits, readable } from '../utils/format';
 import { translateMessage, useTranslation } from '../i18n';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { CopyrightFooter } from './CopyrightFooter';
 export function FadeIn({ children }: React.PropsWithChildren) {
   const progress = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -106,6 +107,7 @@ export function Page({
             </View>
             <Notice text={error} kind="error" />
             {children}
+            <CopyrightFooter />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Field, Notice } from '../components/ui';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { CopyrightFooter } from '../components/CopyrightFooter';
 import { useAuth } from '../context/AuthContext';
 import { useAction } from '../hooks/useAction';
 import { colors } from '../theme';
@@ -245,6 +246,7 @@ export function AuthScreen() {
             </Pressable>
           </View>
           <Text style={local.tagline}>{t('A calmer school journey.')}</Text>
+          <CopyrightFooter />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
