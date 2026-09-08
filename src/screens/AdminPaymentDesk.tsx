@@ -266,42 +266,29 @@ export function AdminPaymentDesk() {
   };
 
   return (
-    <Page
-      title={t('Payment desk')}
-      subtitle={t('Review payments and keep monthly bills on track.')}
-      loading={loading}
-      refresh={refresh}
-      error={error}
-    >
+    <Page loading={loading} refresh={refresh} error={error}>
       <View style={desk.overview}>
-        <Text style={desk.overviewLabel}>
-          {t('Awaiting review')} · {numberLabel(pending.length)}
-        </Text>
-        <Text style={desk.overviewAmount}>
-          {money(pending.reduce((sum, payment) => sum + payment.amount, 0))}
-        </Text>
-        <Text style={desk.overviewHint}>
-          {t('Submitted payments awaiting your verification')}
-        </Text>
-        <View style={desk.overviewFooter}>
-          <View style={desk.stat}>
-            <Text style={desk.overviewLabel}>{t('Outstanding bills')}</Text>
-            <Text style={desk.statValue}>
-              {money(unpaid.reduce((sum, bill) => sum + bill.amount, 0))}
-            </Text>
-            <Text style={desk.overviewHint}>
-              {t('Includes bills awaiting review')}
-            </Text>
-          </View>
-          <View style={desk.stat}>
-            <Text style={desk.overviewLabel}>{t('Paid bills')}</Text>
-            <Text style={desk.statValue}>
-              {numberLabel(
-                data.bills.filter(bill => bill.status === 'PAID').length,
-              )}
-            </Text>
-            <Text style={desk.overviewHint}>{t('Across all months')}</Text>
-          </View>
+        <View style={desk.stat}>
+          <Text style={desk.overviewLabel}>
+            {t('Awaiting review')} · {numberLabel(pending.length)}
+          </Text>
+          <Text style={desk.statValue}>
+            {money(pending.reduce((sum, payment) => sum + payment.amount, 0))}
+          </Text>
+        </View>
+        <View style={desk.stat}>
+          <Text style={desk.overviewLabel}>{t('Outstanding bills')}</Text>
+          <Text style={desk.statValue}>
+            {money(unpaid.reduce((sum, bill) => sum + bill.amount, 0))}
+          </Text>
+        </View>
+        <View style={desk.stat}>
+          <Text style={desk.overviewLabel}>{t('Paid bills')}</Text>
+          <Text style={desk.statValue}>
+            {numberLabel(
+              data.bills.filter(bill => bill.status === 'PAID').length,
+            )}
+          </Text>
         </View>
       </View>
       <View accessibilityRole="tablist" style={desk.choices}>
@@ -487,29 +474,30 @@ export function AdminPaymentDesk() {
 const desk = StyleSheet.create({
   overview: {
     backgroundColor: colors.ink,
-    borderRadius: 24,
-    padding: 22,
-    gap: 8,
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
   },
-  overviewLabel: { color: '#D7EEE3', fontSize: 13, fontWeight: '600' },
-  overviewAmount: {
-    color: colors.surface,
-    fontSize: 36,
-    fontWeight: '800',
-    letterSpacing: -1,
+  overviewLabel: {
+    color: '#D7EEE3',
+    fontSize: 13,
+    fontWeight: '600',
+    flexShrink: 1,
   },
-  overviewHint: { color: '#D7EEE3', fontSize: 13, lineHeight: 19 },
-  overviewFooter: {
+  stat: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#45665A',
-    paddingTop: 16,
-    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: 12,
+    rowGap: 4,
   },
-  stat: { flex: 1, minWidth: 120, gap: 5 },
-  statValue: { color: colors.surface, fontSize: 22, fontWeight: '700' },
+  statValue: {
+    color: colors.surface,
+    fontSize: 16,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: {
     minHeight: 48,
