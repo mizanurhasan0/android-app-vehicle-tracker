@@ -109,51 +109,13 @@ export function SetupScreen() {
     vehicles: data.vehicles.length,
     routes: data.routes.length,
   };
-  const completed = sections.filter(section => counts[section.id] > 0).length;
   const selectSection = (section: SetupSection) => {
     Keyboard.dismiss();
     setActive(section);
   };
 
   return (
-    <Page
-      title={t('Service setup')}
-      subtitle={t('Payment accounts, vehicles and routes — all in one place.')}
-      loading={loading}
-      refresh={refresh}
-      error={error}
-    >
-      <View style={local.overview}>
-        <View style={styles.between}>
-          <Text style={styles.heading}>{t('Service essentials')}</Text>
-          <Text style={local.progressLabel}>
-            {t('{{number}} of 3 ready', { number: numberLabel(completed) })}
-          </Text>
-        </View>
-        <View
-          accessibilityRole="progressbar"
-          accessibilityLabel={t('Service essentials')}
-          accessibilityValue={{ min: 0, max: 3, now: completed }}
-          style={local.progress}
-        >
-          {sections.map(section => (
-            <View
-              key={section.id}
-              style={[
-                local.progressTrack,
-                counts[section.id] > 0 && local.progressComplete,
-              ]}
-            />
-          ))}
-        </View>
-        <Text style={styles.muted}>
-          {t(
-            completed === 3
-              ? 'Your payment accounts, fleet and routes are set up.'
-              : 'Add a payment account, a vehicle and a route to get started.',
-          )}
-        </Text>
-      </View>
+    <Page loading={loading} refresh={refresh} error={error}>
       <View
         accessibilityRole="tablist"
         accessibilityLabel={t('Service setup sections')}
@@ -253,23 +215,6 @@ export function SetupScreen() {
 
 const local = StyleSheet.create({
   hidden: { display: 'none' },
-  overview: {
-    backgroundColor: colors.mint,
-    borderRadius: 20,
-    padding: 18,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  progressLabel: { color: colors.primary, fontSize: 13, fontWeight: '700' },
-  progress: { flexDirection: 'row', gap: 6 },
-  progressTrack: {
-    flex: 1,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#C6DBCF',
-  },
-  progressComplete: { backgroundColor: colors.primary },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tab: {
     flex: 1,
