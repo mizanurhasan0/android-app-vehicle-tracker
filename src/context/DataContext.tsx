@@ -46,40 +46,15 @@ export function DataProvider({ children }: React.PropsWithChildren) {
       live.current = false;
     };
   }, []);
-  const refresh = useCallback(async () => {
-    const request = ++generation.current;
-    setLoading(true);
-    try {
-      const get = <T,>(path: string) => api<T>(baseUrl, path, token);
-      const [
-        vehicles,
-        locations,
-        routes,
-        subscriptions,
-        bills,
-        accounts,
-        payments,
-        requests,
-        complaints,
-        stops,
-        notifications,
-      ] = await Promise.all([
-        get<{ vehicles: Vehicle[] }>('/vehicles'),
-        get<{ devices: Location[] }>('/locations'),
-        get<DashboardData['routes']>('/routes'),
-        get<DashboardData['subscriptions']>('/subscriptions'),
-        get<DashboardData['bills']>('/payments/monthly'),
-        get<DashboardData['accounts']>('/payments/accounts'),
-        get<DashboardData['payments']>('/payments/submissions'),
-        get<DashboardData['requests']>('/requests/mine'),
-        get<DashboardData['complaints']>('/complaints'),
-        get<DashboardData['stops']>('/stop-requests'),
-        get<DashboardData['notifications']>('/notifications'),
-      ]);
-      if (live.current && request === generation.current) {
-        setData({
-          vehicles: vehicles.vehicles,
-          locations: locations.devices,
+  const load = useCallback(
+    async (showLoading: boolean) => {
+      const request = ++generation.current;
+      if (showLoading) setLoading(true);
+      try {
+        const get = <T,>(path: string) => api<T>(baseUrl, path, token);
+        const [
+          vehicles,
+          locations,
           routes,
           subscriptions,
           bills,
@@ -89,28 +64,60 @@ export function DataProvider({ children }: React.PropsWithChildren) {
           complaints,
           stops,
           notifications,
-        });
-        setError('');
+        ] = await Promise.all([
+          get<{ vehicles: Vehicle[] }>('/vehicles'),
+          get<{ devices: Location[] }>('/locations'),
+          get<DashboardData['routes']>('/routes'),
+          get<DashboardData['subscriptions']>('/subscriptions'),
+          get<DashboardData['bills']>('/payments/monthly'),
+          get<DashboardData['accounts']>('/payments/accounts'),
+          get<DashboardData['payments']>('/payments/submissions'),
+          get<DashboardData['requests']>('/requests/mine'),
+          get<DashboardData['complaints']>('/complaints'),
+          get<DashboardData['stops']>('/stop-requests'),
+          get<DashboardData['notifications']>('/notifications'),
+        ]);
+        if (live.current && request === generation.current) {
+          setData({
+            vehicles: vehicles.vehicles,
+            locations: locations.devices,
+            routes,
+            subscriptions,
+            bills,
+            accounts,
+            payments,
+            requests,
+            complaints,
+            stops,
+            notifications,
+          });
+          setError('');
+        }
+      } catch (problem) {
+        if (problem instanceof ApiError && problem.status === 401)
+          await expire();
+        if (live.current && request === generation.current)
+          setError(
+            problem instanceof Error
+              ? problem.message
+              : 'Could not refresh data.',
+          );
+      } finally {
+        if (live.current && request === generation.current) setLoading(false);
       }
-    } catch (problem) {
-      if (problem instanceof ApiError && problem.status === 401) await expire();
-      if (live.current && request === generation.current)
-        setError(
-          problem instanceof Error
-            ? problem.message
-            : 'Could not refresh data.',
-        );
-    } finally {
-      if (live.current && request === generation.current) setLoading(false);
-    }
-  }, [baseUrl, token, expire]);
+    },
+    [baseUrl, token, expire],
+  );
+  const refresh = useCallback(() => load(true), [load]);
   useEffect(() => {
-    refresh();
+    load(true);
     const timer = setInterval(() => {
-      if (AppState.currentState === 'active') refresh();
+      if (AppState.currentState === 'active') load(false);
     }, 20_000);
+    let previousState = AppState.currentState;
     const listener = AppState.addEventListener('change', state => {
-      if (state === 'active') refresh();
+      if (state === 'active' && previousState !== 'active') load(false);
+      previousState = state;
     });
     // HTTPS deployments proxy /socket.io on the same origin; local development uses port 3001.
     const socketUrl = new URL(baseUrl);
@@ -138,12 +145,12 @@ export function DataProvider({ children }: React.PropsWithChildren) {
       listener.remove();
       socket.disconnect();
     };
-  }, [baseUrl, token, refresh]);
+  }, [baseUrl, token, load]);
   const mutate = useCallback(
     async <T,>(path: string, body?: unknown, method = 'POST'): Promise<T> => {
       try {
         const result = await api<T>(baseUrl, path, token, body, method);
-        await refresh();
+        await load(false);
         return result;
       } catch (problem) {
         if (problem instanceof ApiError && problem.status === 401)
@@ -151,7 +158,7 @@ export function DataProvider({ children }: React.PropsWithChildren) {
         throw problem;
       }
     },
-    [baseUrl, token, refresh, expire],
+    [baseUrl, token, load, expire],
   );
   return (
     <DataContext.Provider value={{ data, loading, error, refresh, mutate }}>
