@@ -1,6 +1,13 @@
 import { useTranslation } from '../i18n';
 import React, { useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import {
+  Keyboard,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import {
   Badge,
   Button,
@@ -16,8 +23,91 @@ import { ReviewActions } from '../components/ReviewActions';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
-import { styles } from '../theme';
+import { colors, styles } from '../theme';
 import { money, readable } from '../utils/format';
+
+const requestTabs = ['Applications', 'Complaints', 'Stop requests'] as const;
+type RequestTab = (typeof requestTabs)[number];
+
+function RequestSection({
+  label,
+  tabbed,
+  visible,
+  children,
+}: React.PropsWithChildren<{
+  label: RequestTab;
+  tabbed: boolean;
+  visible: boolean;
+}>) {
+  const { t } = useTranslation();
+  if (!tabbed) {
+    return (
+      <>
+        <SectionTitle>{t(label)}</SectionTitle>
+        {children}
+      </>
+    );
+  }
+  // Keep review drafts mounted when switching tabs.
+  return (
+    <View
+      testID={`request-section-${label}`}
+      style={[local.section, !visible && local.hidden]}
+      accessibilityElementsHidden={!visible}
+      importantForAccessibility={visible ? 'auto' : 'no-hide-descendants'}
+    >
+      {children}
+    </View>
+  );
+}
+
+function RequestCard({
+  compact,
+  children,
+}: React.PropsWithChildren<{ compact: boolean }>) {
+  return compact ? (
+    <View style={local.card}>{children}</View>
+  ) : (
+    <Card>{children}</Card>
+  );
+}
+
+function RequestActions({
+  label,
+  children,
+}: React.PropsWithChildren<{ label: string }>) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <View style={local.actions}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${t(
+          expanded ? 'Hide details' : 'View details',
+        )} · ${label}`}
+        accessibilityState={{ expanded }}
+        onPress={() => {
+          Keyboard.dismiss();
+          setExpanded(!expanded);
+        }}
+        style={({ pressed }) => [local.disclosure, pressed && local.pressed]}
+      >
+        <Text style={local.link}>
+          {t(expanded ? 'Hide details' : 'View details')}
+        </Text>
+        <Text style={local.link}>{expanded ? '−' : '+'}</Text>
+      </Pressable>
+      <View
+        style={[local.actionFields, !expanded && local.hidden]}
+        accessibilityElementsHidden={!expanded}
+        importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
+      >
+        {children}
+      </View>
+    </View>
+  );
+}
+
 function CallGuardian({ id, phone }: { id: string; phone: string }) {
   const { t } = useTranslation();
   const { mutate } = useData();
@@ -64,6 +154,7 @@ export function RequestsScreen() {
   const { t } = useTranslation();
   const { session } = useAuth();
   const { data, loading, error, refresh, mutate } = useData();
+  const [tab, setTab] = useState<RequestTab>('Applications');
   const [studentName, setStudentName] = useState('');
   const [routeId, setRouteId] = useState('');
   const [stopId, setStopId] = useState('');
@@ -77,10 +168,10 @@ export function RequestsScreen() {
   const active = data.subscriptions.filter(item => item.status === 'ACTIVE');
   return (
     <Page
-      title={admin ? t('Service requests') : t('Your transport service')}
+      title={admin ? undefined : t('Your transport service')}
       subtitle={
         admin
-          ? t('Review coverage, speak with guardians and manage service.')
+          ? undefined
           : t('Find your route and let us take care of the next step.')
       }
       loading={loading}
@@ -89,6 +180,37 @@ export function RequestsScreen() {
     >
       <Notice text={action.error} kind="error" />
       <Notice text={action.success} />
+      {admin ? (
+        <View
+          accessibilityRole="tablist"
+          accessibilityLabel={t('Service requests')}
+          style={local.tabs}
+        >
+          {requestTabs.map(label => (
+            <Pressable
+              key={label}
+              accessibilityRole="tab"
+              accessibilityLabel={t(label)}
+              accessibilityState={{ selected: tab === label }}
+              onPress={() => {
+                Keyboard.dismiss();
+                setTab(label);
+              }}
+              style={({ pressed }) => [
+                local.tab,
+                tab === label && local.selectedTab,
+                pressed && local.pressed,
+              ]}
+            >
+              <Text
+                style={[local.tabText, tab === label && local.selectedTabText]}
+              >
+                {t(label)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       {!admin ? (
         <Card>
           <Text style={styles.heading}>{t('Request a transport service')}</Text>
@@ -158,48 +280,55 @@ export function RequestsScreen() {
           />
         </Card>
       ) : null}
-      <SectionTitle>{t('Applications')}</SectionTitle>
-      {!data.requests.length ? (
-        <Empty
-          title={t('No applications yet')}
-          detail={t(
-            'Submitted service requests will appear here with their status.',
-          )}
-        />
-      ) : (
-        data.requests.map(request => (
-          <Card key={request.id}>
-            <View style={styles.between}>
-              <Text style={styles.heading}>{request.studentName}</Text>
-              <Badge status={request.status} />
-            </View>
-            <Text style={styles.body}>
-              {request.routeName} → {request.stopName}
-            </Text>
-            <Text style={styles.muted}>
-              {request.vehicleName}
-              {admin ? ` · ${request.guardianName}` : ''}
-            </Text>
-            {request.note ? (
-              <Text style={styles.body}>
-                {t('Admin note: ')}
-                {request.note}
+      <RequestSection
+        label="Applications"
+        tabbed={admin}
+        visible={tab === 'Applications'}
+      >
+        {!data.requests.length ? (
+          <Empty
+            title={t('No applications yet')}
+            detail={t(
+              'Submitted service requests will appear here with their status.',
+            )}
+          />
+        ) : (
+          data.requests.map(request => (
+            <RequestCard key={request.id} compact={admin}>
+              <View style={admin ? local.cardHeader : styles.between}>
+                <Text style={admin ? local.cardTitle : styles.heading}>
+                  {request.studentName}
+                </Text>
+                <Badge status={request.status} />
+              </View>
+              <Text style={admin ? local.body : styles.body}>
+                {request.routeName} → {request.stopName}
               </Text>
-            ) : null}
-            {admin && request.status === 'PENDING' ? (
-              <>
-                <CallGuardian id={request.id} phone={request.guardianPhone} />
-                <ReviewActions
-                  path={`/admin/requests/${request.id}/decision`}
-                  confirmation={t(
-                    'Approve the selected route and stop? The guardian will gain tracking access to the assigned vehicle.',
-                  )}
-                />
-              </>
-            ) : null}
-          </Card>
-        ))
-      )}
+              <Text style={styles.muted}>
+                {request.vehicleName}
+                {admin ? ` · ${request.guardianName}` : ''}
+              </Text>
+              {request.note ? (
+                <Text style={admin ? local.body : styles.body}>
+                  {t('Admin note: ')}
+                  {request.note}
+                </Text>
+              ) : null}
+              {admin && request.status === 'PENDING' ? (
+                <RequestActions label={request.studentName}>
+                  <CallGuardian id={request.id} phone={request.guardianPhone} />
+                  <ReviewActions
+                    path={`/admin/requests/${request.id}/decision`}
+                    confirmation={t(
+                      'Approve the selected route and stop? The guardian will gain tracking access to the assigned vehicle.',
+                    )}
+                  />
+                </RequestActions>
+              ) : null}
+            </RequestCard>
+          ))
+        )}
+      </RequestSection>
       {!admin && active.length ? (
         <Card>
           <Text style={styles.heading}>
@@ -300,67 +429,168 @@ export function RequestsScreen() {
           )}
         </Text>
       ) : null}
-      <SectionTitle>{t('Complaints')}</SectionTitle>
-      {!data.complaints.length ? (
-        <Text style={styles.muted}>{t('No complaints to show.')}</Text>
-      ) : (
-        data.complaints.map(complaint => (
-          <Card key={complaint.id}>
-            <View style={styles.between}>
-              <Text style={styles.heading}>{readable(complaint.category)}</Text>
-              <Badge status={complaint.status} />
-            </View>
-            <Text style={styles.muted}>
-              {complaint.studentName}
-              {admin ? ` · ${complaint.guardianName}` : ''}
-            </Text>
-            <Text style={styles.body}>{complaint.description}</Text>
-            {complaint.note ? (
-              <Text style={styles.body}>
-                {t('Admin note: ')}
-                {complaint.note}
+      <RequestSection
+        label="Complaints"
+        tabbed={admin}
+        visible={tab === 'Complaints'}
+      >
+        {!data.complaints.length ? (
+          <Text style={styles.muted}>{t('No complaints to show.')}</Text>
+        ) : (
+          data.complaints.map(complaint => (
+            <RequestCard key={complaint.id} compact={admin}>
+              <View style={admin ? local.cardHeader : styles.between}>
+                <Text style={admin ? local.cardTitle : styles.heading}>
+                  {readable(complaint.category)}
+                </Text>
+                <Badge status={complaint.status} />
+              </View>
+              <Text style={styles.muted}>
+                {complaint.studentName}
+                {admin ? ` · ${complaint.guardianName}` : ''}
               </Text>
-            ) : null}
-            {admin && complaint.status === 'OPEN' ? (
-              <ReviewActions
-                resolve
-                path={`/admin/complaints/${complaint.id}`}
-                confirmation={t(
-                  'Mark this complaint as resolved and notify the guardian?',
-                )}
-              />
-            ) : null}
-          </Card>
-        ))
-      )}
-      <SectionTitle>{t('Stop requests')}</SectionTitle>
-      {!data.stops.length ? (
-        <Text style={styles.muted}>{t('No stop requests to show.')}</Text>
-      ) : (
-        data.stops.map(stop => (
-          <Card key={stop.id}>
-            <View style={styles.between}>
-              <Text style={styles.heading}>{stop.studentName}</Text>
-              <Badge status={stop.status} />
-            </View>
-            <Text style={styles.body}>{stop.reason}</Text>
-            {stop.note ? (
-              <Text style={styles.body}>
-                {t('Admin note: ')}
-                {stop.note}
+              <Text style={admin ? local.body : styles.body}>
+                {complaint.description}
               </Text>
-            ) : null}
-            {admin && stop.status === 'PENDING' ? (
-              <ReviewActions
-                path={`/admin/stop-requests/${stop.id}/decision`}
-                confirmation={t(
-                  'Stop this service now? Tracking access will end, and existing bills will remain in payment history.',
-                )}
-              />
-            ) : null}
-          </Card>
-        ))
-      )}
+              {complaint.note ? (
+                <Text style={admin ? local.body : styles.body}>
+                  {t('Admin note: ')}
+                  {complaint.note}
+                </Text>
+              ) : null}
+              {admin && complaint.status === 'OPEN' ? (
+                <RequestActions
+                  label={`${complaint.studentName} · ${readable(
+                    complaint.category,
+                  )}`}
+                >
+                  <ReviewActions
+                    resolve
+                    path={`/admin/complaints/${complaint.id}`}
+                    confirmation={t(
+                      'Mark this complaint as resolved and notify the guardian?',
+                    )}
+                  />
+                </RequestActions>
+              ) : null}
+            </RequestCard>
+          ))
+        )}
+      </RequestSection>
+      <RequestSection
+        label="Stop requests"
+        tabbed={admin}
+        visible={tab === 'Stop requests'}
+      >
+        {!data.stops.length ? (
+          <Text style={styles.muted}>{t('No stop requests to show.')}</Text>
+        ) : (
+          data.stops.map(stop => (
+            <RequestCard key={stop.id} compact={admin}>
+              <View style={admin ? local.cardHeader : styles.between}>
+                <Text style={admin ? local.cardTitle : styles.heading}>
+                  {stop.studentName}
+                </Text>
+                <Badge status={stop.status} />
+              </View>
+              <Text style={admin ? local.body : styles.body}>
+                {stop.reason}
+              </Text>
+              {stop.note ? (
+                <Text style={admin ? local.body : styles.body}>
+                  {t('Admin note: ')}
+                  {stop.note}
+                </Text>
+              ) : null}
+              {admin && stop.status === 'PENDING' ? (
+                <RequestActions
+                  label={`${t('Stop requests')} · ${stop.studentName}`}
+                >
+                  <ReviewActions
+                    path={`/admin/stop-requests/${stop.id}/decision`}
+                    confirmation={t(
+                      'Stop this service now? Tracking access will end, and existing bills will remain in payment history.',
+                    )}
+                  />
+                </RequestActions>
+              ) : null}
+            </RequestCard>
+          ))
+        )}
+      </RequestSection>
     </Page>
   );
 }
+
+const local = StyleSheet.create({
+  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tab: {
+    flexGrow: 1,
+    flexBasis: 90,
+    minHeight: 44,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  selectedTab: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tabText: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  selectedTabText: { color: colors.surface },
+  section: { gap: 12 },
+  card: {
+    padding: 14,
+    gap: 6,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 14,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  cardTitle: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 160,
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '700',
+  },
+  body: { color: colors.ink, fontSize: 14, lineHeight: 21 },
+  actions: {
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  disclosure: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  link: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  actionFields: { gap: 12, paddingTop: 4 },
+  hidden: { display: 'none' },
+  pressed: { opacity: 0.7 },
+});
