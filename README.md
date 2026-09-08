@@ -96,12 +96,19 @@ npm test -- --runInBand
 npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output /tmp/pathsathi.android.bundle --assets-dest /tmp/pathsathi-assets
 cd android
 ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a
+./gradlew assembleRelease
 ```
 
 The debug APK is `android/app/build/outputs/apk/debug/app-debug.apk` and needs a
 running Metro server. Release builds are deliberately unsigned: configure a
 private release signing key before distributing an APK/AAB. Custom release servers must use HTTPS; the deployed VPS has an explicit HTTP exception. Neither Play Store publishing nor remote deployment is performed
 by this change.
+
+Release APKs compress native libraries and retain all four configured CPU
+architectures. Android extracts the matching libraries during installation;
+APK download size and installed storage usage are different measurements.
+Generated Android build and CMake caches can be removed after keeping the final
+APK. The next native build regenerates them and takes longer.
 
 See [verification notes and emulator screenshots](docs/qa/verification.md) for
 checks performed and the Android activity-restoration issue fixed during QA.

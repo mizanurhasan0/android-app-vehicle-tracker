@@ -1,8 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  AccessibilityInfo,
   ActivityIndicator,
-  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -21,44 +19,6 @@ import { normalizeDigits, readable } from '../utils/format';
 import { translateMessage, useTranslation } from '../i18n';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { CopyrightFooter } from './CopyrightFooter';
-export function FadeIn({ children }: React.PropsWithChildren) {
-  const progress = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    let active = true;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then(reduced => {
-        if (!active || reduced) return;
-        progress.setValue(0);
-        Animated.timing(progress, {
-          toValue: 1,
-          duration: 240,
-          useNativeDriver: true,
-        }).start();
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-      progress.stopAnimation();
-    };
-  }, [progress]);
-  return (
-    <Animated.View
-      style={{
-        opacity: progress,
-        transform: [
-          {
-            translateY: progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [8, 0],
-            }),
-          },
-        ],
-      }}
-    >
-      {children}
-    </Animated.View>
-  );
-}
 export function Page({
   title,
   subtitle,

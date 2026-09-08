@@ -11,12 +11,6 @@ export const colors = {
   danger: '#A73138',
 };
 export const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 12,
-  },
   between: {
     flexDirection: 'row',
     flexWrap: 'wrap',

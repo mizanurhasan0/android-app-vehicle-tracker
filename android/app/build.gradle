@@ -85,6 +85,13 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    packaging {
+        jniLibs {
+            // Compress every ABI's native libraries to reduce APK download size.
+            // Android extracts the device's libraries during installation.
+            useLegacyPackaging = true
+        }
+    }
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
