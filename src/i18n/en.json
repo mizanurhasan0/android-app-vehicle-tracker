@@ -398,5 +398,15 @@
   "Choose a vehicle, set the fee and add pickup stops.": "Choose a vehicle, set the fee and add pickup stops.",
   "List stops in the order the vehicle visits them.": "List stops in the order the vehicle visits them.",
   "Pickup order": "Pickup order",
-  "And {{number}} more stops": "And {{number}} more stops"
+  "And {{number}} more stops": "And {{number}} more stops",
+  "Sign in to manage your school transport.": "Sign in to manage your school transport.",
+  "Set up your account to get started with school transport.": "Set up your account to get started with school transport.",
+  "Enter the server address provided by your school.": "Enter the server address provided by your school.",
+  "Show password": "Show password",
+  "Hide password": "Hide password",
+  "Payment form": "Payment form",
+  "Form": "Form",
+  "Select a bill": "Select a bill",
+  "No bills available for payment": "No bills available for payment",
+  "Only unpaid bills without a pending submission can be selected. Check Your bills for the current status.": "Only unpaid bills without a pending submission can be selected. Check Your bills for the current status."
 }

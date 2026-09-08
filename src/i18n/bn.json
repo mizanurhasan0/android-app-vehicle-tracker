@@ -398,5 +398,15 @@
   "Choose a vehicle, set the fee and add pickup stops.": "গাড়ি বাছুন, ফি নির্ধারণ করুন ও ওঠার স্টপ যোগ করুন।",
   "List stops in the order the vehicle visits them.": "গাড়ি যে ক্রমে স্টপগুলোতে যায় সে অনুযায়ী তালিকা দিন।",
   "Pickup order": "ওঠার স্টপের ক্রম",
-  "And {{number}} more stops": "আরও {{number}}টি স্টপ"
+  "And {{number}} more stops": "আরও {{number}}টি স্টপ",
+  "Sign in to manage your school transport.": "স্কুল পরিবহনের সেবা পরিচালনা করতে লগইন করুন।",
+  "Set up your account to get started with school transport.": "স্কুল পরিবহনের সেবা পেতে অ্যাকাউন্ট তৈরি করুন।",
+  "Enter the server address provided by your school.": "আপনার স্কুলের দেওয়া সার্ভারের ঠিকানা লিখুন।",
+  "Show password": "পাসওয়ার্ড দেখান",
+  "Hide password": "পাসওয়ার্ড লুকান",
+  "Payment form": "পেমেন্ট ফর্ম",
+  "Form": "ফর্ম",
+  "Select a bill": "একটি বিল বাছুন",
+  "No bills available for payment": "পেমেন্টের জন্য কোনো বিল নেই",
+  "Only unpaid bills without a pending submission can be selected. Check Your bills for the current status.": "শুধু যেসব বকেয়া বিলের পেমেন্ট যাচাইয়ের অপেক্ষায় নেই, সেগুলো বাছতে পারবেন। বর্তমান অবস্থা জানতে আপনার বিল দেখুন।"
 }

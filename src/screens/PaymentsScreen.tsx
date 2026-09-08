@@ -1,26 +1,32 @@
 import { translateMessage, useTranslation } from '../i18n';
-import React, { useState } from 'react';
-import { Modal, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Bill, PaymentAccount } from '../api/types';
 import {
   Badge,
   Button,
   Card,
   Empty,
-  FadeIn,
   Field,
   Notice,
   Page,
-  SectionTitle,
   Select,
 } from '../components/ui';
 import { AdminPaymentDesk } from './AdminPaymentDesk';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
-import { styles } from '../theme';
+import { colors, styles } from '../theme';
 import { dateLabel, money, readable } from '../utils/format';
-function PaymentForm({ bill, cancel }: { bill: Bill; cancel: () => void }) {
+function PaymentForm({
+  bill,
+  cancel,
+  onBusyChange,
+}: {
+  bill: Bill;
+  cancel: () => void;
+  onBusyChange: (busy: boolean) => void;
+}) {
   const { t } = useTranslation();
   const { data, mutate } = useData();
   const [method, setMethod] = useState('');
@@ -29,6 +35,10 @@ function PaymentForm({ bill, cancel }: { bill: Bill; cancel: () => void }) {
   const [recipientNumber, setRecipient] = useState('');
   const [transactionId, setTransaction] = useState('');
   const action = useAction();
+  useEffect(() => {
+    onBusyChange(action.busy);
+    return () => onBusyChange(false);
+  }, [action.busy, onBusyChange]);
   return (
     <Card tinted>
       <Text style={styles.heading}>{t('Submit payment details')}</Text>
@@ -143,6 +153,12 @@ function GuardianPaymentsScreen() {
   const { data, loading, error, refresh } = useData();
   const [selectedBill, setSelectedBill] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
+  const [tab, setTab] = useState<PaymentTab>('Your bills');
+  const [submitting, setSubmitting] = useState(false);
+
+  const payableBills = data.bills.filter(
+    bill => bill.status === 'UNPAID' && !bill.pendingSubmissionId,
+  );
 
   const selected = data.bills.find(
     bill =>
@@ -161,139 +177,245 @@ function GuardianPaymentsScreen() {
       refresh={refresh}
       error={error}
     >
-      <FadeIn>
-        <Card tinted>
-          <Text style={styles.heading}>{t('Your payment, step by step')}</Text>
-          <Text style={styles.body}>
-            {t('1. Send the bill amount to the admin’s number.')}
-            {'\n'}
-            {t('2. Submit your transaction ID below.')}
-            {'\n'}
-            {t('3. Receive confirmation after admin review.')}
-          </Text>
-          <Text style={styles.muted}>
-            {t('Never share your wallet PIN or OTP.')}
-          </Text>
-        </Card>
-      </FadeIn>
-      {!data.accounts.length ? (
-        <Empty
-          title={t('Payment numbers are not set yet')}
-          detail={t(
-            'Please contact your admin before sending money. Payment submission will become available after setup.',
-          )}
-        />
-      ) : null}
-      {selected ? (
-        <Modal visible onRequestClose={() => setSelectedBill(null)}>
-          <Page
-            title={t('Payment details')}
-            subtitle={t('Submit the transaction you have already completed.')}
+      <View
+        accessibilityRole="tablist"
+        accessibilityLabel={t('Monthly bills')}
+        style={local.tabs}
+      >
+        {paymentTabs.map(label => (
+          <Pressable
+            key={label}
+            accessibilityRole="tab"
+            accessibilityLabel={t(label)}
+            accessibilityState={{ selected: tab === label }}
+            onPress={() => {
+              Keyboard.dismiss();
+              setTab(label);
+            }}
+            style={({ pressed }) => [
+              local.tab,
+              tab === label && local.selectedTab,
+              pressed && local.pressed,
+            ]}
           >
-            <PaymentForm
-              key={selected.id}
-              bill={selected}
-              cancel={() => setSelectedBill(null)}
-            />
-          </Page>
-        </Modal>
-      ) : null}
-      <SectionTitle>{t('Your bills')}</SectionTitle>
-      {!data.bills.length ? (
-        <Empty
-          title={t('No bills yet')}
-          detail={t(
-            'Your admin will create the monthly bill after your service is approved.',
-          )}
-        />
-      ) : (
-        data.bills.map(bill => (
-          <Card key={bill.id}>
-            <View style={styles.between}>
-              <Text style={styles.heading}>
-                {bill.month} · {money(bill.amount)}
-              </Text>
-              <Badge
-                status={bill.pendingSubmissionId ? 'PENDING' : bill.status}
-              />
-            </View>
-            <Text style={styles.body}>{bill.studentName}</Text>
-            {bill.paidAt ? (
-              <Text style={styles.muted}>
-                {t('Paid on {{date}}', { date: dateLabel(bill.paidAt) })}
-              </Text>
-            ) : null}
-            {bill.status === 'UNPAID' && !bill.pendingSubmissionId ? (
-              <Button
-                title={t('I’ve paid · submit details')}
-                disabled={!data.accounts.length || selectedBill === bill.id}
-                onPress={() => setSelectedBill(bill.id)}
-              />
-            ) : null}
-            {bill.pendingSubmissionId ? (
-              <Text style={styles.muted}>
-                {t(
-                  'Your details are with the admin. Please don’t send the payment again.',
-                )}
-              </Text>
-            ) : null}
-          </Card>
-        ))
-      )}
-      <SectionTitle>{t('Payment history')}</SectionTitle>
-      <Select
-        label={t('Filter submissions')}
-        value={filter}
-        onChange={setFilter}
-        options={[
-          {
-            value: 'PENDING',
-            label: t('Awaiting review'),
-          },
-          {
-            value: 'APPROVED',
-            label: t('Approved'),
-          },
-          {
-            value: 'REJECTED',
-            label: t('Rejected'),
-          },
-        ]}
-      />
-      {!payments.length ? (
-        <Empty
-          title={t('No submissions to show')}
-          detail={t('Payment details and admin decisions will appear here.')}
-        />
-      ) : (
-        payments.map(payment => (
-          <Card key={payment.id}>
-            <View style={styles.between}>
-              <Text style={styles.heading}>
-                {money(payment.amount)} · {payment.month}
-              </Text>
-              <Badge status={payment.status} />
-            </View>
-            <Text style={styles.body}>{payment.studentName}</Text>
-            <Text selectable style={styles.body}>
-              {readable(payment.method)} · {payment.transactionId}
+            <Text
+              style={[local.tabText, tab === label && local.selectedTabText]}
+            >
+              {t(label)}
             </Text>
-            <Text selectable style={styles.muted}>
-              {t('From {{sender}}\nTo {{recipient}}', {
-                sender: payment.senderNumber,
-                recipient: payment.recipientNumber,
-              })}
-            </Text>
-            <Text style={styles.muted}>{dateLabel(payment.createdAt)}</Text>
-            {payment.note ? (
-              <Notice
-                text={t('Admin note: {{note}}', { note: payment.note })}
-                kind={payment.status === 'REJECTED' ? 'error' : 'success'}
+          </Pressable>
+        ))}
+      </View>
+      <PaymentPanel label="Your bills" active={tab === 'Your bills'}>
+        {!data.bills.length ? (
+          <Empty
+            title={t('No bills yet')}
+            detail={t(
+              'Your admin will create the monthly bill after your service is approved.',
+            )}
+          />
+        ) : (
+          data.bills.map(bill => (
+            <Card key={bill.id}>
+              <View style={styles.between}>
+                <Text style={styles.heading}>
+                  {bill.month} · {money(bill.amount)}
+                </Text>
+                <Badge
+                  status={bill.pendingSubmissionId ? 'PENDING' : bill.status}
+                />
+              </View>
+              <Text style={styles.body}>{bill.studentName}</Text>
+              {bill.paidAt ? (
+                <Text style={styles.muted}>
+                  {t('Paid on {{date}}', { date: dateLabel(bill.paidAt) })}
+                </Text>
+              ) : null}
+              {bill.status === 'UNPAID' && !bill.pendingSubmissionId ? (
+                <Button
+                  title={t('I’ve paid · submit details')}
+                  disabled={!data.accounts.length || submitting}
+                  onPress={() => {
+                    setSelectedBill(bill.id);
+                    setTab('Payment form');
+                  }}
+                />
+              ) : null}
+              {bill.pendingSubmissionId ? (
+                <Text style={styles.muted}>
+                  {t(
+                    'Your details are with the admin. Please don’t send the payment again.',
+                  )}
+                </Text>
+              ) : null}
+            </Card>
+          ))
+        )}
+      </PaymentPanel>
+      <PaymentPanel label="Payment history" active={tab === 'Payment history'}>
+        <Select
+          label={t('Filter submissions')}
+          value={filter}
+          onChange={setFilter}
+          options={[
+            {
+              value: 'PENDING',
+              label: t('Awaiting review'),
+            },
+            {
+              value: 'APPROVED',
+              label: t('Approved'),
+            },
+            {
+              value: 'REJECTED',
+              label: t('Rejected'),
+            },
+          ]}
+        />
+        {!payments.length ? (
+          <Empty
+            title={t('No submissions to show')}
+            detail={t('Payment details and admin decisions will appear here.')}
+          />
+        ) : (
+          payments.map(payment => (
+            <Card key={payment.id}>
+              <View style={styles.between}>
+                <Text style={styles.heading}>
+                  {money(payment.amount)} · {payment.month}
+                </Text>
+                <Badge status={payment.status} />
+              </View>
+              <Text style={styles.body}>{payment.studentName}</Text>
+              <Text selectable style={styles.body}>
+                {readable(payment.method)} · {payment.transactionId}
+              </Text>
+              <Text selectable style={styles.muted}>
+                {t('From {{sender}}\nTo {{recipient}}', {
+                  sender: payment.senderNumber,
+                  recipient: payment.recipientNumber,
+                })}
+              </Text>
+              <Text style={styles.muted}>{dateLabel(payment.createdAt)}</Text>
+              {payment.note ? (
+                <Notice
+                  text={t('Admin note: {{note}}', { note: payment.note })}
+                  kind={payment.status === 'REJECTED' ? 'error' : 'success'}
+                />
+              ) : null}
+            </Card>
+          ))
+        )}
+      </PaymentPanel>
+      <PaymentPanel label="Payment form" active={tab === 'Payment form'}>
+        {!data.accounts.length ? (
+          <Empty
+            title={t('Payment numbers are not set yet')}
+            detail={t(
+              'Please contact your admin before sending money. Payment submission will become available after setup.',
+            )}
+          />
+        ) : !payableBills.length ? (
+          <Empty
+            title={t('No bills available for payment')}
+            detail={t(
+              'Only unpaid bills without a pending submission can be selected. Check Your bills for the current status.',
+            )}
+          />
+        ) : (
+          <>
+            <Card tinted>
+              <Text style={styles.heading}>
+                {t('Your payment, step by step')}
+              </Text>
+              <Text style={styles.body}>
+                {t('1. Send the bill amount to the admin’s number.')}
+                {'\n'}
+                {t('2. Submit your transaction ID below.')}
+                {'\n'}
+                {t('3. Receive confirmation after admin review.')}
+              </Text>
+              <Text style={styles.muted}>
+                {t('Never share your wallet PIN or OTP.')}
+              </Text>
+            </Card>
+            {selected ? (
+              <PaymentForm
+                key={selected.id}
+                bill={selected}
+                onBusyChange={setSubmitting}
+                cancel={() => {
+                  setSelectedBill(null);
+                  setTab('Your bills');
+                }}
               />
-            ) : null}
-          </Card>
-        ))
-      )}
+            ) : (
+              <Card>
+                <Select
+                  label={t('Select a bill')}
+                  value=""
+                  onChange={value => setSelectedBill(value || null)}
+                  options={payableBills.map(bill => ({
+                    value: bill.id,
+                    label: `${bill.studentName} · ${bill.month} · ${money(
+                      bill.amount,
+                    )}`,
+                  }))}
+                />
+              </Card>
+            )}
+          </>
+        )}
+      </PaymentPanel>
     </Page>
   );
 }
+
+const paymentTabs = ['Your bills', 'Payment history', 'Payment form'] as const;
+type PaymentTab = (typeof paymentTabs)[number];
+
+function PaymentPanel({
+  label,
+  active,
+  children,
+}: React.PropsWithChildren<{ label: PaymentTab; active: boolean }>) {
+  return (
+    <View
+      testID={`payment-panel-${label}`}
+      style={[local.panel, !active && local.hidden]}
+      accessibilityElementsHidden={!active}
+      importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}
+    >
+      {children}
+    </View>
+  );
+}
+
+const local = StyleSheet.create({
+  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tab: {
+    flexGrow: 1,
+    flexBasis: 90,
+    minHeight: 44,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  selectedTab: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tabText: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  selectedTabText: { color: colors.surface },
+  panel: { gap: 12 },
+  hidden: { display: 'none' },
+  pressed: { opacity: 0.7 },
+});
