@@ -446,5 +446,8 @@
   "Could not sign out. Please try again.": "লগআউট করা যায়নি। আবার চেষ্টা করুন।",
   "Admin": "প্রশাসক",
   "Guardian": "অভিভাবক",
-  "Enter a name between 2 and 80 characters.": "২ থেকে ৮০ অক্ষরের মধ্যে নাম লিখুন।"
+  "Enter a name between 2 and 80 characters.": "২ থেকে ৮০ অক্ষরের মধ্যে নাম লিখুন।",
+  "My account": "আমার অ্যাকাউন্ট",
+  "Keep your account details up to date.": "আপনার অ্যাকাউন্টের তথ্য হালনাগাদ রাখুন।",
+  "Name and account details": "নাম ও অ্যাকাউন্টের তথ্য"
 }

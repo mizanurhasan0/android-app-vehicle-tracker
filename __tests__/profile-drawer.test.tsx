@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ProfileDrawer } from '../src/components/ProfileDrawer';
-import { Button, Field, Notice } from '../src/components/ui';
+import { Field, Notice } from '../src/components/ui';
 import { i18n } from '../src/i18n';
 import {
   LanguageProvider,
@@ -82,9 +82,11 @@ async function renderDrawer() {
   });
 }
 function action(title: string) {
-  return screen.root
-    .findAllByType(Button)
-    .find(node => node.props.title === title)!;
+  return screen.root.findAll(
+    node =>
+      node.props.title === title && typeof node.props.onPress === 'function',
+    { deep: false },
+  )[0];
 }
 async function press(title: string) {
   await act(async () => action(title).props.onPress());
@@ -225,4 +227,17 @@ it('reports a failed sign-out and allows a successful retry', async () => {
   await press('Sign out');
   expect(mockSignOut).toHaveBeenCalledTimes(2);
   expect(mockClose).toHaveBeenCalledTimes(1);
+});
+
+it('returns from editing to account settings on Android back without closing the drawer', async () => {
+  await renderDrawer();
+  await press('Edit profile');
+  await editName('Unsaved edit');
+  await act(async () => screen.root.findByType(Modal).props.onRequestClose());
+  expect(mockClose).not.toHaveBeenCalled();
+  expect(mockUpdateProfile).not.toHaveBeenCalled();
+  expect(fullName()).toBeUndefined();
+  expect(labeledButton('English')).toBeDefined();
+  await press('Edit profile');
+  expect(fullName().props.value).toBe('QA Guardian');
 });

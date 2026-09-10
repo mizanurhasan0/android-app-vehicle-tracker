@@ -3,6 +3,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   AccessibilityInfo,
   Animated,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -140,29 +141,39 @@ export function HomeScreen({
     <Page dashboard loading={loading} refresh={refresh} error={error}>
       <View style={local.content}>
         <View style={local.banner}>
-          <View pointerEvents="none" style={local.haloLarge} />
-          <View pointerEvents="none" style={local.haloSmall} />
+          <View
+            style={StyleSheet.absoluteFill}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            pointerEvents="none"
+          >
+            <Image
+              source={require('../../assets/branding/home-banner.jpg')}
+              style={local.bannerImage}
+              resizeMode="contain"
+              accessible={false}
+            />
+          </View>
           <View style={local.topbar}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${t('Open profile')}, ${user.name}`}
-              accessibilityState={{ expanded: profileVisible }}
-              onPress={() => setProfileVisible(true)}
-              style={({ pressed }) => [local.profile, pressed && local.pressed]}
-            >
-              <View style={local.avatar}>
-                <Text style={local.initials}>{initials || 'P'}</Text>
-              </View>
-              <View style={local.identity}>
-                <Text style={local.brand}>PATHSATHI</Text>
+            <View style={local.profileSlot}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t('Open profile')}, ${user.name}`}
+                accessibilityState={{ expanded: profileVisible }}
+                onPress={() => setProfileVisible(true)}
+                style={({ pressed }) => [
+                  local.profile,
+                  pressed && local.pressed,
+                ]}
+              >
+                <View style={local.avatar}>
+                  <Text style={local.initials}>{initials || 'P'}</Text>
+                </View>
                 <Text numberOfLines={1} style={local.name}>
                   {user.name}
                 </Text>
-              </View>
-              <View style={local.profileChevron}>
-                <AppIcon kind="back" size={14} color={colors.surface} />
-              </View>
-            </Pressable>
+              </Pressable>
+            </View>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
@@ -188,13 +199,13 @@ export function HomeScreen({
               ) : null}
             </Pressable>
           </View>
-          <Text style={local.overview}>{t('Your transport, at a glance')}</Text>
           <View
             style={[local.balances, stackedBalances && local.stackedBalances]}
           >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${t(collectedLabel)}, ${collectedBalance}`}
+              accessibilityHint={t('Across all months')}
               onPress={() => navigation.navigate('Bills')}
               style={({ pressed }) => [local.balance, pressed && local.pressed]}
             >
@@ -207,6 +218,7 @@ export function HomeScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${t('Due balance')}, ${dueBalance}`}
+              accessibilityHint={t('Across all months')}
               onPress={() => navigation.navigate('DueList')}
               style={({ pressed }) => [local.balance, pressed && local.pressed]}
             >
@@ -214,7 +226,6 @@ export function HomeScreen({
               <Text style={[local.amount, local.dueAmount]}>{dueBalance}</Text>
             </Pressable>
           </View>
-          <Text style={local.period}>{t('Across all months')}</Text>
         </View>
         <Animated.View
           style={[
@@ -285,35 +296,21 @@ const local = StyleSheet.create({
   },
   banner: {
     backgroundColor: colors.primary,
-    borderRadius: 26,
-    padding: 20,
-    paddingBottom: 34,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    padding: 16,
+    gap: 14,
     overflow: 'hidden',
   },
-  haloLarge: {
-    position: 'absolute',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.045,
-    top: -100,
-    right: -100,
-  },
-  haloSmall: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    borderWidth: 28,
-    borderColor: '#FFFFFF',
-    opacity: 0.04,
-    bottom: -140,
-    left: -50,
-  },
+  // Explicit dimensions override the bundled image's intrinsic size.
+  // Contain keeps the full illustration visible as the banner changes height.
+  bannerImage: { width: '100%', height: '100%' },
+  profileSlot: { flex: 1, alignItems: 'flex-start' },
   topbar: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   profile: {
-    flex: 1,
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 48,
@@ -330,15 +327,12 @@ const local = StyleSheet.create({
     justifyContent: 'center',
   },
   initials: { fontSize: 17, fontWeight: '700', color: colors.primary },
-  identity: { flex: 1, gap: 3 },
-  brand: {
-    color: '#D5EFEB',
-    fontSize: 9,
-    letterSpacing: 1.8,
+  name: {
+    color: colors.surface,
+    fontSize: 16,
     fontWeight: '700',
+    flexShrink: 1,
   },
-  name: { color: colors.surface, fontSize: 16, fontWeight: '700' },
-  profileChevron: { transform: [{ rotate: '-90deg' }] },
   notification: {
     width: 44,
     height: 44,
@@ -364,16 +358,9 @@ const local = StyleSheet.create({
     alignItems: 'center',
   },
   dotText: { fontSize: 9, color: colors.ink, fontWeight: '800' },
-  overview: {
-    color: '#E2F3F0',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 22,
-    marginBottom: 14,
-  },
-  balances: { flexDirection: 'row', alignItems: 'stretch', gap: 14 },
+  balances: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
   stackedBalances: { flexDirection: 'column' },
-  balance: { flex: 1, minHeight: 60, justifyContent: 'center', gap: 7 },
+  balance: { flex: 1, minHeight: 48, justifyContent: 'center', gap: 3 },
   balanceLabel: {
     color: '#E2F3F0',
     fontSize: 12,
@@ -382,8 +369,8 @@ const local = StyleSheet.create({
   },
   amount: {
     color: colors.surface,
-    fontSize: 25,
-    lineHeight: 33,
+    fontSize: 23,
+    lineHeight: 30,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
     flexShrink: 1,
@@ -391,15 +378,15 @@ const local = StyleSheet.create({
   dueAmount: { color: '#FFE4BB' },
   divider: { width: 1, backgroundColor: '#FFFFFF33', marginVertical: 5 },
   horizontalDivider: { height: 1, backgroundColor: '#FFFFFF33' },
-  period: { color: '#D5EFEB', fontSize: 10, marginTop: 12, lineHeight: 16 },
   shortcuts: {
-    marginTop: -16,
     backgroundColor: colors.surface,
-    borderRadius: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     paddingTop: 22,
     paddingHorizontal: 8,
     paddingBottom: 12,
     borderWidth: 1,
+    borderTopWidth: 0,
     borderColor: colors.line,
   },
   sectionTitle: {

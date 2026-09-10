@@ -446,5 +446,8 @@
   "Could not sign out. Please try again.": "Could not sign out. Please try again.",
   "Admin": "Admin",
   "Guardian": "Guardian",
-  "Enter a name between 2 and 80 characters.": "Enter a name between 2 and 80 characters."
+  "Enter a name between 2 and 80 characters.": "Enter a name between 2 and 80 characters.",
+  "My account": "My account",
+  "Keep your account details up to date.": "Keep your account details up to date.",
+  "Name and account details": "Name and account details"
 }

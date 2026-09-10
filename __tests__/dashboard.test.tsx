@@ -149,11 +149,9 @@ it('totals paid and unpaid bills across months without counting payment submissi
   });
   expect(button('Total collected, ৳2,000.5')).toBeDefined();
   expect(button('Due balance, ৳1,750')).toBeDefined();
-  expect(
-    screen.root
-      .findAllByType(Text)
-      .some(node => node.props.children === 'Across all months'),
-  ).toBe(true);
+  expect(button('Total collected, ৳2,000.5').props.accessibilityHint).toBe(
+    'Across all months',
+  );
   await act(async () => button('Total collected, ৳2,000.5').props.onPress());
   expect(mockNavigate).toHaveBeenLastCalledWith('Bills');
   await act(async () => button('Due balance, ৳1,750').props.onPress());

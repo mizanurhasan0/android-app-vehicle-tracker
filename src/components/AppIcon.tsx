@@ -97,11 +97,18 @@ export function AppIcon({
   );
 }
 const icon = StyleSheet.create({
-  container: { alignItems: 'center', justifyContent: 'center' },
+  container: { alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   ruleTop: { top: 7 },
   ruleMiddle: { top: 11 },
   ruleBottom: { top: 15, width: 5 },
-  canvas: { width: 24, height: 24 },
+  // Request icons use a 20px canvas; center them inside the shared 24px frame.
+  canvas: {
+    width: 24,
+    height: 24,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   head: {
     position: 'absolute',
     width: 9,

@@ -8,7 +8,7 @@ const languages = [
   { code: 'en', label: 'English' },
   { code: 'bn', label: 'বাংলা' },
 ] as const;
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ stacked = false }: { stacked?: boolean }) {
   const { t, i18n } = useTranslation();
   const settings = useLanguageSettings();
   if (!settings) return null;
@@ -17,7 +17,7 @@ export function LanguageSwitcher() {
       <View
         accessibilityRole="radiogroup"
         accessibilityLabel={t('Language')}
-        style={local.options}
+        style={[local.options, stacked && local.stackedOptions]}
       >
         {languages.map(language => (
           <Pressable
@@ -34,6 +34,7 @@ export function LanguageSwitcher() {
             }}
             style={({ pressed }) => [
               local.option,
+              stacked && local.stackedOption,
               i18n.language === language.code && local.selected,
               (pressed || settings.busy) && local.dimmed,
             ]}
@@ -74,6 +75,14 @@ const local = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 24,
   },
+  stackedOptions: {
+    flexDirection: 'column',
+    alignSelf: 'stretch',
+    borderRadius: 12,
+    padding: 3,
+    gap: 3,
+  },
+  stackedOption: { borderRadius: 9, minWidth: 0 },
   selected: { backgroundColor: colors.primary },
   label: {
     color: colors.primary,

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
+  ActivityIndicator,
   Animated,
   Easing,
   Keyboard,
@@ -19,7 +20,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
 import { colors, styles } from '../theme';
 import { AppIcon } from './AppIcon';
-import { LanguageSwitcher } from './LanguageSwitcher';
+import { useLanguageSettings } from '../i18n/LanguageContext';
+import { ProfileMenuIcon } from './ProfileMenuIcon';
 import { Button, Field, Notice } from './ui';
 
 export function ProfileDrawer({
@@ -32,8 +34,9 @@ export function ProfileDrawer({
   const { session, updateProfile, signOut } = useAuth();
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
-  const drawerWidth = Math.min(400, Math.max(240, width - 32), width);
+  const drawerWidth = Math.min(380, width - 24);
   const progress = useRef(new Animated.Value(0)).current;
+  const editorProgress = useRef(new Animated.Value(1)).current;
   const reducedMotion = useRef(true);
   const mounted = useRef(false);
   const closing = useRef(false);
@@ -61,12 +64,14 @@ export function ProfileDrawer({
       reducedMotion.current = reduce;
       if (reduce) {
         progress.stopAnimation();
+        editorProgress.stopAnimation();
+        editorProgress.setValue(1);
         progress.setValue(closing.current ? 0 : 1);
         if (closing.current) closeCallback.current();
       } else if (visible && !closing.current) {
         Animated.timing(progress, {
           toValue: 1,
-          duration: 240,
+          duration: 260,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }).start();
@@ -90,7 +95,31 @@ export function ProfileDrawer({
       subscription.remove();
       progress.stopAnimation();
     };
-  }, [progress, visible]);
+  }, [editorProgress, progress, visible]);
+
+  useEffect(() => {
+    if (!editing || reducedMotion.current) {
+      editorProgress.setValue(1);
+      return;
+    }
+    editorProgress.setValue(0);
+    Animated.timing(editorProgress, {
+      toValue: 1,
+      duration: 160,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+    return () => editorProgress.stopAnimation();
+  }, [editing, editorProgress]);
+
+  const cancelEditing = () => {
+    if (pending.current) return;
+    setName(session?.user.name ?? '');
+    setEditing(false);
+    setError('');
+    setSuccess('');
+    Keyboard.dismiss();
+  };
 
   const requestClose = () => {
     if (pending.current || closing.current) return;
@@ -178,7 +207,7 @@ export function ProfileDrawer({
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={requestClose}
+      onRequestClose={editing ? cancelEditing : requestClose}
       statusBarTranslucent
     >
       <View style={local.modal}>
@@ -194,7 +223,7 @@ export function ProfileDrawer({
         </Animated.View>
         <Animated.View
           accessibilityViewIsModal
-          onAccessibilityEscape={requestClose}
+          onAccessibilityEscape={editing ? cancelEditing : requestClose}
           style={[
             local.drawer,
             {
@@ -210,13 +239,22 @@ export function ProfileDrawer({
             },
           ]}
         >
-          <SafeAreaView style={local.safe} edges={['top', 'bottom', 'left']}>
+          <SafeAreaView style={local.panel} edges={['top', 'bottom', 'left']}>
             <View style={local.header}>
-              <Text
-                accessibilityRole="header"
-                style={[styles.heading, local.headerTitle]}
-              >
-                {t('Profile')}
+              {editing ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('Cancel')}
+                  accessibilityState={{ disabled: busy }}
+                  disabled={busy}
+                  onPress={cancelEditing}
+                  style={local.headerButton}
+                >
+                  <AppIcon kind="back" size={20} color={colors.ink} />
+                </Pressable>
+              ) : null}
+              <Text accessibilityRole="header" style={local.headerTitle}>
+                {t(editing ? 'Edit profile' : 'My account')}
               </Text>
               <Pressable
                 accessibilityRole="button"
@@ -225,43 +263,45 @@ export function ProfileDrawer({
                 disabled={busy}
                 onPress={requestClose}
                 style={({ pressed }) => [
-                  local.close,
+                  local.headerButton,
                   (pressed || busy) && local.dimmed,
                 ]}
               >
-                <AppIcon kind="back" color={colors.ink} size={22} />
+                <ProfileMenuIcon kind="close" color={colors.muted} />
               </Pressable>
             </View>
             <KeyboardAvoidingView
-              style={local.safe}
+              style={local.panel}
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
               <ScrollView
+                style={local.panel}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={local.content}
               >
-                <View style={local.identity}>
-                  <View style={local.avatar} accessible={false}>
-                    {initials ? (
-                      <Text style={local.initials}>{initials}</Text>
-                    ) : (
-                      <AppIcon kind="user" size={30} />
-                    )}
-                  </View>
-                  <Text style={local.name}>{user.name}</Text>
-                  <View style={local.role}>
-                    <Text style={local.roleLabel}>
-                      {user.role === 'ADMIN' ? t('Admin') : t('Guardian')}
-                    </Text>
-                  </View>
-                </View>
-
                 <Notice text={error} kind="error" />
                 <Notice text={success} />
-
-                <View style={local.section}>
-                  {editing ? (
-                    <>
+                {editing ? (
+                  <Animated.View
+                    style={[
+                      local.editPage,
+                      {
+                        opacity: editorProgress,
+                        transform: [
+                          {
+                            translateY: editorProgress.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [8, 0],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  >
+                    <Text style={styles.muted}>
+                      {t('Keep your account details up to date.')}
+                    </Text>
+                    <View style={local.formCard}>
                       <Field
                         label={t('Full name')}
                         value={name}
@@ -274,6 +314,21 @@ export function ProfileDrawer({
                         returnKeyType="done"
                         onSubmitEditing={save}
                       />
+                      <View style={local.readOnlyField}>
+                        <Text style={local.fieldLabel}>
+                          {t('Phone number')}
+                        </Text>
+                        <Text selectable style={styles.body}>
+                          {user.phone}
+                        </Text>
+                        <Text style={local.help}>
+                          {t(
+                            'Your sign-in phone number cannot be changed here.',
+                          )}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={local.editActions}>
                       <Button
                         title={t('Save changes')}
                         onPress={save}
@@ -282,56 +337,71 @@ export function ProfileDrawer({
                       />
                       <Button
                         title={t('Cancel')}
+                        onPress={cancelEditing}
                         secondary
+                        disabled={busy}
+                      />
+                    </View>
+                  </Animated.View>
+                ) : (
+                  <>
+                    <View style={local.identity}>
+                      <View style={local.avatar} accessible={false}>
+                        <Text style={local.initials}>{initials || 'P'}</Text>
+                      </View>
+                      <View style={local.identityText}>
+                        <Text style={local.name}>{user.name}</Text>
+                        <Text
+                          selectable
+                          accessibilityLabel={`${t('Phone number')}, ${
+                            user.phone
+                          }`}
+                          style={local.phone}
+                        >
+                          {user.phone}
+                        </Text>
+                        <View style={local.role}>
+                          <Text style={local.roleLabel}>
+                            {user.role === 'ADMIN' ? t('Admin') : t('Guardian')}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={local.settingsCard}>
+                      <DrawerAction
+                        title={t('Edit profile')}
+                        detail={t('Name and account details')}
+                        icon="edit"
                         disabled={busy}
                         onPress={() => {
                           setName(user.name);
-                          setEditing(false);
                           setError('');
-                          Keyboard.dismiss();
+                          setSuccess('');
+                          setEditing(true);
                         }}
                       />
-                    </>
-                  ) : (
-                    <Button
-                      title={t('Edit profile')}
-                      secondary
-                      disabled={busy}
-                      onPress={() => {
-                        setName(user.name);
-                        setError('');
-                        setSuccess('');
-                        setEditing(true);
-                      }}
-                    />
-                  )}
-                  <View style={local.phone}>
-                    <Text style={local.fieldLabel}>{t('Phone number')}</Text>
-                    <Text selectable style={styles.body}>
-                      {user.phone}
-                    </Text>
-                    <Text style={styles.muted}>
-                      {t('Your sign-in phone number cannot be changed here.')}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={local.section}>
-                  <Text accessibilityRole="header" style={local.fieldLabel}>
-                    {t('Language')}
-                  </Text>
-                  <LanguageSwitcher />
-                </View>
-
-                <View style={local.footer}>
-                  <Button
-                    title={t('Sign out')}
-                    secondary
-                    busy={operation === 'signOut'}
-                    disabled={busy}
-                    onPress={handleSignOut}
-                  />
-                </View>
+                      <View style={local.languageSection}>
+                        <View style={local.settingHeading}>
+                          <View style={local.menuIcon}>
+                            <ProfileMenuIcon kind="language" />
+                          </View>
+                          <Text style={local.rowTitle}>{t('Language')}</Text>
+                        </View>
+                        <LanguageOptions />
+                      </View>
+                    </View>
+                    <View style={local.footer}>
+                      <DrawerAction
+                        title={t('Sign out')}
+                        icon="logout"
+                        danger
+                        busy={operation === 'signOut'}
+                        disabled={busy}
+                        onPress={handleSignOut}
+                      />
+                    </View>
+                  </>
+                )}
               </ScrollView>
             </KeyboardAvoidingView>
           </SafeAreaView>
@@ -341,61 +411,288 @@ export function ProfileDrawer({
   );
 }
 
+function DrawerAction({
+  title,
+  detail,
+  icon,
+  danger = false,
+  busy = false,
+  disabled = false,
+  onPress,
+}: {
+  title: string;
+  detail?: string;
+  icon: 'edit' | 'logout';
+  danger?: boolean;
+  busy?: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: disabled || busy, busy }}
+      disabled={disabled || busy}
+      onPress={onPress}
+      style={({ pressed }) => [
+        local.menuRow,
+        pressed && local.rowPressed,
+        (disabled || busy) && local.dimmed,
+      ]}
+    >
+      <View style={[local.menuIcon, danger && local.dangerIcon]}>
+        {busy ? (
+          <ActivityIndicator color={colors.danger} />
+        ) : (
+          <ProfileMenuIcon
+            kind={icon}
+            color={danger ? colors.danger : colors.primary}
+          />
+        )}
+      </View>
+      <View style={local.rowText}>
+        <Text style={[local.rowTitle, danger && local.dangerText]}>
+          {title}
+        </Text>
+        {detail ? <Text style={local.help}>{detail}</Text> : null}
+      </View>
+      {!danger ? (
+        <View style={local.chevron}>
+          <AppIcon kind="back" color={colors.muted} size={16} />
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function LanguageOptions() {
+  const { t, i18n } = useTranslation();
+  const settings = useLanguageSettings();
+  if (!settings) return null;
+  return (
+    <View style={local.languageOptions}>
+      <View
+        accessibilityRole="radiogroup"
+        accessibilityLabel={t('Language')}
+        style={local.languageChoices}
+      >
+        {(
+          [
+            { code: 'en', label: 'English' },
+            { code: 'bn', label: 'বাংলা' },
+          ] as const
+        ).map(language => {
+          const selected = i18n.language === language.code;
+          return (
+            <Pressable
+              key={language.code}
+              accessibilityRole="radio"
+              accessibilityLabel={language.label}
+              accessibilityState={{
+                checked: selected,
+                disabled: settings.busy,
+              }}
+              disabled={settings.busy}
+              onPress={() => {
+                settings.changeLanguage(language.code);
+              }}
+              style={({ pressed }) => [
+                local.languageChoice,
+                selected && local.languageSelected,
+                (pressed || settings.busy) && local.dimmed,
+              ]}
+            >
+              <Text
+                style={[
+                  local.languageLabel,
+                  selected && local.languageLabelSelected,
+                ]}
+              >
+                {language.label}
+              </Text>
+              <View style={[local.radio, selected && local.radioSelected]}>
+                {selected ? <View style={local.radioDot} /> : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Notice text={settings.error} kind="error" />
+    </View>
+  );
+}
+
 const local = StyleSheet.create({
   modal: { flex: 1 },
-  scrim: { ...StyleSheet.absoluteFill, backgroundColor: '#071C28A6' },
+  scrim: { ...StyleSheet.absoluteFill, backgroundColor: '#102A3280' },
   drawer: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderTopRightRadius: 28,
-    borderBottomRightRadius: 28,
-    overflow: 'hidden',
-  },
-  safe: { flex: 1 },
-  header: {
-    minHeight: 68,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  headerTitle: { flex: 1, flexShrink: 1 },
-  close: {
-    minHeight: 44,
-    minWidth: 44,
-    borderRadius: 22,
+    height: '100%',
+    alignSelf: 'flex-start',
     backgroundColor: colors.background,
+    borderTopRightRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: 'hidden',
+    elevation: 16,
+  },
+  panel: { flex: 1 },
+  header: {
+    minHeight: 64,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerTitle: { flex: 1, fontSize: 20, fontWeight: '700', color: colors.ink },
+  headerButton: {
+    width: 44,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  dimmed: { opacity: 0.5 },
-  content: { flexGrow: 1, padding: 24, paddingTop: 12, gap: 24 },
-  identity: { alignItems: 'flex-start', gap: 12 },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    backgroundColor: colors.mint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: { fontSize: 25, fontWeight: '800', color: colors.primary },
-  name: { fontSize: 25, lineHeight: 33, fontWeight: '800', color: colors.ink },
-  role: {
-    paddingVertical: 5,
-    paddingHorizontal: 11,
-    backgroundColor: colors.mint,
     borderRadius: 12,
   },
-  roleLabel: { fontSize: 12, fontWeight: '700', color: colors.primary },
-  section: {
+  content: { flexGrow: 1, padding: 16, paddingTop: 4, gap: 20 },
+  identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
-    paddingTop: 22,
-    borderTopWidth: 1,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
     borderColor: colors.line,
   },
-  phone: { gap: 6, paddingTop: 6 },
-  fieldLabel: { fontSize: 14, fontWeight: '700', color: colors.ink },
-  footer: { marginTop: 'auto', paddingTop: 12 },
+  identityText: { flex: 1, gap: 6 },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: colors.mint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  initials: { fontSize: 22, fontWeight: '700', color: colors.primary },
+  name: { fontSize: 19, lineHeight: 26, fontWeight: '700', color: colors.ink },
+  phone: { fontSize: 14, lineHeight: 21, color: colors.muted },
+  role: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: colors.mint,
+  },
+  roleLabel: { color: colors.primary, fontSize: 11, fontWeight: '600' },
+  settingsCard: {
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: 'hidden',
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 76,
+    padding: 16,
+    gap: 12,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    flexShrink: 0,
+    borderRadius: 12,
+    backgroundColor: colors.mint,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rowText: { flex: 1, gap: 3 },
+  rowTitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '600',
+    color: colors.ink,
+    flexShrink: 1,
+  },
+  help: { fontSize: 13, lineHeight: 20, color: colors.muted },
+  chevron: { transform: [{ rotate: '180deg' }] },
+  rowPressed: { backgroundColor: colors.background },
+  dimmed: { opacity: 0.55 },
+  languageSection: {
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    padding: 16,
+    gap: 14,
+  },
+  settingHeading: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  languageOptions: { gap: 8 },
+  languageChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  languageChoice: {
+    flex: 1,
+    minWidth: 104,
+    minHeight: 48,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  languageSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.mint,
+  },
+  languageLabel: {
+    color: colors.muted,
+    fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 22,
+    flexShrink: 1,
+  },
+  languageLabelSelected: { color: colors.primary },
+  radio: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: colors.muted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioSelected: { borderColor: colors.primary },
+  radioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+  footer: {
+    marginTop: 'auto',
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: 'hidden',
+  },
+  dangerIcon: { backgroundColor: '#FBEAEC' },
+  dangerText: { color: colors.danger },
+  editPage: { flexGrow: 1, gap: 20 },
+  formCard: {
+    padding: 16,
+    gap: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 20,
+  },
+  readOnlyField: {
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingTop: 16,
+  },
+  fieldLabel: { color: colors.ink, fontSize: 14, fontWeight: '600' },
+  editActions: { marginTop: 'auto', gap: 10, paddingTop: 12 },
 });
