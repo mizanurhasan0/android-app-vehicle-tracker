@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { HistoryPoint, HistoryRoute } from '../api/types';
 import { i18n, Language, useTranslation } from '../i18n';
@@ -71,9 +71,11 @@ var drag=null;map.onpointerdown=function(e){if(e.target.closest('button,a'))retu
 export function HistoryMap({
   route,
   selected,
+  style,
 }: {
   route: HistoryRoute;
   selected?: HistoryPoint;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { i18n: translation } = useTranslation();
   const language = translation.language === 'bn' ? 'bn' : 'en';
@@ -105,7 +107,7 @@ export function HistoryMap({
   return (
     <WebView<object>
       ref={web}
-      style={local.map}
+      style={[local.map, style]}
       source={source}
       originWhitelist={['https://pathsathi.local']}
       onShouldStartLoadWithRequest={request =>
