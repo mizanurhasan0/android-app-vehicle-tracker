@@ -17,7 +17,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, styles } from '../theme';
 import { normalizeDigits, readable } from '../utils/format';
 import { translateMessage, useTranslation } from '../i18n';
-import { LanguageSwitcher } from './LanguageSwitcher';
 import { CopyrightFooter } from './CopyrightFooter';
 export function Page({
   title,
@@ -62,12 +61,8 @@ export function Page({
           }
         >
           <View style={ui.content}>
-            {!dashboard ? (
+            {!dashboard && (title || subtitle) ? (
               <View style={ui.header}>
-                <View style={styles.between}>
-                  <Text style={styles.label}>পথসাথী · PATHSATHI</Text>
-                  <LanguageSwitcher />
-                </View>
                 {title ? (
                   <Text accessibilityRole="header" style={styles.title}>
                     {title}
