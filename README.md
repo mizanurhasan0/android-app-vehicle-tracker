@@ -1,4 +1,4 @@
-# PathSathi Android
+# Noor Transport Android
 
 React Native Android app for guardian transport requests, assigned vehicle tracking,
 manual bKash/Rocket payment submissions and an admin review workspace.
@@ -150,7 +150,7 @@ an app build, and the provider's attribution/cache requirements must be retained
 ## Languages
 
 Use **English / বাংলা** in the page header to change language, including before
-signing in. English is the default; the selected language is saved on the device
+signing in. Bengali is the default on a new installation; the selected language is saved on the device
 and restored after restarting. Switching language keeps form input and the current
 screen. Translation dictionaries are bundled and work offline.
 
@@ -164,23 +164,40 @@ copy to both dictionaries with matching interpolation placeholders, then use
 `useTranslation` from `src/i18n`. Tests check catalog coverage, language persistence,
 form preservation and localized map controls.
 
-## Reference-inspired interface
+## Noor Transport reference interface
 
-The white and raspberry-pink login uses a bundled school-transport illustration,
-rounded credential fields, password visibility, and the existing secure sign-in.
-Forgot password directs the user to their school administrator. Registration and
-school server settings remain available.
+The app now follows the supplied green/white Noor Transport parent and admin
+screenshots. Admin and guardian sessions have different dashboards, navigation and
+menus. The original package ID `com.pathsathi.transport` remains stable; the
+Android display name is Noor Transport. The screenshot artwork and logo were
+reconstructed because no editable Figma file or original image assets were supplied.
 
-Home shows the signed-in user's initials, name, phone, total unpaid amount, and
-circular shortcuts for Create vehicle (admin), Student list, Bills, Due list,
-Requested, Complaints, Stop requests, Payment accounts, Vehicles, and Routes.
-Each shortcut opens a stack screen with Android back navigation. Student records
-come from approved transport subscriptions; tap a student to see route, pickup
-stop, vehicle, and status. Due list includes unpaid bills awaiting payment review.
+Admin tools include student/driver profiles and editing, vehicle details and
+schedules, attendance, maintenance, income/expense/investment, notices, operational
+requests, contact templates, settings, and real finance reports. These use the
+companion API's version 2 PostgreSQL migration and authenticated management API.
+Deploy the matching API before using these tools against your server.
 
-The bell shows the unread count. Tap a notification to open its full details and
-mark it read. Vehicle creation, account/route management, payment review, and
-travel history retain their existing admin access requirements. Guardians have
-nine home shortcuts, with read-only route and receiving-account information.
+Parents can complete the four-step admission form with a selected photo, view
+application status and student profiles, inspect real route schedules/attendance,
+track their assigned vehicle, submit the existing manual payments, and export
+paid-bill receipts. Scheduled stops are never presented as confirmed pickup/drop
+events. A missing location or attendance record is displayed as unavailable.
 
-See [redesign verification and screenshots](docs/qa/reference-redesign/README.md).
+The Android system photo picker requests a user-selected image without broad
+storage permissions, handles camera orientation, and compresses it to a small
+JPEG. Reports and receipts use Android's document save dialog. PDF files are
+rendered natively with Bengali text; CSV reports open in Excel and escape formula
+prefixes. These native changes require rebuilding the Android app.
+
+New management/reference screens use Bengali copy. The saved language selector
+continues to translate the existing authentication, payment, request and tracking
+flows; it does not yet translate all newly added management copy into English.
+
+Automatic payment gateways, background push delivery, automated SMS/WhatsApp
+broadcasts, inferred ETA/geofences/pickup events, separate driver login/app,
+multi-branch administration and a backup-management UI are not part of this change.
+Existing server backup procedures still apply.
+
+See [implementation and verification](docs/qa/noor-redesign/README.md) and
+[management API documentation](../gps-tracker-api/docs/MANAGEMENT_API.md).

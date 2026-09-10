@@ -1,5 +1,11 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { Location, Vehicle } from '../api/types';
 import { useTranslation } from '../i18n';
 import { colors } from '../theme';
@@ -22,6 +28,8 @@ export function VehicleListRow({
   onEdit,
 }: VehicleListRowProps) {
   const { t } = useTranslation();
+  const { width } = useWindowDimensions();
+  const compact = width < 380;
   const stale =
     location != null && Date.now() - Date.parse(location.lastSeen) >= 180_000;
   const status = stale ? 'offline' : location?.status || 'waiting';
@@ -29,13 +37,15 @@ export function VehicleListRow({
     status === 'live'
       ? colors.primary
       : status === 'lastKnown'
-        ? colors.amber
-        : colors.muted;
+      ? colors.amber
+      : colors.muted;
   const speed = location?.speed;
   const description = [
     readable(status),
     speed != null && Number.isFinite(speed)
-      ? `${status === 'live' ? '' : `${t('Last speed')} `}${numberLabel(speed)} ${t('km/h')}`
+      ? `${status === 'live' ? '' : `${t('Last speed')} `}${numberLabel(
+          speed,
+        )} ${t('km/h')}`
       : null,
     vehicle.driverName || null,
   ]
@@ -60,7 +70,7 @@ export function VehicleListRow({
           />
         </View>
         <View style={local.identity}>
-          <Text numberOfLines={1} style={local.name}>
+          <Text numberOfLines={2} style={local.name}>
             {vehicle.name}
           </Text>
           <Text numberOfLines={1} style={local.plate}>
@@ -71,7 +81,7 @@ export function VehicleListRow({
               accessible={false}
               style={[local.statusDot, { backgroundColor: statusColor }]}
             />
-            <Text numberOfLines={1} style={local.description}>
+            <Text numberOfLines={compact ? 2 : 1} style={local.description}>
               {description}
             </Text>
           </View>
@@ -84,7 +94,9 @@ export function VehicleListRow({
           onPress={onEdit}
           style={({ pressed }) => [local.edit, pressed && local.pressed]}
         >
-          <Text style={local.editLabel}>{t('Edit')}</Text>
+          <Text style={[local.editLabel, compact && local.editSymbol]}>
+            {compact ? '✎' : t('Edit')}
+          </Text>
         </Pressable>
       ) : null}
     </View>
@@ -140,6 +152,7 @@ const local = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
+  editSymbol: { fontSize: 22 },
   editLabel: { fontSize: 12, fontWeight: '600', color: colors.primary },
   pressed: { opacity: 0.65 },
 });

@@ -18,6 +18,7 @@ import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
 import { colors, styles } from '../theme';
 import { dateLabel, money, readable } from '../utils/format';
+import { NoorIcon } from '../components/Noor';
 function PaymentForm({
   bill,
   cancel,
@@ -175,14 +176,57 @@ function GuardianPaymentsScreen({ dueOnly }: { dueOnly: boolean }) {
   const payments = data.payments.filter(
     payment => !filter || payment.status === filter,
   );
+  const summaryMonth = [...data.bills]
+    .map(bill => bill.month)
+    .sort()
+    .pop();
+  const monthBills = data.bills.filter(bill => bill.month === summaryMonth);
+  const monthTotal = monthBills.reduce((sum, bill) => sum + bill.amount, 0);
+  const monthPaid = monthBills
+    .filter(bill => bill.status === 'PAID')
+    .reduce((sum, bill) => sum + bill.amount, 0);
   return (
-    <Page
-      title={t(dueOnly ? 'Due list' : 'Monthly bills')}
-      subtitle={t('Pay manually. Submit the details. We’ll keep you updated.')}
-      loading={loading}
-      refresh={refresh}
-      error={error}
-    >
+    <Page loading={loading} refresh={refresh} error={error}>
+      <Card>
+        <Text style={styles.heading}>
+          মাসিক ভাড়া{summaryMonth ? ` (${summaryMonth})` : ''}
+        </Text>
+        <View style={local.summary}>
+          <View style={local.summaryCell}>
+            <Text style={local.summaryLabel}>মোট ভাড়া</Text>
+            <Text style={local.summaryAmount}>{money(monthTotal)}</Text>
+          </View>
+          <View style={[local.summaryCell, local.summaryMiddle]}>
+            <Text style={local.summaryLabel}>পরিশোধিত</Text>
+            <Text style={local.summaryAmount}>{money(monthPaid)}</Text>
+          </View>
+          <View style={local.summaryCell}>
+            <Text style={[local.summaryLabel, local.dueText]}>বকেয়া</Text>
+            <Text style={[local.summaryAmount, local.dueText]}>
+              {money(monthTotal - monthPaid)}
+            </Text>
+          </View>
+        </View>
+        {monthBills.length > 0 ? (
+          <View style={local.summaryStatus}>
+            <Badge
+              status={
+                monthBills.every(bill => bill.status === 'PAID')
+                  ? 'PAID'
+                  : 'UNPAID'
+              }
+            />
+          </View>
+        ) : null}
+        <Button
+          title="পেমেন্ট করুন"
+          disabled={!payableBills.length || !data.accounts.length || submitting}
+          onPress={() => {
+            setSelectedBill(payableBills[0]?.id || null);
+            setTab('Payment form');
+          }}
+        />
+      </Card>
       <View
         accessibilityRole="tablist"
         accessibilityLabel={t('Monthly bills')}
@@ -226,9 +270,11 @@ function GuardianPaymentsScreen({ dueOnly }: { dueOnly: boolean }) {
           visibleBills.map(bill => (
             <Card key={bill.id}>
               <View style={styles.between}>
-                <Text style={styles.heading}>
-                  {bill.month} · {money(bill.amount)}
-                </Text>
+                <View style={local.billHeading}>
+                  <NoorIcon name="receipt" size={21} color={colors.primary} />
+                  <Text style={styles.heading}>{bill.month}</Text>
+                </View>
+                <Text style={local.billAmount}>{money(bill.amount)}</Text>
                 <Badge
                   status={bill.pendingSubmissionId ? 'PENDING' : bill.status}
                 />
@@ -400,19 +446,37 @@ function PaymentPanel({
 }
 
 const local = StyleSheet.create({
-  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  summary: { flexDirection: 'row', paddingVertical: 7 },
+  summaryCell: { flex: 1, alignItems: 'center', gap: 7, paddingHorizontal: 3 },
+  summaryMiddle: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: colors.line,
+  },
+  summaryLabel: { color: colors.muted, fontSize: 12, textAlign: 'center' },
+  summaryAmount: { color: colors.primary, fontSize: 19, fontWeight: '800' },
+  summaryStatus: { alignItems: 'center' },
+  dueText: { color: colors.danger },
+  billHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  billAmount: { color: colors.primary, fontSize: 16, fontWeight: '700' },
+  tabs: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 3,
+    backgroundColor: '#EEF5F2',
+    borderRadius: 7,
+    padding: 3,
+  },
   tab: {
     flexGrow: 1,
     flexBasis: 90,
     minHeight: 44,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
+    borderRadius: 6,
+    backgroundColor: 'transparent',
   },
   selectedTab: { backgroundColor: colors.primary, borderColor: colors.primary },
   tabText: {

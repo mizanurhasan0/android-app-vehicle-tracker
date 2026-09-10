@@ -1,47 +1,50 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { AccessibilityInfo, Text } from 'react-native';
-import { HomeScreen, dashboardItems } from '../src/screens/HomeScreen';
-import { ProfileDrawer } from '../src/components/ProfileDrawer';
+import { Text } from 'react-native';
+import { HomeScreen } from '../src/screens/HomeScreen';
 import {
   NotificationsScreen,
   NotificationDetailsScreen,
 } from '../src/screens/NotificationsScreen';
 import { Button } from '../src/components/ui';
-
 let mockRole = 'ADMIN';
 const mockNavigate = jest.fn();
 const mockMutate = jest.fn().mockResolvedValue({});
-let mockLoading = false;
-let mockError = '';
+let mockLoading = false,
+  mockError = '';
 const mockData = {
   bills: [
-    { id: 'paid-july', month: '2026-07', status: 'PAID', amount: 120050 },
-    { id: 'paid-august', month: '2026-08', status: 'PAID', amount: 80000 },
-    { id: 'due-august', month: '2026-08', status: 'UNPAID', amount: 150000 },
     {
-      id: 'due-september',
-      month: '2026-09',
-      status: 'UNPAID',
-      amount: 25000,
-      pendingSubmissionId: 'pending',
+      id: 'old-paid',
+      month: '2026-08',
+      status: 'PAID',
+      amount: 90000,
+      guardianName: 'A',
     },
-  ],
-  payments: [
-    { id: 'approved', billId: 'paid-july', status: 'APPROVED', amount: 120050 },
+    {
+      id: 'paid',
+      month: '2026-09',
+      status: 'PAID',
+      amount: 250000,
+      guardianName: 'A',
+    },
     {
       id: 'pending',
-      billId: 'due-september',
-      status: 'PENDING',
-      amount: 25000,
+      month: '2026-09',
+      status: 'UNPAID',
+      amount: 250000,
+      pendingSubmissionId: 'p1',
+      guardianName: 'B',
     },
     {
-      id: 'rejected',
-      billId: 'due-august',
-      status: 'REJECTED',
-      amount: 150000,
+      id: 'old-due',
+      month: '2026-08',
+      status: 'UNPAID',
+      amount: 100000,
+      guardianName: 'B',
     },
   ],
+  payments: [],
   notifications: [
     {
       id: 'n1',
@@ -51,8 +54,28 @@ const mockData = {
       readAt: null,
     },
   ],
+  vehicles: [
+    {
+      id: 'v1',
+      name: 'গাড়ি-০১',
+      plate: 'ঢাকা-১২৩',
+      imei: '868720065798377',
+      status: 'RUNNING',
+      driverName: 'Nur Alam',
+    },
+  ],
+  locations: [],
+  requests: [],
+  routes: [],
+  subscriptions: [],
 };
 const initialBills = mockData.bills;
+const mockManagement = {
+  data: { students: [], attendance: [], maintenance: [], requests: [] },
+  loading: false,
+  error: '',
+  refresh: jest.fn(),
+};
 jest.mock('../src/context/AuthContext', () => ({
   useAuth: () => ({
     session: {
@@ -70,22 +93,20 @@ jest.mock('../src/context/DataContext', () => ({
     mutate: mockMutate,
   }),
 }));
-jest.mock('../src/components/LanguageSwitcher', () => ({
-  LanguageSwitcher: () => null,
+jest.mock('../src/context/ManagementContext', () => ({
+  useManagement: () => mockManagement,
 }));
 jest.mock('../src/components/ProfileDrawer', () => ({
   ProfileDrawer: () => null,
 }));
-jest.mock('@react-native-picker/picker', () => {
-  const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
-  Picker.Item = Picker;
-  return { Picker };
-});
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
 }));
+jest.mock('@react-native-picker/picker', () => {
+  const Picker = require('react-native').View;
+  Picker.Item = Picker;
+  return { Picker };
+});
 let screen: TestRenderer.ReactTestRenderer;
 const navigation = { navigate: mockNavigate } as never;
 beforeEach(() => {
@@ -94,9 +115,7 @@ beforeEach(() => {
   mockError = '';
   mockData.bills = initialBills;
   jest.clearAllMocks();
-  jest
-    .spyOn(AccessibilityInfo, 'isReduceMotionEnabled')
-    .mockResolvedValue(true);
+  jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-10T06:00:00Z'));
 });
 afterEach(async () => {
   await act(async () => screen?.unmount());
@@ -111,86 +130,72 @@ function button(label: string) {
     { deep: false },
   )[0];
 }
-it('opens every admin shortcut and the unread notification destination', async () => {
+async function render() {
   await act(async () => {
     screen = TestRenderer.create(
       <HomeScreen navigation={navigation} route={{} as never} />,
     );
   });
-  for (const item of dashboardItems) {
-    await act(async () => button(item.label).props.onPress());
-    expect(mockNavigate).toHaveBeenLastCalledWith(item.screen);
-  }
-  await act(async () => button('Notifications, 1 unread').props.onPress());
-  expect(mockNavigate).toHaveBeenLastCalledWith('Inbox');
-});
-it('keeps vehicle creation out of the guardian dashboard', async () => {
-  mockRole = 'GUARDIAN';
-  await act(async () => {
-    screen = TestRenderer.create(
-      <HomeScreen navigation={navigation} route={{} as never} />,
-    );
-  });
-  expect(button('Create vehicle')).toBeUndefined();
-  expect(button('Vehicles')).toBeDefined();
-  expect(button('Student list')).toBeDefined();
-  expect(button('Total paid, ৳2,000.5')).toBeDefined();
-  expect(button('Total collected, ৳2,000.5')).toBeUndefined();
-  for (const item of dashboardItems.filter(shortcut => !shortcut.adminOnly)) {
-    await act(async () => button(item.label).props.onPress());
-    expect(mockNavigate).toHaveBeenLastCalledWith(item.screen);
-  }
-});
-it('totals paid and unpaid bills across months without counting payment submissions again', async () => {
-  await act(async () => {
-    screen = TestRenderer.create(
-      <HomeScreen navigation={navigation} route={{} as never} />,
-    );
-  });
-  expect(button('Total collected, ৳2,000.5')).toBeDefined();
-  expect(button('Due balance, ৳1,750')).toBeDefined();
-  expect(button('Total collected, ৳2,000.5').props.accessibilityHint).toBe(
-    'Across all months',
-  );
-  await act(async () => button('Total collected, ৳2,000.5').props.onPress());
-  expect(mockNavigate).toHaveBeenLastCalledWith('Bills');
-  await act(async () => button('Due balance, ৳1,750').props.onPress());
+}
+it('shows this month billed/paid separately from arrears and keeps pending proofs unpaid', async () => {
+  await render();
+  expect(button('এই মাসের পাওনা, ৳5,000')).toBeDefined();
+  expect(button('বকেয়া, ৳3,500')).toBeDefined();
+  expect(
+    screen.root
+      .findAllByType(Text)
+      .some(node => node.props.children === 'পরিশোধিত: ৳2,500'),
+  ).toBe(true);
+  await act(async () => button('বকেয়া, ৳3,500').props.onPress());
   expect(mockNavigate).toHaveBeenLastCalledWith('DueList');
 });
-it.each(['loading', 'error'] as const)(
-  'does not show zero balances when initial data is unavailable during %s',
+it('connects the four admin quick actions and unread inbox', async () => {
+  await render();
+  for (const [label, destination] of [
+    ['শিক্ষার্থী যোগ', 'Students'],
+    ['পেমেন্ট যোগ', 'Bills'],
+    ['নোটিশ পাঠান', 'Notices'],
+  ]) {
+    const target = screen.root.findAll(
+      node =>
+        node.props.accessibilityLabel === label &&
+        typeof node.props.onPress === 'function',
+      { deep: false },
+    )[0];
+    await act(async () => target.props.onPress());
+    expect(mockNavigate).toHaveBeenLastCalledWith(destination);
+  }
+  await act(async () => button('খরচ যোগ').props.onPress());
+  expect(mockNavigate).toHaveBeenLastCalledWith('Accounts', { tab: 'EXPENSE' });
+  await act(async () => button('নোটিফিকেশন, 1 অপঠিত').props.onPress());
+  expect(mockNavigate).toHaveBeenLastCalledWith('Inbox');
+});
+it.each(['loading', 'error'])(
+  'does not display zero financial balances when initial fetch is %s',
   async state => {
     mockData.bills = [];
     mockLoading = state === 'loading';
     mockError = state === 'error' ? 'Connection unavailable' : '';
-    await act(async () => {
-      screen = TestRenderer.create(
-        <HomeScreen navigation={navigation} route={{} as never} />,
-      );
-    });
-    expect(button('Total collected, —')).toBeDefined();
-    expect(button('Due balance, —')).toBeDefined();
+    await render();
+    expect(button('এই মাসের পাওনা, —')).toBeDefined();
+    expect(button('বকেয়া, —')).toBeDefined();
   },
 );
-it('opens the profile drawer from the user banner and closes it on dismissal', async () => {
-  await act(async () => {
-    screen = TestRenderer.create(
-      <HomeScreen navigation={navigation} route={{} as never} />,
-    );
-  });
-  expect(screen.root.findAllByType(ProfileDrawer)).toHaveLength(0);
-  await act(async () => button('Open profile, QA User').props.onPress());
-  expect(screen.root.findByType(ProfileDrawer).props.visible).toBe(true);
+it('guardian dashboard hides administration and never invents a live GPS state', async () => {
+  mockRole = 'GUARDIAN';
+  await render();
+  expect(button('খরচ যোগ')).toBeUndefined();
+  expect(button('নোটিশ পাঠান')).toBeUndefined();
+  expect(button('লোকেশন দেখুন, Live Tracking')).toBeDefined();
   expect(
-    button('Open profile, QA User').props.accessibilityState.expanded,
-  ).toBe(true);
-  await act(async () => screen.root.findByType(ProfileDrawer).props.onClose());
-  expect(screen.root.findAllByType(ProfileDrawer)).toHaveLength(0);
-  expect(
-    button('Open profile, QA User').props.accessibilityState.expanded,
+    screen.root
+      .findAllByType(Text)
+      .some(node => node.props.children === '● Live'),
   ).toBe(false);
+  await act(async () => button('আবেদন, নতুন ভর্তি').props.onPress());
+  expect(mockNavigate).toHaveBeenLastCalledWith('Admission');
 });
-it('opens a notification detail and persists its read action', async () => {
+it('opens a notification detail and persists the read decision', async () => {
   await act(async () => {
     screen = TestRenderer.create(
       <NotificationsScreen navigation={navigation} route={{} as never} />,
@@ -200,14 +205,14 @@ it('opens a notification detail and persists its read action', async () => {
   expect(mockNavigate).toHaveBeenCalledWith('NotificationDetails', {
     id: 'n1',
   });
-  await act(async () => {
+  await act(async () =>
     screen.update(
       <NotificationDetailsScreen
         navigation={navigation}
         route={{ params: { id: 'n1' } } as never}
       />,
-    );
-  });
+    ),
+  );
   expect(
     screen.root
       .findAllByType(Text)

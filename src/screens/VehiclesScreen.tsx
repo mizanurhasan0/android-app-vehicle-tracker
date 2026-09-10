@@ -33,11 +33,16 @@ export function VehiclesScreen({
   const { session } = useAuth();
   const { data, loading, error, refresh } = useData();
   const action = useAction();
-  const { height } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
+  const compact = width < 380;
   const [selectedId, setSelectedId] = useState<string>();
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [recorded, setRecorded] = useState(false);
+  const mapHeight =
+    expanded || height < 650
+      ? 180
+      : Math.max(180, Math.min(360, height * 0.34));
   const [editing, setEditing] = useState<Vehicle | null>(null);
   const admin = session?.user.role === 'ADMIN';
   const selected =
@@ -65,17 +70,20 @@ export function VehiclesScreen({
       <View style={local.toolbar}>
         <View style={local.toolbarCopy}>
           <Text style={local.eyebrow}>{t('FLEET OVERVIEW')}</Text>
-          <Text style={local.title}>
+          <Text style={[local.title, compact && local.compactTitle]}>
             {admin ? t('Your fleet') : t('Your vehicle')}
           </Text>
         </View>
         {admin ? (
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel={t('Create vehicle')}
             onPress={() => navigation.navigate('CreateVehicle')}
             style={local.add}
           >
-            <Text style={local.addText}>{t('+ Add vehicle')}</Text>
+            <Text style={[local.addText, compact && local.addSymbol]}>
+              {compact ? '+' : t('+ Add vehicle')}
+            </Text>
           </Pressable>
         ) : null}
       </View>
@@ -115,12 +123,7 @@ export function VehiclesScreen({
         />
       ) : (
         <>
-          <View
-            style={[
-              local.mapArea,
-              { flex: expanded || height < 650 ? 0.65 : 1.15 },
-            ]}
-          >
+          <View style={[local.mapArea, { height: mapHeight }]}>
             <FleetMap
               vehicles={data.vehicles}
               locations={data.locations}
@@ -185,7 +188,14 @@ export function VehiclesScreen({
                           }
                           style={local.call}
                         >
-                          <Text style={local.callText}>{t('Call driver')}</Text>
+                          <Text
+                            style={[
+                              local.callText,
+                              compact && local.callSymbol,
+                            ]}
+                          >
+                            {compact ? '☎︎' : t('Call driver')}
+                          </Text>
                         </Pressable>
                       ) : null}
                     </View>
@@ -293,6 +303,9 @@ const local = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.6,
   },
+  compactTitle: { fontSize: 20 },
+  addSymbol: { fontSize: 24 },
+  callSymbol: { fontSize: 22 },
   add: {
     minHeight: 44,
     justifyContent: 'center',
@@ -326,7 +339,7 @@ const local = StyleSheet.create({
     textAlign: 'center',
   },
   activeTabText: { color: colors.surface },
-  mapArea: { minHeight: 150, backgroundColor: colors.background },
+  mapArea: { minHeight: 180, backgroundColor: colors.background },
   sheet: {
     flex: 1,
     marginTop: -14,

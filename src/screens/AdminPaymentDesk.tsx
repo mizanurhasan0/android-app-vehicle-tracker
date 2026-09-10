@@ -213,8 +213,8 @@ export function AdminPaymentDesk({
   const [month, setMonth] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const pending = data.payments.filter(payment => payment.status === 'PENDING');
-  const unpaid = data.bills.filter(bill => bill.status === 'UNPAID');
   const search = query.trim().toLocaleLowerCase();
   const matches = (...values: string[]) =>
     values.join(' ').toLocaleLowerCase().includes(search);
@@ -262,6 +262,13 @@ export function AdminPaymentDesk({
         a.studentName.localeCompare(b.studentName),
     );
   const filtered = !!(search || status || month);
+  const summaryBills = data.bills.filter(
+    bill => !month || bill.month === month,
+  );
+  const totalBilled = summaryBills.reduce((sum, bill) => sum + bill.amount, 0);
+  const totalPaid = summaryBills
+    .filter(bill => bill.status === 'PAID')
+    .reduce((sum, bill) => sum + bill.amount, 0);
   const resultCount = tab === 'bills' ? bills.length : payments.length;
   const changeTab = (value: DeskTab) => {
     setTab(value);
@@ -273,25 +280,17 @@ export function AdminPaymentDesk({
     <Page loading={loading} refresh={refresh} error={error}>
       <View style={desk.overview}>
         <View style={desk.stat}>
-          <Text style={desk.overviewLabel}>
-            {t('Awaiting review')} · {numberLabel(pending.length)}
-          </Text>
-          <Text style={desk.statValue}>
-            {money(pending.reduce((sum, payment) => sum + payment.amount, 0))}
-          </Text>
+          <Text style={desk.overviewLabel}>মোট বিল</Text>
+          <Text style={desk.statValue}>{money(totalBilled)}</Text>
         </View>
         <View style={desk.stat}>
-          <Text style={desk.overviewLabel}>{t('Outstanding bills')}</Text>
-          <Text style={desk.statValue}>
-            {money(unpaid.reduce((sum, bill) => sum + bill.amount, 0))}
-          </Text>
+          <Text style={desk.overviewLabel}>পরিশোধিত</Text>
+          <Text style={desk.statValue}>{money(totalPaid)}</Text>
         </View>
         <View style={desk.stat}>
-          <Text style={desk.overviewLabel}>{t('Paid bills')}</Text>
-          <Text style={desk.statValue}>
-            {numberLabel(
-              data.bills.filter(bill => bill.status === 'PAID').length,
-            )}
+          <Text style={[desk.overviewLabel, desk.due]}>বকেয়া</Text>
+          <Text style={[desk.statValue, desk.due]}>
+            {money(totalBilled - totalPaid)}
           </Text>
         </View>
       </View>
@@ -341,36 +340,55 @@ export function AdminPaymentDesk({
           autoCapitalize="none"
           maxLength={100}
         />
-        <Select
-          label={t('Billing month')}
-          value={month || 'ALL'}
-          onChange={value => setMonth(value === 'ALL' ? '' : value)}
-          options={[
-            { value: 'ALL', label: t('All months') },
-            ...months.map(value => ({ value, label: value })),
-          ]}
-        />
-        {tab !== 'review' ? (
-          <View style={desk.choices}>
-            {(tab === 'bills'
-              ? ['', 'UNPAID', 'PENDING', 'PAID']
-              : ['', 'APPROVED', 'REJECTED']
-            ).map(value => (
-              <Choice
-                key={value}
-                label={t(
-                  value === ''
-                    ? 'All'
-                    : value === 'PENDING'
-                    ? 'Awaiting review'
-                    : readable(value),
-                )}
-                selected={status === value}
-                onPress={() => setStatus(value)}
-              />
-            ))}
-          </View>
-        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showFilters }}
+          onPress={() => setShowFilters(value => !value)}
+          style={desk.filterToggle}
+        >
+          <Text style={desk.link}>
+            {showFilters ? 'ফিল্টার বন্ধ করুন' : 'মাস ও অবস্থা অনুযায়ী ফিল্টার'}
+          </Text>
+          <Text style={desk.link}>{showFilters ? '−' : '+'}</Text>
+        </Pressable>
+        <View
+          style={[desk.filterFields, !showFilters && desk.hidden]}
+          accessibilityElementsHidden={!showFilters}
+          importantForAccessibility={
+            showFilters ? 'auto' : 'no-hide-descendants'
+          }
+        >
+          <Select
+            label={t('Billing month')}
+            value={month || 'ALL'}
+            onChange={value => setMonth(value === 'ALL' ? '' : value)}
+            options={[
+              { value: 'ALL', label: t('All months') },
+              ...months.map(value => ({ value, label: value })),
+            ]}
+          />
+          {tab !== 'review' ? (
+            <View style={desk.choices}>
+              {(tab === 'bills'
+                ? ['', 'UNPAID', 'PENDING', 'PAID']
+                : ['', 'APPROVED', 'REJECTED']
+              ).map(value => (
+                <Choice
+                  key={value}
+                  label={t(
+                    value === ''
+                      ? 'All'
+                      : value === 'PENDING'
+                      ? 'Awaiting review'
+                      : readable(value),
+                  )}
+                  selected={status === value}
+                  onPress={() => setStatus(value)}
+                />
+              ))}
+            </View>
+          ) : null}
+        </View>
         {filtered ? (
           <Button
             secondary
@@ -426,43 +444,68 @@ export function AdminPaymentDesk({
           )}
         />
       ) : tab === 'bills' ? (
-        bills.map(bill => (
-          <Card key={bill.id}>
-            <View style={styles.between}>
-              <Text style={desk.amount}>{money(bill.amount)}</Text>
-              <Badge
-                status={bill.pendingSubmissionId ? 'PENDING' : bill.status}
-              />
+        <View style={desk.table}>
+          <View style={[desk.billRow, desk.tableHead]}>
+            <Text style={[desk.columnName, desk.columnLabel]}>নাম</Text>
+            <Text style={[desk.columnMonth, desk.columnLabel]}>মাস</Text>
+            <Text style={[desk.columnAmount, desk.columnLabel]}>পরিমাণ</Text>
+            <Text style={[desk.columnStatus, desk.columnLabel]}>অবস্থা</Text>
+          </View>
+          {bills.map(bill => (
+            <View key={bill.id} style={desk.tableItem}>
+              <View style={desk.billRow}>
+                <View style={desk.columnName}>
+                  <Text style={desk.studentName}>{bill.studentName}</Text>
+                  <Text style={desk.guardianName}>{bill.guardianName}</Text>
+                </View>
+                <Text style={[desk.columnMonth, desk.tableText]}>
+                  {bill.month}
+                </Text>
+                <Text style={[desk.columnAmount, desk.tableAmount]}>
+                  {money(bill.amount)}
+                </Text>
+                <View style={desk.columnStatus}>
+                  <Text
+                    accessibilityLabel={readable(
+                      bill.pendingSubmissionId ? 'PENDING' : bill.status,
+                    )}
+                    style={[
+                      desk.billStatus,
+                      bill.status !== 'PAID' && desk.billStatusDue,
+                    ]}
+                  >
+                    {bill.status === 'PAID'
+                      ? '✓'
+                      : bill.pendingSubmissionId
+                      ? '◷'
+                      : '!'}
+                  </Text>
+                </View>
+              </View>
+              {bill.paidAt ? (
+                <Text style={desk.paidDate}>
+                  {t('Paid on ')}
+                  {dateLabel(bill.paidAt)}
+                </Text>
+              ) : null}
+              {bill.pendingSubmissionId ? (
+                <Button
+                  secondary
+                  title={t('Review payment')}
+                  onPress={() => {
+                    changeTab('review');
+                    const submission = pending.find(
+                      payment => payment.id === bill.pendingSubmissionId,
+                    );
+                    setQuery(submission?.transactionId || bill.studentName);
+                    setMonth('');
+                    setExpandedId(bill.pendingSubmissionId);
+                  }}
+                />
+              ) : null}
             </View>
-            <View>
-              <Text style={styles.heading}>{bill.studentName}</Text>
-              <Text style={styles.muted}>
-                {bill.guardianName} · {bill.month}
-              </Text>
-            </View>
-            {bill.paidAt ? (
-              <Text style={styles.muted}>
-                {t('Paid on ')}
-                {dateLabel(bill.paidAt)}
-              </Text>
-            ) : null}
-            {bill.pendingSubmissionId ? (
-              <Button
-                secondary
-                title={t('Review payment')}
-                onPress={() => {
-                  changeTab('review');
-                  const submission = pending.find(
-                    payment => payment.id === bill.pendingSubmissionId,
-                  );
-                  setQuery(submission?.transactionId || bill.studentName);
-                  setMonth('');
-                  setExpandedId(bill.pendingSubmissionId);
-                }}
-              />
-            ) : null}
-          </Card>
-        ))
+          ))}
+        </View>
       ) : (
         payments.map(payment => (
           <SubmissionCard
@@ -480,38 +523,100 @@ export function AdminPaymentDesk({
 }
 
 const desk = StyleSheet.create({
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 36,
+  },
+  filterFields: { gap: 10 },
+  hidden: { display: 'none' },
+  table: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  tableHead: { backgroundColor: '#EEF8F3' },
+  tableItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    paddingBottom: 2,
+  },
+  billRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+  },
+  columnName: { flex: 1.6 },
+  columnMonth: { flex: 0.95 },
+  columnAmount: { flex: 1.1 },
+  columnStatus: { flex: 0.6, alignItems: 'center', textAlign: 'center' },
+  columnLabel: { color: colors.ink, fontSize: 12, fontWeight: '700' },
+  studentName: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  guardianName: { color: colors.muted, fontSize: 10, lineHeight: 16 },
+  tableText: { color: colors.muted, fontSize: 11 },
+  tableAmount: { color: colors.primary, fontSize: 13, fontWeight: '700' },
+  billStatus: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    backgroundColor: '#DDF3E6',
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  billStatusDue: { backgroundColor: '#FFF1D8', color: '#B7801D' },
+  paidDate: {
+    color: colors.muted,
+    fontSize: 10,
+    paddingHorizontal: 10,
+    paddingBottom: 7,
+  },
   overview: {
-    backgroundColor: colors.ink,
-    borderRadius: 16,
-    padding: 14,
-    gap: 10,
+    backgroundColor: '#F0FAF5',
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    gap: 3,
   },
   overviewLabel: {
-    color: colors.mint,
-    fontSize: 13,
+    color: colors.primary,
+    fontSize: 12,
     fontWeight: '600',
     flexShrink: 1,
   },
   stat: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    columnGap: 12,
-    rowGap: 4,
+    gap: 8,
   },
   statValue: {
-    color: colors.surface,
-    fontSize: 16,
+    color: colors.primary,
+    fontSize: 19,
     fontWeight: '700',
     flexShrink: 1,
   },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  due: { color: colors.danger },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   choice: {
-    minHeight: 48,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 14,
+    minHeight: 44,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
@@ -525,14 +630,14 @@ const desk = StyleSheet.create({
   choiceTextSelected: { color: colors.surface },
   amount: {
     color: colors.ink,
-    fontSize: 25,
+    fontSize: 21,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   receipt: {
     backgroundColor: colors.background,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 8,
+    padding: 12,
     gap: 12,
   },
   detail: { gap: 3 },

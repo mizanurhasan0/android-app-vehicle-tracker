@@ -40,6 +40,15 @@ export function DataProvider({ children }: React.PropsWithChildren) {
   const [error, setError] = useState('');
   const generation = useRef(0);
   const live = useRef(true);
+  const credentials = useRef({ token, baseUrl });
+  credentials.current = { token, baseUrl };
+  const isCurrent = useCallback(
+    () =>
+      live.current &&
+      credentials.current.token === token &&
+      credentials.current.baseUrl === baseUrl,
+    [token, baseUrl],
+  );
   useEffect(() => {
     live.current = true;
     return () => {
@@ -48,6 +57,7 @@ export function DataProvider({ children }: React.PropsWithChildren) {
   }, []);
   const load = useCallback(
     async (showLoading: boolean) => {
+      if (!isCurrent()) return;
       const request = ++generation.current;
       if (showLoading) setLoading(true);
       try {
@@ -77,7 +87,7 @@ export function DataProvider({ children }: React.PropsWithChildren) {
           get<DashboardData['stops']>('/stop-requests'),
           get<DashboardData['notifications']>('/notifications'),
         ]);
-        if (live.current && request === generation.current) {
+        if (isCurrent() && request === generation.current) {
           setData({
             vehicles: vehicles.vehicles,
             locations: locations.devices,
@@ -94,19 +104,23 @@ export function DataProvider({ children }: React.PropsWithChildren) {
           setError('');
         }
       } catch (problem) {
-        if (problem instanceof ApiError && problem.status === 401)
+        if (
+          isCurrent() &&
+          problem instanceof ApiError &&
+          problem.status === 401
+        )
           await expire();
-        if (live.current && request === generation.current)
+        if (isCurrent() && request === generation.current)
           setError(
             problem instanceof Error
               ? problem.message
               : 'Could not refresh data.',
           );
       } finally {
-        if (live.current && request === generation.current) setLoading(false);
+        if (isCurrent() && request === generation.current) setLoading(false);
       }
     },
-    [baseUrl, token, expire],
+    [baseUrl, token, expire, isCurrent],
   );
   const refresh = useCallback(() => load(true), [load]);
   useEffect(() => {
@@ -148,17 +162,22 @@ export function DataProvider({ children }: React.PropsWithChildren) {
   }, [baseUrl, token, load]);
   const mutate = useCallback(
     async <T,>(path: string, body?: unknown, method = 'POST'): Promise<T> => {
+      if (!isCurrent()) throw new Error('Please sign in again.');
       try {
         const result = await api<T>(baseUrl, path, token, body, method);
-        await load(false);
+        if (isCurrent()) await load(false);
         return result;
       } catch (problem) {
-        if (problem instanceof ApiError && problem.status === 401)
+        if (
+          isCurrent() &&
+          problem instanceof ApiError &&
+          problem.status === 401
+        )
           await expire();
         throw problem;
       }
     },
-    [baseUrl, token, load, expire],
+    [baseUrl, token, load, expire, isCurrent],
   );
   return (
     <DataContext.Provider value={{ data, loading, error, refresh, mutate }}>

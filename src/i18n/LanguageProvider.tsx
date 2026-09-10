@@ -14,8 +14,7 @@ export function LanguageProvider({ children }: React.PropsWithChildren) {
     let active = true;
     AsyncStorage.getItem(LANGUAGE_STORAGE_KEY)
       .then(async saved => {
-        if (active && (saved === 'en' || saved === 'bn'))
-          await i18n.changeLanguage(saved);
+        if (active) await i18n.changeLanguage(saved === 'en' ? 'en' : 'bn');
       })
       .catch(() => {
         if (active)

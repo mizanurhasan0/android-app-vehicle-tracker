@@ -1,7 +1,8 @@
 import { useTranslation } from '../i18n';
 import React, { useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { Badge, Button, Card, Empty, Notice, Page } from '../components/ui';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Button, Card, Empty, Notice, Page } from '../components/ui';
+import { NoorIcon } from '../components/Noor';
 import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
 import { colors, styles } from '../theme';
@@ -22,12 +23,7 @@ export function NotificationsScreen({
     [data.notifications],
   );
   return (
-    <Page
-      title={t('Latest updates')}
-      loading={loading}
-      refresh={refresh}
-      error={error}
-    >
+    <Page loading={loading} refresh={refresh} error={error}>
       {!data.notifications.length ? (
         <Empty
           title={loading ? t('Loading updates…') : t('No updates yet')}
@@ -36,6 +32,11 @@ export function NotificationsScreen({
       ) : (
         updates.map(item => {
           const translated = notificationText(item);
+          const urgent = /reject|stopp|emergency|জরুরি|প্রত্যাখ্যান/i.test(
+            item.title,
+          );
+          const payment = /payment|bill|পেমেন্ট|ভাড়া|বিল/i.test(item.title);
+          const tone = urgent ? '#EC5362' : payment ? '#E89B25' : '#2686E6';
           return (
             <Pressable
               key={item.id}
@@ -44,20 +45,34 @@ export function NotificationsScreen({
               onPress={() =>
                 navigation.navigate('NotificationDetails', { id: item.id })
               }
+              style={({ pressed }) => [
+                local.notification,
+                !item.readAt && local.unread,
+                pressed && local.pressed,
+              ]}
             >
-              <Card tinted={!item.readAt}>
-                <View style={styles.between}>
-                  <Text style={styles.heading}>{translated.title}</Text>
-                  {!item.readAt ? <Badge status="NEW" /> : null}
+              <View style={[local.icon, { backgroundColor: `${tone}18` }]}>
+                <NoorIcon
+                  name={payment ? 'receipt' : 'bell'}
+                  size={23}
+                  color={tone}
+                />
+              </View>
+              <View style={local.copy}>
+                <View style={local.titleRow}>
+                  <Text style={local.title}>{translated.title}</Text>
+                  {!item.readAt ? (
+                    <View
+                      accessibilityLabel={t('New')}
+                      style={local.unreadDot}
+                    />
+                  ) : null}
                 </View>
-                <Text numberOfLines={2} style={styles.body}>
+                <Text numberOfLines={2} style={local.body}>
                   {translated.body}
                 </Text>
-                <Text style={styles.muted}>{dateLabel(item.createdAt)}</Text>
-                <Text style={{ color: colors.primary }}>
-                  {t('View details')} →
-                </Text>
-              </Card>
+                <Text style={local.date}>{dateLabel(item.createdAt)}</Text>
+              </View>
             </Pressable>
           );
         })
@@ -65,6 +80,45 @@ export function NotificationsScreen({
     </Page>
   );
 }
+
+const local = StyleSheet.create({
+  notification: {
+    flexDirection: 'row',
+    gap: 11,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: '#FFFFFF',
+    padding: 13,
+    minHeight: 90,
+  },
+  unread: { backgroundColor: '#F7FBFF', borderColor: '#DDEBFA' },
+  icon: {
+    width: 39,
+    height: 39,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  copy: { flex: 1, gap: 5 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title: {
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '700',
+    flex: 1,
+  },
+  body: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  date: { color: colors.muted, fontSize: 10, lineHeight: 16 },
+  unreadDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#2686E6',
+  },
+  pressed: { opacity: 0.7 },
+});
 
 export function NotificationDetailsScreen({
   route,

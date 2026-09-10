@@ -8,6 +8,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -16,19 +17,25 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Field, Notice } from '../components/ui';
 import { AppIcon } from '../components/AppIcon';
+import { NoorBrand } from '../components/Noor';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
-import { CopyrightFooter } from '../components/CopyrightFooter';
 import { useAuth } from '../context/AuthContext';
 import { useAction } from '../hooks/useAction';
 import { useTranslation } from '../i18n';
 import { normalizeDigits } from '../utils/format';
 import { colors } from '../theme';
 
-export function AuthScreen() {
+export function AuthScreen({
+  variant = 'parent',
+  initialRegister = false,
+}: {
+  variant?: 'admin' | 'parent';
+  initialRegister?: boolean;
+}) {
   const { t } = useTranslation();
   const { signIn, baseUrl, setServer, startupError } = useAuth();
 
-  const [register, setRegister] = useState(false);
+  const [register, setRegister] = useState(initialRegister);
   const [settings, setSettings] = useState(!baseUrl);
   const [url, setUrl] = useState(baseUrl);
   const [name, setName] = useState('');
@@ -53,17 +60,26 @@ export function AuthScreen() {
   }
 
   return (
-    <SafeAreaView style={local.safe}>
+    <SafeAreaView
+      style={[local.safe, variant === 'parent' && local.parentSafe]}
+    >
+      <StatusBar
+        barStyle={variant === 'parent' ? 'light-content' : 'dark-content'}
+      />
       <KeyboardAvoidingView
         style={local.safe}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Image
-          source={require('../../assets/branding/login-transport.png')}
-          style={local.background}
-          resizeMode="cover"
-          accessible={false}
-        />
+        {variant === 'admin' ? (
+          <Image
+            source={require('../../assets/branding/noor-login-background.png')}
+            style={local.background}
+            resizeMode="stretch"
+            accessible={false}
+          />
+        ) : (
+          <View style={local.parentGreen} />
+        )}
         <ScrollView
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={local.scroll}
@@ -71,18 +87,18 @@ export function AuthScreen() {
           <View style={local.topbar}>
             <LanguageSwitcher />
           </View>
-          <View style={local.brand}>
-            <View style={local.wordmark}>
-              <Text style={local.brandName}>
-                পথ<Text style={local.brandAccent}>সাথী</Text>
+          <View style={[local.brand, variant === 'admin' && local.adminBrand]}>
+            <NoorBrand />
+            <Text style={local.panelLabel}>
+              {variant === 'admin' ? 'Admin Panel' : 'Parent Login'}
+            </Text>
+            {variant === 'parent' ? (
+              <Text style={local.parentSubtitle}>
+                আপনার সন্তানের নিরাপদ যাত্রা
               </Text>
-              <View style={local.brandIcon}>
-                <AppIcon kind="vehicles" size={37} />
-              </View>
-            </View>
-            <Text style={local.brandLabel}>PATHSATHI</Text>
+            ) : null}
           </View>
-          <View style={local.main}>
+          <View style={[local.main, variant === 'admin' && local.adminMain]}>
             <Notice text={startupError} kind="error" />
             <Notice text={action.success} />
             {settings ? (
@@ -293,8 +309,11 @@ export function AuthScreen() {
             </Pressable>
           </View>
           <View style={local.footer}>
-            <Text style={local.tagline}>{t('A calmer school journey.')}</Text>
-            <CopyrightFooter />
+            <Text
+              style={[local.tagline, variant === 'admin' && local.lightTagline]}
+            >
+              শিক্ষা হোক নিরাপদ,{'\n'}আমাদের দায়িত্ব
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -303,10 +322,11 @@ export function AuthScreen() {
 }
 const local = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.surface },
+  parentSafe: { backgroundColor: '#005C3E' },
   scroll: {
     flexGrow: 1,
-    minHeight: 660,
-    paddingHorizontal: 36,
+    minHeight: 650,
+    paddingHorizontal: 25,
     paddingBottom: 12,
   },
   background: {
@@ -319,7 +339,43 @@ const local = StyleSheet.create({
     height: '100%',
   },
   topbar: { alignItems: 'flex-end', paddingTop: 8, marginHorizontal: -16 },
-  brand: { alignItems: 'center', paddingTop: 45, paddingBottom: 72 },
+  brand: {
+    alignItems: 'center',
+    paddingTop: 35,
+    paddingBottom: 28,
+    marginTop: 30,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+  },
+  adminBrand: {
+    paddingTop: 0,
+    marginTop: 0,
+    paddingBottom: 8,
+    backgroundColor: 'transparent',
+  },
+  adminMain: {
+    marginTop: 130,
+    padding: 13,
+    backgroundColor: '#FFFFFFEE',
+    borderRadius: 9,
+  },
+  parentGreen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 150,
+    backgroundColor: '#005C3E',
+  },
+  panelLabel: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.ink,
+    marginTop: 13,
+  },
+  parentSubtitle: { fontSize: 13, color: colors.primary, marginTop: 12 },
+  lightTagline: { color: '#FFFFFF' },
   wordmark: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   brandName: { fontSize: 38, color: colors.ink, fontWeight: '500' },
   brandAccent: { color: colors.primary },
@@ -330,7 +386,7 @@ const local = StyleSheet.create({
     color: colors.muted,
     marginTop: 6,
   },
-  main: { width: '100%', maxWidth: 340, alignSelf: 'center', gap: 17 },
+  main: { width: '100%', maxWidth: 380, alignSelf: 'center', gap: 11 },
   settingsCard: {
     backgroundColor: colors.surface,
     borderRadius: 22,
@@ -355,12 +411,12 @@ const local = StyleSheet.create({
     gap: 12,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E0DCE0',
-    borderRadius: 28,
-    elevation: 3,
+    borderColor: colors.line,
+    borderRadius: 7,
+    elevation: 0,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.17,
+    shadowOpacity: 0,
     shadowRadius: 2,
   },
   input: {
@@ -372,7 +428,7 @@ const local = StyleSheet.create({
     color: colors.ink,
     fontSize: 13,
   },
-  passwordGroup: { marginTop: 14 },
+  passwordGroup: { marginTop: 0 },
   visibilityButton: {
     width: 44,
     minHeight: 44,
@@ -395,17 +451,17 @@ const local = StyleSheet.create({
   loginButton: {
     minHeight: 48,
     backgroundColor: colors.primary,
-    borderRadius: 26,
+    borderRadius: 7,
     borderWidth: 1,
-    borderColor: '#CF1049',
+    borderColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    elevation: 3,
+    elevation: 0,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0,
     shadowRadius: 2,
   },
   loginText: { fontSize: 14, fontWeight: '600', color: colors.surface },
@@ -417,7 +473,17 @@ const local = StyleSheet.create({
   },
   accountLink: { fontSize: 11, color: colors.primary, textAlign: 'center' },
   settingsLink: { fontSize: 11, color: colors.muted, textAlign: 'center' },
-  footer: { flexGrow: 1, justifyContent: 'flex-end', paddingTop: 62 },
-  tagline: { color: colors.muted, fontSize: 11, textAlign: 'center' },
+  footer: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+    paddingTop: 25,
+    paddingBottom: 18,
+  },
+  tagline: {
+    color: colors.primary,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 21,
+  },
   dimmed: { opacity: 0.6 },
 });

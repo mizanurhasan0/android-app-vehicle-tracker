@@ -76,9 +76,10 @@ html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:#e8efe
     colors.primary
   };outline:7px solid #087f7828;z-index:2}.marker svg{width:24px;height:24px}.marker span{position:absolute;top:52px;left:50%;transform:translateX(-50%);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:7px;background:white;color:${
     colors.ink
-  };font-size:12px;font-weight:600;padding:5px 9px;box-shadow:0 2px 6px #18343b15;pointer-events:none}#credit{position:absolute;bottom:0;left:0;background:#ffffffed;padding:3px 6px;font-size:10px;color:${
+  };font-size:12px;font-weight:600;padding:5px 9px;box-shadow:0 2px 6px #18343b15;pointer-events:none}#credit{position:absolute;bottom:18px;left:0;background:#ffffffed;padding:3px 6px;font-size:10px;color:${
     colors.muted
-  };pointer-events:none}
+  };pointer-events:none;z-index:3}
+@media(max-height:220px){.marker span{top:-36px;max-width:110px}}
 </style></head><body><div id="map"><div id="tiles"></div><div id="markers"></div><div id="credit">© OpenStreetMap <span id="contributors">contributors</span></div></div><script>
 (function(){'use strict';
 var items=${scriptData(markers)},selected=${scriptData(

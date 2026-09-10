@@ -56,7 +56,7 @@ beforeEach(async () => {
   mockSignOut.mockReset().mockResolvedValue(undefined);
   mockClose.mockReset();
   mockUser.name = 'QA Guardian';
-  jest.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+  jest.mocked(AsyncStorage.getItem).mockResolvedValue('en');
   jest.mocked(AsyncStorage.setItem).mockResolvedValue(undefined);
   jest
     .spyOn(AccessibilityInfo, 'isReduceMotionEnabled')

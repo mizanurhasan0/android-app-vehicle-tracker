@@ -36,7 +36,7 @@ let screen: TestRenderer.ReactTestRenderer;
 let stored: string | null;
 beforeEach(async () => {
   await i18n.changeLanguage('en');
-  stored = null;
+  stored = 'en';
   jest.mocked(AsyncStorage.getItem).mockImplementation(async () => stored);
   jest.mocked(AsyncStorage.setItem).mockImplementation(async (_key, value) => {
     stored = value;
@@ -132,5 +132,11 @@ it('keeps the app usable when restoring storage fails', async () => {
     'Could not restore your language. Please select it again.',
   );
   await choose('বাংলা');
+  expect(i18n.language).toBe('bn');
+});
+
+it('defaults a fresh Noor installation to Bengali', async () => {
+  stored = null;
+  await renderApp();
   expect(i18n.language).toBe('bn');
 });

@@ -17,7 +17,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, styles } from '../theme';
 import { normalizeDigits, readable } from '../utils/format';
 import { translateMessage, useTranslation } from '../i18n';
-import { CopyrightFooter } from './CopyrightFooter';
 export function Page({
   title,
   subtitle,
@@ -73,7 +72,6 @@ export function Page({
             ) : null}
             <Notice text={error} kind="error" />
             {children}
-            <CopyrightFooter />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -269,24 +267,29 @@ export function SectionTitle({ children }: React.PropsWithChildren) {
 }
 const ui = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
-  content: { width: '100%', maxWidth: 860, alignSelf: 'center', gap: 18 },
-  header: { gap: 10, paddingTop: 24, paddingBottom: 8 },
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 16,
+  },
+  content: { width: '100%', maxWidth: 720, alignSelf: 'center', gap: 10 },
+  header: { gap: 6, paddingTop: 8, paddingBottom: 4 },
   card: {
-    padding: 20,
+    padding: 12,
     backgroundColor: colors.surface,
-    borderRadius: 22,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.line,
-    gap: 12,
+    gap: 10,
   },
   tinted: { backgroundColor: colors.mint, borderColor: colors.line },
   button: {
-    minHeight: 50,
+    minHeight: 44,
     paddingHorizontal: 18,
-    paddingVertical: 13,
+    paddingVertical: 10,
     backgroundColor: colors.primary,
-    borderRadius: 28,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
@@ -308,30 +311,30 @@ const ui = StyleSheet.create({
     textAlign: 'center',
   },
   secondaryText: { color: colors.primary },
-  field: { gap: 7 },
-  fieldLabel: { fontSize: 14, color: colors.ink, fontWeight: '600' },
+  field: { gap: 5 },
+  fieldLabel: { fontSize: 12, color: colors.ink, fontWeight: '600' },
   input: {
-    minHeight: 52,
+    minHeight: 44,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 12,
+    borderRadius: 6,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 9,
     color: colors.ink,
-    backgroundColor: '#FFFCFD',
-    fontSize: 16,
+    backgroundColor: '#FFFFFF',
+    fontSize: 14,
   },
   multiline: { minHeight: 104, textAlignVertical: 'top' },
   focused: { borderColor: colors.primary },
   select: {
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 12,
+    borderRadius: 6,
     overflow: 'hidden',
-    backgroundColor: '#FFFCFD',
+    backgroundColor: '#FFFFFF',
   },
-  picker: { color: colors.ink, minHeight: 52 },
-  notice: { padding: 14, borderRadius: 14, backgroundColor: colors.mint },
+  picker: { color: colors.ink, minHeight: 44 },
+  notice: { padding: 10, borderRadius: 7, backgroundColor: colors.mint },
   error: { backgroundColor: '#FBEAEC' },
   errorText: { color: colors.danger },
   badge: {

@@ -27,6 +27,11 @@ export interface Vehicle {
   imei: string;
   driverName?: string;
   driverPhone?: string;
+  model?: string;
+  purchaseDate?: string;
+  fitnessExpiresAt?: string;
+  licenseExpiresAt?: string;
+  status?: 'RUNNING' | 'MAINTENANCE' | 'INACTIVE';
 }
 export interface Location {
   imei: string;
@@ -56,6 +61,7 @@ export interface Subscription {
 }
 export interface Bill {
   id: string;
+  subscriptionId?: string;
   studentName: string;
   guardianName: string;
   month: string;

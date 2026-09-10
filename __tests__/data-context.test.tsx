@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { AppState, AppStateStatus, Text } from 'react-native';
-import { api } from '../src/api/client';
+import { api, ApiError } from '../src/api/client';
 import { DataProvider, useData } from '../src/context/DataContext';
 
 const mockExpire = jest.fn();
+let mockToken = 'test-token';
 const mockSocket = { on: jest.fn(), disconnect: jest.fn() };
 jest.mock('../src/api/client', () => ({
   ...jest.requireActual('../src/api/client'),
@@ -12,7 +13,7 @@ jest.mock('../src/api/client', () => ({
 }));
 jest.mock('../src/context/AuthContext', () => ({
   useAuth: () => ({
-    session: { token: 'test-token' },
+    session: { token: mockToken },
     baseUrl: 'https://school.example',
     expire: mockExpire,
   }),
@@ -42,6 +43,7 @@ function Probe() {
 
 beforeEach(() => {
   jest.useFakeTimers();
+  mockToken = 'test-token';
   mounts = 0;
   holdRequests = false;
   completeRequests = [];
@@ -169,4 +171,46 @@ it('refreshes data after saving without triggering the page loading indicator', 
   );
   expect(loadingStates).not.toContain(true);
   expect(mounts).toBe(1);
+});
+
+it('ignores a late 401 from an overview loaded under an old session', async () => {
+  let rejectOld!: (error: Error) => void;
+  jest.mocked(api).mockReturnValueOnce(
+    new Promise((_resolve, reject) => {
+      rejectOld = reject;
+    }),
+  );
+  await renderProvider();
+  mockToken = 'replacement-token';
+  await act(async () =>
+    screen.update(
+      <DataProvider>
+        <Probe />
+      </DataProvider>,
+    ),
+  );
+  await act(async () => rejectOld(new ApiError('Old session expired', 401)));
+  expect(mockExpire).not.toHaveBeenCalled();
+  expect(current.data.vehicles[0].name).toBe('Morning bus');
+});
+
+it('does not revoke auth when an old mutation fails after unmount', async () => {
+  await renderProvider();
+  let rejectWrite!: (error: Error) => void;
+  jest.mocked(api).mockReturnValueOnce(
+    new Promise((_resolve, reject) => {
+      rejectWrite = reject;
+    }),
+  );
+  let failure: unknown;
+  const pending = current.mutate('/example', {}).catch(error => {
+    failure = error;
+  });
+  await act(async () => screen.unmount());
+  await act(async () => {
+    rejectWrite(new ApiError('Old session expired', 401));
+    await pending;
+  });
+  expect(failure).toBeInstanceOf(ApiError);
+  expect(mockExpire).not.toHaveBeenCalled();
 });

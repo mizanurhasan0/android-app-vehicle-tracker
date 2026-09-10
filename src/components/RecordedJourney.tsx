@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { Vehicle } from '../api/types';
 import { useVehicleHistory } from '../hooks/useVehicleHistory';
@@ -32,6 +33,7 @@ export function RecordedJourney({
   onFullHistory: () => void;
 }) {
   const { t } = useTranslation();
+  const { height } = useWindowDimensions();
   const [day, setDay] = useState(dhakaDate());
   const [input, setInput] = useState(day);
   const [dateOpen, setDateOpen] = useState(false);
@@ -50,7 +52,12 @@ export function RecordedJourney({
   };
   return (
     <>
-      <View style={local.mapArea}>
+      <View
+        style={[
+          local.mapArea,
+          { height: Math.max(180, Math.min(360, height * 0.3)) },
+        ]}
+      >
         {history.route && points.length ? (
           <HistoryMap
             route={history.route}
@@ -188,7 +195,7 @@ export function RecordedJourney({
                     <View style={local.metric}>
                       <Text style={local.metricValue}>
                         {numberLabel(history.route.distanceMeters / 1000, 2)}{' '}
-                        <Text style={local.caption}>{t('km')}</Text>
+                        <Text style={local.unit}>{t('km')}</Text>
                       </Text>
                       <Text style={local.caption}>
                         {t('Estimated distance')}
@@ -203,11 +210,6 @@ export function RecordedJourney({
                       </Text>
                     </View>
                   </View>
-                  <Text style={local.caption}>
-                    {t(
-                      'Recorded samples show the observed path. Gaps are left disconnected; exact roads between reports are unknown.',
-                    )}
-                  </Text>
                   {history.route.simplified ? (
                     <Text style={local.caption}>
                       {t(' Overview simplified to {{number}} points.', {
@@ -271,12 +273,19 @@ export function RecordedJourney({
           }
           ListFooterComponent={
             history.route ? (
-              <Button
-                secondary
-                title={t('Refresh history')}
-                onPress={history.retry}
-                busy={history.loading}
-              />
+              <View style={local.header}>
+                <Text style={local.caption}>
+                  {t(
+                    'Recorded samples show the observed path. Gaps are left disconnected; exact roads between reports are unknown.',
+                  )}
+                </Text>
+                <Button
+                  secondary
+                  title={t('Refresh history')}
+                  onPress={history.retry}
+                  busy={history.loading}
+                />
+              </View>
             ) : null
           }
         />
@@ -285,7 +294,7 @@ export function RecordedJourney({
   );
 }
 const local = StyleSheet.create({
-  mapArea: { flex: 1.1, minHeight: 150 },
+  mapArea: { minHeight: 180, paddingBottom: 14 },
   map: { flex: 1, height: undefined },
   placeholder: {
     flex: 1,
@@ -366,6 +375,7 @@ const local = StyleSheet.create({
     backgroundColor: colors.background,
   },
   metric: { flex: 1, gap: 4 },
+  unit: { color: colors.muted, fontSize: 11 },
   metricValue: { color: colors.ink, fontSize: 22, fontWeight: '700' },
   sectionTitle: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   point: {
