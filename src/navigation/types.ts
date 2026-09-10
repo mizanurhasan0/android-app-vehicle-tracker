@@ -1,14 +1,17 @@
-import { NavigatorScreenParams } from '@react-navigation/native';
-
 export type HomeStackParams = {
   Fleet: undefined;
-  VehicleHistory: { imei: string; name: string };
-};
-
-export type RootTabParams = {
-  Home: NavigatorScreenParams<HomeStackParams> | undefined;
+  CreateVehicle: undefined;
+  Students: undefined;
+  StudentDetails: { id: string };
   Bills: undefined;
-  Requests: undefined;
-  Setup: undefined;
+  DueList: undefined;
+  Requested: undefined;
+  Complaints: undefined;
+  StopRequests: undefined;
+  PaymentAccounts: undefined;
+  Vehicles: undefined;
+  Routes: undefined;
   Inbox: undefined;
+  NotificationDetails: { id: string };
+  VehicleHistory: { imei: string; name: string };
 };

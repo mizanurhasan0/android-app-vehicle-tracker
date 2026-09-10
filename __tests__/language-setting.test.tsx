@@ -1,9 +1,8 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { TextInput } from 'react-native';
+import { TextInput, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthScreen } from '../src/screens/AuthScreen';
-import { Button, Field } from '../src/components/ui';
 import { i18n } from '../src/i18n';
 import {
   LanguageProvider,
@@ -77,8 +76,9 @@ it('switches the sign-in screen immediately, preserves form input, and restores 
   expect(AsyncStorage.setItem).toHaveBeenCalledWith(LANGUAGE_STORAGE_KEY, 'bn');
   expect(
     screen.root
-      .findAllByType(Field)
-      .find(field => field.props.label === 'ফোন নম্বর')?.props.value,
+      .findAllByType(TextInput)
+      .find(field => field.props.accessibilityLabel === 'ফোন নম্বর')?.props
+      .value,
   ).toBe('01712345678');
   expect(JSON.stringify(screen.toJSON())).toContain('লগইন করুন');
   await act(async () => screen.unmount());
@@ -92,9 +92,13 @@ it('switches the sign-in screen immediately, preserves form input, and restores 
 
 it('retranslates an already visible validation message when the language changes', async () => {
   await renderApp();
-  const submit = screen.root
-    .findAllByType(Button)
-    .find(button => button.props.title === 'Sign in')!;
+  const submit = screen.root.findAll(
+    node =>
+      node.props.accessibilityRole === 'button' &&
+      typeof node.props.onPress === 'function' &&
+      node.findAllByType(Text).some(text => text.props.children === 'Sign in'),
+    { deep: false },
+  )[0];
   await act(async () => submit.props.onPress());
   expect(JSON.stringify(screen.toJSON())).toContain(
     'Enter a valid 11-digit Bangladesh phone number.',

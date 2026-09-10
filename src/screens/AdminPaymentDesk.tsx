@@ -201,10 +201,13 @@ function BillGenerator() {
   );
 }
 
-export function AdminPaymentDesk() {
+export function AdminPaymentDesk({
+  initialTab = 'review',
+  dueOnly = false,
+}: { initialTab?: DeskTab; dueOnly?: boolean } = {}) {
   const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
-  const [tab, setTab] = useState<DeskTab>('review');
+  const [tab, setTab] = useState<DeskTab>(initialTab);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [month, setMonth] = useState('');
@@ -245,6 +248,7 @@ export function AdminPaymentDesk() {
   const bills = data.bills
     .filter(
       bill =>
+        (!dueOnly || bill.status === 'UNPAID') &&
         (!month || bill.month === month) &&
         (!status ||
           (status === 'PENDING'
@@ -401,6 +405,8 @@ export function AdminPaymentDesk() {
               ? 'Loading payment records…'
               : filtered
               ? 'No matching records'
+              : dueOnly && tab === 'bills'
+              ? 'No outstanding dues'
               : tab === 'review'
               ? 'You’re all caught up'
               : tab === 'bills'
@@ -410,6 +416,8 @@ export function AdminPaymentDesk() {
           detail={t(
             filtered
               ? 'Try another search or clear your filters.'
+              : dueOnly && tab === 'bills'
+              ? 'All your bills are up to date.'
               : tab === 'review'
               ? 'New payment submissions will appear here for review.'
               : tab === 'bills'
@@ -479,7 +487,7 @@ const desk = StyleSheet.create({
     gap: 10,
   },
   overviewLabel: {
-    color: '#D7EEE3',
+    color: colors.mint,
     fontSize: 13,
     fontWeight: '600',
     flexShrink: 1,

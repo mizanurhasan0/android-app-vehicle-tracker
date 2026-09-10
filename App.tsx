@@ -6,107 +6,156 @@ import {
   Text,
   View,
 } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { VehicleHistoryScreen } from './src/screens/VehicleHistoryScreen';
-import { HomeStackParams, RootTabParams } from './src/navigation/types';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { HomeStackParams } from './src/navigation/types';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { DataProvider, useData } from './src/context/DataContext';
+import { DataProvider } from './src/context/DataContext';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { VehiclesScreen } from './src/screens/VehiclesScreen';
+import { VehicleHistoryScreen } from './src/screens/VehicleHistoryScreen';
 import { PaymentsScreen } from './src/screens/PaymentsScreen';
 import { RequestsScreen } from './src/screens/RequestsScreen';
-import { SetupScreen } from './src/screens/SetupScreen';
-import { NotificationsScreen } from './src/screens/NotificationsScreen';
+import {
+  NotificationsScreen,
+  NotificationDetailsScreen,
+} from './src/screens/NotificationsScreen';
+import {
+  CreateVehicleScreen,
+  StudentsScreen,
+  StudentDetailsScreen,
+  PaymentAccountsScreen,
+  RoutesScreen,
+} from './src/screens/DirectoryScreens';
 import { colors } from './src/theme';
 import { useTranslation } from './src/i18n';
 import { LanguageProvider } from './src/i18n/LanguageProvider';
-import { numberLabel } from './src/utils/format';
-const Tab = createBottomTabNavigator<RootTabParams>();
-const HomeStack = createNativeStackNavigator<HomeStackParams>();
-function HomeNavigator() {
-  const { session } = useAuth();
-  return (
-    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStack.Screen name="Fleet" component={HomeScreen} />
-      {session?.user.role === 'ADMIN' ? (
-        <HomeStack.Screen
-          name="VehicleHistory"
-          component={VehicleHistoryScreen}
-        />
-      ) : null}
-    </HomeStack.Navigator>
-  );
-}
-const icons: Record<string, string> = {
-  Home: '⌂',
-  Bills: '৳',
-  Requests: '≡',
-  Setup: '⚙',
-  Inbox: '✉',
+
+const Stack = createNativeStackNavigator<HomeStackParams>();
+const navigationTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: colors.primary,
+    background: colors.background,
+    card: colors.surface,
+    text: colors.ink,
+    border: colors.line,
+    notification: colors.primary,
+  },
 };
-function TabIcon({ name, color }: { name: string; color: string }) {
-  return (
-    <Text accessible={false} style={[local.icon, { color }]}>
-      {icons[name]}
-    </Text>
-  );
+function BillsScreen() {
+  return <PaymentsScreen initialTab="bills" />;
 }
-const tabIcons = Object.fromEntries(
-  Object.keys(icons).map(name => [
-    name,
-    ({ color }: { color: string }) => <TabIcon name={name} color={color} />,
-  ]),
-);
-function Tabs() {
+function DueScreen() {
+  return <PaymentsScreen initialTab="bills" dueOnly />;
+}
+function RequestedScreen() {
+  return <RequestsScreen section="Applications" />;
+}
+function ComplaintsScreen() {
+  return <RequestsScreen section="Complaints" />;
+}
+function StopScreen() {
+  return <RequestsScreen section="Stop requests" />;
+}
+function Navigator() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const { session } = useAuth();
-  const { data } = useData();
-  const unread = data.notifications.filter(item => !item.readAt).length;
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          title: t(route.name === 'Inbox' ? 'Updates' : route.name),
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.muted,
-          tabBarStyle: [
-            local.tabBar,
-            {
-              height: 64 + insets.bottom,
-              paddingBottom: Math.max(insets.bottom, 8),
-            },
-          ],
-          tabBarLabelStyle: local.tabLabel,
-          tabBarIcon: tabIcons[route.name],
-        })}
+    <NavigationContainer theme={navigationTheme}>
+      <Stack.Navigator
+        screenOptions={{
+          headerTintColor: colors.primary,
+          headerStyle: { backgroundColor: colors.surface },
+          headerTitleStyle: { fontSize: 16, fontWeight: '500' },
+          headerTitleAlign: 'center',
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: colors.surface },
+        }}
       >
-        <Tab.Screen name="Home" component={HomeNavigator} />
-        <Tab.Screen name="Bills" component={PaymentsScreen} />
-        <Tab.Screen name="Requests" component={RequestsScreen} />
-        {session!.user.role === 'ADMIN' ? (
-          <Tab.Screen name="Setup" component={SetupScreen} />
+        <Stack.Screen
+          name="Fleet"
+          component={HomeScreen}
+          options={{ headerShown: false }}
+        />
+        {session?.user.role === 'ADMIN' ? (
+          <>
+            <Stack.Screen
+              name="CreateVehicle"
+              component={CreateVehicleScreen}
+              options={{ title: t('Create vehicle') }}
+            />
+            <Stack.Screen
+              name="VehicleHistory"
+              component={VehicleHistoryScreen}
+              options={{ title: t('Travel history') }}
+            />
+          </>
         ) : null}
-        <Tab.Screen
+        <Stack.Screen
+          name="Students"
+          component={StudentsScreen}
+          options={{ title: t('Student list') }}
+        />
+        <Stack.Screen
+          name="StudentDetails"
+          component={StudentDetailsScreen}
+          options={{ title: t('Student details') }}
+        />
+        <Stack.Screen
+          name="Bills"
+          component={BillsScreen}
+          options={{ title: t('Bills') }}
+        />
+        <Stack.Screen
+          name="DueList"
+          component={DueScreen}
+          options={{ title: t('Due list') }}
+        />
+        <Stack.Screen
+          name="Requested"
+          component={RequestedScreen}
+          options={{ title: t('Requested') }}
+        />
+        <Stack.Screen
+          name="Complaints"
+          component={ComplaintsScreen}
+          options={{ title: t('Complaints') }}
+        />
+        <Stack.Screen
+          name="StopRequests"
+          component={StopScreen}
+          options={{ title: t('Stop requests') }}
+        />
+        <Stack.Screen
+          name="PaymentAccounts"
+          component={PaymentAccountsScreen}
+          options={{ title: t('Payment accounts') }}
+        />
+        <Stack.Screen
+          name="Vehicles"
+          component={VehiclesScreen}
+          options={{ title: t('Vehicles') }}
+        />
+        <Stack.Screen
+          name="Routes"
+          component={RoutesScreen}
+          options={{ title: t('Routes') }}
+        />
+        <Stack.Screen
           name="Inbox"
           component={NotificationsScreen}
-          options={{
-            tabBarBadge: unread
-              ? unread > 99
-                ? `${numberLabel(99)}+`
-                : numberLabel(unread)
-              : undefined,
-            tabBarBadgeStyle: local.badge,
-          }}
+          options={{ title: t('Notifications') }}
         />
-      </Tab.Navigator>
+        <Stack.Screen
+          name="NotificationDetails"
+          component={NotificationDetailsScreen}
+          options={{ title: t('Notification details') }}
+        />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
@@ -123,7 +172,7 @@ function Root() {
   if (!session) return <AuthScreen />;
   return (
     <DataProvider key={session.token}>
-      <Tabs />
+      <Navigator />
     </DataProvider>
   );
 }
@@ -148,12 +197,4 @@ const local = StyleSheet.create({
     backgroundColor: colors.background,
   },
   splashText: { color: colors.ink, fontSize: 16 },
-  icon: { fontSize: 25, fontWeight: '600' },
-  tabBar: {
-    backgroundColor: '#FFFFFF',
-    borderTopColor: colors.line,
-    paddingTop: 7,
-  },
-  tabLabel: { fontSize: 11, fontWeight: '600' },
-  badge: { backgroundColor: colors.primary },
 });

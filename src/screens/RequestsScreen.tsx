@@ -149,12 +149,14 @@ function CallGuardian({ id, phone }: { id: string; phone: string }) {
     </View>
   );
 }
-export function RequestsScreen() {
+export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
   const { t } = useTranslation();
   const { session } = useAuth();
   const { data, loading, error, refresh, mutate } = useData();
   const admin = session!.user.role === 'ADMIN';
-  const [tab, setTab] = useState<RequestTab>(admin ? 'Applications' : 'Form');
+  const [tab, setTab] = useState<RequestTab>(
+    section || (admin ? 'Applications' : 'Form'),
+  );
   const [studentName, setStudentName] = useState('');
   const [routeId, setRouteId] = useState('');
   const [stopId, setStopId] = useState('');
@@ -176,7 +178,14 @@ export function RequestsScreen() {
         )}
         style={local.tabs}
       >
-        {(admin ? requestTabs : guardianTabs).map(label => (
+        {(section
+          ? admin
+            ? [section]
+            : (['Form', section] as RequestTab[])
+          : admin
+          ? requestTabs
+          : guardianTabs
+        ).map(label => (
           <Pressable
             key={label}
             accessibilityRole="tab"

@@ -568,3 +568,36 @@ it('opens the submission linked to a bill and clears the billing month filter', 
   ).toBe('NEW123456');
   await act(async () => screen.unmount());
 });
+
+it.each(['ADMIN', 'GUARDIAN'] as const)(
+  'shows unpaid bills including pending submissions in the %s due list',
+  async role => {
+    mockUser = { role };
+    mockData.bills.push({
+      ...mockData.bills[0],
+      id: 'paid',
+      studentName: 'Paid Student',
+      status: 'PAID',
+    });
+    mockData.bills.push({
+      ...mockData.bills[0],
+      id: 'pending',
+      studentName: 'Pending Student',
+      pendingSubmissionId: 'payment-1',
+    });
+    let screen!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      screen = TestRenderer.create(
+        <PaymentsScreen dueOnly initialTab="bills" />,
+      );
+    });
+    const rendered = screen.root
+      .findAllByType(Text)
+      .map(node => node.props.children)
+      .filter(value => typeof value === 'string');
+    expect(rendered).toContain('Student One');
+    expect(rendered).toContain('Pending Student');
+    expect(rendered).not.toContain('Paid Student');
+    await act(async () => screen.unmount());
+  },
+);

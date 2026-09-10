@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,12 +19,15 @@ interface AuthValue {
   startupError: string;
   signIn: (phone: string, password: string, name?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateProfile: (input: { name: string }) => Promise<void>;
   expire: () => Promise<void>;
   setServer: (url: string) => Promise<void>;
 }
 const AuthContext = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: React.PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
   const [ready, setReady] = useState(false);
   const [startupError, setStartupError] = useState('');
   const [baseUrl, setBaseUrl] = useState(DEFAULT_SERVER_URL);
@@ -106,6 +110,40 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
     },
     [baseUrl],
   );
+  const updateProfile = useCallback(
+    async ({ name }: { name: string }) => {
+      const current = sessionRef.current;
+      if (!current) throw new Error('Please sign in again.');
+      const trimmed = name.trim();
+      if (trimmed.length < 2 || trimmed.length > 80) {
+        throw new Error('Enter a name between 2 and 80 characters.');
+      }
+      try {
+        const user = await api<User>(
+          baseUrl,
+          '/auth/me',
+          current.token,
+          { name: trimmed },
+          'PATCH',
+        );
+        // The server persists the profile; restore always fetches /auth/me.
+        // Never replace a session that changed while the request was in flight.
+        setSession(latest =>
+          latest?.token === current.token ? { ...latest, user } : latest,
+        );
+      } catch (error) {
+        if (
+          error instanceof ApiError &&
+          error.status === 401 &&
+          sessionRef.current?.token === current.token
+        ) {
+          await expire();
+        }
+        throw error;
+      }
+    },
+    [baseUrl, expire],
+  );
   const setServer = useCallback(
     async (url: string) => {
       const normalized = normalizeServerUrl(url);
@@ -124,6 +162,7 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
         startupError,
         signIn,
         signOut,
+        updateProfile,
         expire,
         setServer,
       }}

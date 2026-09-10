@@ -139,16 +139,19 @@ function PaymentForm({
     </Card>
   );
 }
-export function PaymentsScreen() {
+export function PaymentsScreen({
+  dueOnly = false,
+  initialTab = 'review',
+}: { dueOnly?: boolean; initialTab?: 'review' | 'bills' } = {}) {
   const { session } = useAuth();
   return session?.user.role === 'ADMIN' ? (
-    <AdminPaymentDesk />
+    <AdminPaymentDesk initialTab={initialTab} dueOnly={dueOnly} />
   ) : (
-    <GuardianPaymentsScreen />
+    <GuardianPaymentsScreen dueOnly={dueOnly} />
   );
 }
 
-function GuardianPaymentsScreen() {
+function GuardianPaymentsScreen({ dueOnly }: { dueOnly: boolean }) {
   const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
   const [selectedBill, setSelectedBill] = useState<string | null>(null);
@@ -156,6 +159,9 @@ function GuardianPaymentsScreen() {
   const [tab, setTab] = useState<PaymentTab>('Your bills');
   const [submitting, setSubmitting] = useState(false);
 
+  const visibleBills = data.bills.filter(
+    bill => !dueOnly || bill.status === 'UNPAID',
+  );
   const payableBills = data.bills.filter(
     bill => bill.status === 'UNPAID' && !bill.pendingSubmissionId,
   );
@@ -171,7 +177,7 @@ function GuardianPaymentsScreen() {
   );
   return (
     <Page
-      title={t('Monthly bills')}
+      title={t(dueOnly ? 'Due list' : 'Monthly bills')}
       subtitle={t('Pay manually. Submit the details. We’ll keep you updated.')}
       loading={loading}
       refresh={refresh}
@@ -207,15 +213,17 @@ function GuardianPaymentsScreen() {
         ))}
       </View>
       <PaymentPanel label="Your bills" active={tab === 'Your bills'}>
-        {!data.bills.length ? (
+        {!visibleBills.length ? (
           <Empty
-            title={t('No bills yet')}
+            title={t(dueOnly ? 'No outstanding dues' : 'No bills yet')}
             detail={t(
-              'Your admin will create the monthly bill after your service is approved.',
+              dueOnly
+                ? 'All your bills are up to date.'
+                : 'Your admin will create the monthly bill after your service is approved.',
             )}
           />
         ) : (
-          data.bills.map(bill => (
+          visibleBills.map(bill => (
             <Card key={bill.id}>
               <View style={styles.between}>
                 <Text style={styles.heading}>

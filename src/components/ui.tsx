@@ -26,7 +26,9 @@ export function Page({
   loading = false,
   refresh,
   error,
+  dashboard = false,
 }: React.PropsWithChildren<{
+  dashboard?: boolean;
   title?: string;
   subtitle?: string;
   loading?: boolean;
@@ -34,7 +36,14 @@ export function Page({
   error?: string;
 }>) {
   return (
-    <SafeAreaView style={ui.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={ui.safe}
+      edges={
+        dashboard
+          ? ['top', 'bottom', 'left', 'right']
+          : ['bottom', 'left', 'right']
+      }
+    >
       <KeyboardAvoidingView
         style={ui.safe}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -53,18 +62,20 @@ export function Page({
           }
         >
           <View style={ui.content}>
-            <View style={ui.header}>
-              <View style={styles.between}>
-                <Text style={styles.label}>পথসাথী · PATHSATHI</Text>
-                <LanguageSwitcher />
+            {!dashboard ? (
+              <View style={ui.header}>
+                <View style={styles.between}>
+                  <Text style={styles.label}>পথসাথী · PATHSATHI</Text>
+                  <LanguageSwitcher />
+                </View>
+                {title ? (
+                  <Text accessibilityRole="header" style={styles.title}>
+                    {title}
+                  </Text>
+                ) : null}
+                {subtitle ? <Text style={styles.muted}>{subtitle}</Text> : null}
               </View>
-              {title ? (
-                <Text accessibilityRole="header" style={styles.title}>
-                  {title}
-                </Text>
-              ) : null}
-              {subtitle ? <Text style={styles.muted}>{subtitle}</Text> : null}
-            </View>
+            ) : null}
             <Notice text={error} kind="error" />
             {children}
             <CopyrightFooter />
@@ -274,20 +285,20 @@ const ui = StyleSheet.create({
     borderColor: colors.line,
     gap: 12,
   },
-  tinted: { backgroundColor: colors.mint, borderColor: '#CBE4D4' },
+  tinted: { backgroundColor: colors.mint, borderColor: colors.line },
   button: {
     minHeight: 50,
     paddingHorizontal: 18,
     paddingVertical: 13,
     backgroundColor: colors.primary,
-    borderRadius: 14,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
   },
   secondary: {
-    backgroundColor: '#EDF3EE',
+    backgroundColor: colors.mint,
     borderColor: colors.line,
     borderWidth: 1,
   },
@@ -312,7 +323,7 @@ const ui = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: colors.ink,
-    backgroundColor: '#FAFCFA',
+    backgroundColor: '#FFFCFD',
     fontSize: 16,
   },
   multiline: { minHeight: 104, textAlignVertical: 'top' },
@@ -322,7 +333,7 @@ const ui = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#FAFCFA',
+    backgroundColor: '#FFFCFD',
   },
   picker: { color: colors.ink, minHeight: 52 },
   notice: { padding: 14, borderRadius: 14, backgroundColor: colors.mint },

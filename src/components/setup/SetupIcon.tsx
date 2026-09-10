@@ -8,11 +8,12 @@ export type SetupSection = 'payments' | 'vehicles' | 'routes';
 export function SetupIcon({
   kind,
   selected = false,
+  color = selected ? colors.surface : colors.primary,
 }: {
   kind: SetupSection;
   selected?: boolean;
+  color?: string;
 }) {
-  const color = selected ? colors.surface : colors.primary;
   const stroke = { borderColor: color };
   const fill = { backgroundColor: color };
   return (

@@ -39,10 +39,11 @@ numbers are included.
 ## First setup
 
 1. Bootstrap an admin in the API using `ADMIN_PHONE` / `ADMIN_PASSWORD`.
-2. Sign in as admin. In **Setup**, add bKash/Rocket receiving numbers and clear
-   Send Money/Payment instructions. Add a vehicle and a route with pickup stops.
+2. Sign in as admin. Open **Payment accounts** to add bKash/Rocket receiving numbers and clear
+   Send Money/Payment instructions. Use **Create vehicle**, then **Routes** to
+   add a route with pickup stops.
 3. A guardian creates an account with their phone and password, then submits a
-   student name, route and stop from **Requests**.
+   student name, route and stop from **Requested → Request forms**.
 4. Admin reviews the route/vehicle and approves. The assigned vehicle becomes
    visible to the guardian. One guardian can have multiple students/services.
 5. Admin generates that month's bills from **Bills**. This is an explicit admin
@@ -116,7 +117,7 @@ checks performed and the Android activity-restoration issue fixed during QA.
 
 ## Admin travel history
 
-After the companion API's PostgreSQL history feature is enabled, open **Home →
+After the companion API's PostgreSQL history feature is enabled, open **Home → Vehicles →
 View travel history** on a vehicle. Day, Monday–Sunday week, and calendar-month
 filters use Asia/Dhaka even when the phone is set to a different timezone. Enter
 a date as YYYY-MM-DD or move between periods. Week/month summaries open individual
@@ -162,3 +163,24 @@ Translations live in `src/i18n/en.json` and `src/i18n/bn.json`. Add new interfac
 copy to both dictionaries with matching interpolation placeholders, then use
 `useTranslation` from `src/i18n`. Tests check catalog coverage, language persistence,
 form preservation and localized map controls.
+
+## Reference-inspired interface
+
+The white and raspberry-pink login uses a bundled school-transport illustration,
+rounded credential fields, password visibility, and the existing secure sign-in.
+Forgot password directs the user to their school administrator. Registration and
+school server settings remain available.
+
+Home shows the signed-in user's initials, name, phone, total unpaid amount, and
+circular shortcuts for Create vehicle (admin), Student list, Bills, Due list,
+Requested, Complaints, Stop requests, Payment accounts, Vehicles, and Routes.
+Each shortcut opens a stack screen with Android back navigation. Student records
+come from approved transport subscriptions; tap a student to see route, pickup
+stop, vehicle, and status. Due list includes unpaid bills awaiting payment review.
+
+The bell shows the unread count. Tap a notification to open its full details and
+mark it read. Vehicle creation, account/route management, payment review, and
+travel history retain their existing admin access requirements. Guardians have
+nine home shortcuts, with read-only route and receiving-account information.
+
+See [redesign verification and screenshots](docs/qa/reference-redesign/README.md).

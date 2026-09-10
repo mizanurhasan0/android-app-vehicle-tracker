@@ -50,7 +50,8 @@ function button(label: string) {
     node =>
       node.props.accessibilityRole === 'button' &&
       typeof node.props.onPress === 'function' &&
-      node.findAllByType(Text).some(text => text.props.children === label),
+      (node.props.accessibilityLabel === label ||
+        node.findAllByType(Text).some(text => text.props.children === label)),
     { deep: false },
   )[0];
 }

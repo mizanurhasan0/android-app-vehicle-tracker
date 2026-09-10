@@ -1,12 +1,12 @@
 import { StyleSheet } from 'react-native';
 export const colors = {
-  primary: '#126A57',
-  ink: '#18382F',
-  muted: '#60756D',
-  background: '#F3F6F2',
+  primary: '#087F78',
+  ink: '#18343B',
+  muted: '#62767A',
+  background: '#F4F8F8',
   surface: '#FFFFFF',
-  line: '#DCE5DF',
-  mint: '#E3F3E9',
+  line: '#E1ECEB',
+  mint: '#E6F4F0',
   amber: '#98600A',
   danger: '#A73138',
 };

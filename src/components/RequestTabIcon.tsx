@@ -8,11 +8,12 @@ export type RequestIconKind = 'form' | 'applications' | 'complaints' | 'stop';
 export function RequestTabIcon({
   kind,
   selected,
+  color = selected ? colors.surface : colors.primary,
 }: {
   kind: RequestIconKind;
   selected: boolean;
+  color?: string;
 }) {
-  const color = selected ? colors.surface : colors.primary;
   const stroke = { borderColor: color };
   const fill = { backgroundColor: color };
   return (
