@@ -398,3 +398,47 @@ it('keeps all three guardian submission flows available from the Form tab', asyn
   });
   expect(mockMutate).toHaveBeenCalledTimes(3);
 });
+
+it('opens only the notified application with review details expanded, then restores the full list', async () => {
+  mockData.requests.push({
+    ...mockData.requests[0],
+    id: 'request-2',
+    studentName: 'Student Two',
+  });
+  await act(async () => {
+    screen = TestRenderer.create(
+      <RequestsScreen section="Applications" targetId="request-2" />,
+    );
+  });
+  expect(disclosures()).toHaveLength(1);
+  expect(disclosures()[0].props.accessibilityLabel).toContain('Student Two');
+  expect(disclosures()[0].props.accessibilityState.expanded).toBe(true);
+  expect(section('Applications').props.accessibilityElementsHidden).toBe(false);
+  await act(async () =>
+    screen.root
+      .findAllByType(Button)
+      .find(item => item.props.title === 'Show all records')!
+      .props.onPress(),
+  );
+  expect(disclosures()).toHaveLength(4);
+  expect(mockMutate).not.toHaveBeenCalled();
+});
+
+it.each([
+  ['Complaints', 'complaint-1'],
+  ['Stop requests', 'stop-1'],
+] as const)(
+  'opens the notified guardian %s section without admin actions',
+  async (selectedSection, targetId) => {
+    mockRole = 'GUARDIAN';
+    await act(async () => {
+      screen = TestRenderer.create(
+        <RequestsScreen section={selectedSection} targetId={targetId} />,
+      );
+    });
+    expect(section(selectedSection).props.accessibilityElementsHidden).toBe(
+      false,
+    );
+    expect(disclosures()).toHaveLength(0);
+  },
+);

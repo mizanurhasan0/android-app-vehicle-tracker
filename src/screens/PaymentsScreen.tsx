@@ -166,28 +166,62 @@ function PaymentForm({
 export function PaymentsScreen({
   dueOnly = false,
   initialTab = 'review',
-}: { dueOnly?: boolean; initialTab?: 'review' | 'bills' } = {}) {
+  billId,
+  paymentId,
+}: {
+  dueOnly?: boolean;
+  initialTab?: 'review' | 'bills';
+  billId?: string;
+  paymentId?: string;
+} = {}) {
   const { session } = useAuth();
   return session?.user.role === 'ADMIN' ? (
-    <AdminPaymentDesk initialTab={initialTab} dueOnly={dueOnly} />
+    <AdminPaymentDesk
+      initialTab={initialTab}
+      dueOnly={dueOnly}
+      billId={billId}
+      paymentId={paymentId}
+    />
   ) : (
-    <GuardianPaymentsScreen dueOnly={dueOnly} />
+    <GuardianPaymentsScreen
+      dueOnly={dueOnly}
+      billId={billId}
+      paymentId={paymentId}
+    />
   );
 }
 
-function GuardianPaymentsScreen({ dueOnly }: { dueOnly: boolean }) {
+function GuardianPaymentsScreen({
+  dueOnly,
+  billId,
+  paymentId,
+}: {
+  dueOnly: boolean;
+  billId?: string;
+  paymentId?: string;
+}) {
   const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
   const [selectedBill, setSelectedBill] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
-  const [tab, setTab] = useState<PaymentTab>('Your bills');
+  const [tab, setTab] = useState<PaymentTab>(
+    paymentId ? 'Payment history' : 'Your bills',
+  );
+  const [focused, setFocused] = useState(!!(billId || paymentId));
+  const targetBillId =
+    billId || data.payments.find(item => item.id === paymentId)?.billId;
   const [submitting, setSubmitting] = useState(false);
 
   const visibleBills = data.bills.filter(
-    bill => !dueOnly || bill.status === 'UNPAID',
+    bill =>
+      (!focused || bill.id === targetBillId) &&
+      (!dueOnly || bill.status === 'UNPAID'),
   );
   const payableBills = data.bills.filter(
-    bill => bill.status === 'UNPAID' && !bill.pendingSubmissionId,
+    bill =>
+      (!focused || bill.id === targetBillId) &&
+      bill.status === 'UNPAID' &&
+      !bill.pendingSubmissionId,
   );
 
   const selected = data.bills.find(
@@ -197,7 +231,12 @@ function GuardianPaymentsScreen({ dueOnly }: { dueOnly: boolean }) {
       !bill.pendingSubmissionId,
   );
   const payments = data.payments.filter(
-    payment => !filter || payment.status === filter,
+    payment =>
+      (!focused ||
+        (paymentId
+          ? payment.id === paymentId
+          : payment.billId === targetBillId)) &&
+      (!filter || payment.status === filter),
   );
   const summaryMonth = [...data.bills]
     .map(bill => bill.month)
@@ -210,6 +249,13 @@ function GuardianPaymentsScreen({ dueOnly }: { dueOnly: boolean }) {
     .reduce((sum, bill) => sum + bill.amount, 0);
   return (
     <Page loading={loading} refresh={refresh} error={error}>
+      {focused ? (
+        <Button
+          secondary
+          title={t('Show all records')}
+          onPress={() => setFocused(false)}
+        />
+      ) : null}
       <Card>
         <Text style={styles.heading}>
           {t('Monthly fee')}

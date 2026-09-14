@@ -3,11 +3,11 @@ export type HomeStackParams = {
   CreateVehicle: undefined;
   Students: undefined;
   StudentDetails: { id: string };
-  Bills: undefined;
+  Bills: { billId?: string; paymentId?: string } | undefined;
   DueList: undefined;
-  Requested: undefined;
-  Complaints: undefined;
-  StopRequests: undefined;
+  Requested: { id?: string } | undefined;
+  Complaints: { id?: string } | undefined;
+  StopRequests: { id?: string } | undefined;
   PaymentAccounts: undefined;
   Vehicles: undefined;
   VehicleDetails: { id: string };
@@ -25,7 +25,7 @@ export type HomeStackParams = {
   Maintenance: { vehicleId?: string } | undefined;
   Accounts: { tab?: 'INCOME' | 'EXPENSE' | 'INVESTMENT' } | undefined;
   Notices: undefined;
-  OperationalRequests: undefined;
+  OperationalRequests: { id?: string } | undefined;
   Communication: undefined;
   Reports: undefined;
   Settings: undefined;

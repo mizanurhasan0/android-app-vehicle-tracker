@@ -474,3 +474,31 @@ it('preserves report dates and retranslates visible validation without another r
   expect(api).toHaveBeenCalledTimes(1);
   expect(saveReportFile).not.toHaveBeenCalled();
 });
+
+it('opens the notified operational request even when it has already been reviewed', async () => {
+  mockManagement.requests.push({
+    ...mockManagement.requests[0],
+    id: 'reviewed-request',
+    title: 'Reviewed request',
+    status: 'APPROVED',
+  });
+  await act(async () => {
+    screen = TestRenderer.create(
+      <RequestsScreen
+        route={{
+          key: 'target',
+          name: 'OperationalRequests',
+          params: { id: 'reviewed-request' },
+        }}
+      />,
+    );
+  });
+  expect(screen.root.findByType(Tabs).props.value).toBe('APPROVED');
+  expect(text()).toContain('Reviewed request');
+  expect(
+    screen.root
+      .findAllByType(Text)
+      .some(node => node.props.children === 'Title'),
+  ).toBe(false);
+  expect(mockMutate).not.toHaveBeenCalled();
+});

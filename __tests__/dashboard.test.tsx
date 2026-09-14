@@ -11,6 +11,7 @@ import { i18n, locale } from '../src/i18n';
 import { ProfileDrawer } from '../src/components/ProfileDrawer';
 let mockRole = 'ADMIN';
 const mockNavigate = jest.fn();
+const mockPush = jest.fn();
 const mockMutate = jest.fn().mockResolvedValue({});
 let mockLoading = false,
   mockError = '';
@@ -50,6 +51,7 @@ const mockData = {
   notifications: [
     {
       id: 'n1',
+      entityId: '',
       title: 'School notice',
       body: 'Bus arrives at 7:30.',
       createdAt: '2026-09-10T00:00:00Z',
@@ -111,13 +113,15 @@ jest.mock('@react-native-picker/picker', () => {
   return { Picker };
 });
 let screen: TestRenderer.ReactTestRenderer;
-const navigation = { navigate: mockNavigate } as never;
+const navigation = { navigate: mockNavigate, push: mockPush } as never;
 beforeEach(async () => {
   await i18n.changeLanguage('en');
   mockRole = 'ADMIN';
   mockLoading = false;
   mockError = '';
   mockData.bills = initialBills;
+  mockData.notifications[0].entityId = '';
+  mockMutate.mockReset().mockResolvedValue({});
   jest.clearAllMocks();
   jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-10T06:00:00Z'));
 });
@@ -306,4 +310,37 @@ it('opens a notification detail and persists the read decision', async () => {
     undefined,
     'PATCH',
   );
+});
+
+it.each(['ADMIN', 'GUARDIAN'])(
+  'opens the linked bill directly for %s and marks the notification read',
+  async role => {
+    mockRole = role;
+    mockData.notifications[0].entityId = 'old-due';
+    await act(async () => {
+      screen = TestRenderer.create(
+        <NotificationsScreen navigation={navigation} route={{} as never} />,
+      );
+    });
+    await act(async () => button('School notice').props.onPress());
+    expect(mockPush).toHaveBeenCalledWith('Bills', { billId: 'old-due' });
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockMutate).toHaveBeenCalledWith(
+      '/notifications/n1/read',
+      undefined,
+      'PATCH',
+    );
+  },
+);
+
+it('still opens the linked record when saving the read status fails', async () => {
+  mockData.notifications[0].entityId = 'old-due';
+  mockMutate.mockRejectedValueOnce(new Error('Could not save read status'));
+  await act(async () => {
+    screen = TestRenderer.create(
+      <NotificationsScreen navigation={navigation} route={{} as never} />,
+    );
+  });
+  await act(async () => button('School notice').props.onPress());
+  expect(mockPush).toHaveBeenCalledWith('Bills', { billId: 'old-due' });
 });

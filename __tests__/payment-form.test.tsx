@@ -666,3 +666,121 @@ it('highlights invalid payment fields, clears each corrected field, and submits 
   );
   await act(async () => screen.unmount());
 });
+
+it.each(['pending-new', 'approved', 'rejected'])(
+  'opens notified admin payment %s in its correct tab with details expanded',
+  async paymentId => {
+    seedAdminPayments();
+    let screen!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      screen = TestRenderer.create(
+        <PaymentsScreen initialTab="bills" paymentId={paymentId} />,
+      );
+    });
+    const disclosures = screen.root.findAll(
+      node =>
+        typeof node.props.accessibilityState?.expanded === 'boolean' &&
+        node.props.accessibilityLabel?.includes(' · '),
+      { deep: false },
+    );
+    expect(disclosures).toHaveLength(1);
+    expect(disclosures[0].props.accessibilityState.expanded).toBe(true);
+    expect(disclosures[0].props.accessibilityLabel).toContain(
+      mockData.payments.find(item => item.id === paymentId)!.transactionId,
+    );
+    expect(mockMutate).not.toHaveBeenCalled();
+    await act(async () => screen.unmount());
+  },
+);
+
+it('opens the notified guardian payment in history and uses its bill for correction', async () => {
+  seedAdminPayments();
+  mockUser = { role: 'GUARDIAN' };
+  mockData.bills.unshift({
+    ...mockData.bills[0],
+    id: 'unrelated-bill',
+    studentName: 'Another student',
+  });
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(<PaymentsScreen paymentId="rejected" />);
+  });
+  const panel = screen.root.findByProps({
+    testID: 'payment-panel-Payment history',
+  });
+  expect(panel.props.accessibilityElementsHidden).toBe(false);
+  expect(
+    panel
+      .findAllByType(Text)
+      .some(
+        node =>
+          Array.isArray(node.props.children) &&
+          node.props.children.includes('FAIL123456'),
+      ),
+  ).toBe(true);
+  await act(async () =>
+    screen.root
+      .findAllByType(Button)
+      .find(item => item.props.title === 'Pay now')!
+      .props.onPress(),
+  );
+  const form = screen.root.findByProps({
+    testID: 'payment-panel-Payment form',
+  });
+  expect(form.props.accessibilityElementsHidden).toBe(false);
+  expect(
+    form
+      .findAllByType(Text)
+      .some(
+        node =>
+          Array.isArray(node.props.children) &&
+          node.props.children.includes('Student One'),
+      ),
+  ).toBe(true);
+  expect(
+    form
+      .findAllByType(Text)
+      .some(
+        node =>
+          Array.isArray(node.props.children) &&
+          node.props.children.includes('Another student'),
+      ),
+  ).toBe(false);
+  await act(async () => screen.unmount());
+});
+
+it('focuses the notified bill and can restore all bills', async () => {
+  mockData.bills.push({
+    ...mockData.bills[0],
+    id: 'bill-2',
+    studentName: 'Student Two',
+  });
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(<PaymentsScreen billId="bill-2" />);
+  });
+  const panel = () =>
+    screen.root.findByProps({ testID: 'payment-panel-Your bills' });
+  expect(
+    panel()
+      .findAllByType(Text)
+      .some(node => node.props.children === 'Student Two'),
+  ).toBe(true);
+  expect(
+    panel()
+      .findAllByType(Text)
+      .some(node => node.props.children === 'Student One'),
+  ).toBe(false);
+  await act(async () =>
+    screen.root
+      .findAllByType(Button)
+      .find(item => item.props.title === 'Show all records')!
+      .props.onPress(),
+  );
+  expect(
+    panel()
+      .findAllByType(Text)
+      .some(node => node.props.children === 'Student One'),
+  ).toBe(true);
+  await act(async () => screen.unmount());
+});

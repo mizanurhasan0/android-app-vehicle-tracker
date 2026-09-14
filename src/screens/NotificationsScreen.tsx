@@ -4,6 +4,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Empty, Notice, Page } from '../components/ui';
 import { NoorIcon } from '../components/Noor';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
+import { useManagement } from '../context/ManagementContext';
+import { notificationTarget } from '../navigation/notificationTarget';
 import { useAction } from '../hooks/useAction';
 import { colors, styles } from '../theme';
 import { dateLabel } from '../utils/format';
@@ -14,7 +17,10 @@ export function NotificationsScreen({
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'Inbox'>) {
   const { t } = useTranslation();
-  const { data, loading, error, refresh } = useData();
+  const { data, loading, error, refresh, mutate } = useData();
+  const { session } = useAuth();
+  const { data: management } = useManagement();
+  const action = useAction();
   const updates = useMemo(
     () =>
       [...data.notifications].sort(
@@ -24,6 +30,7 @@ export function NotificationsScreen({
   );
   return (
     <Page loading={loading} refresh={refresh} error={error}>
+      <Notice text={action.error} kind="error" />
       {!data.notifications.length ? (
         <Empty
           title={loading ? t('Loading updates…') : t('No updates yet')}
@@ -42,9 +49,31 @@ export function NotificationsScreen({
               key={item.id}
               accessibilityRole="button"
               accessibilityLabel={translated.title}
-              onPress={() =>
-                navigation.navigate('NotificationDetails', { id: item.id })
-              }
+              onPress={() => {
+                const target = notificationTarget(
+                  item,
+                  session!.user.role,
+                  data,
+                  management,
+                );
+                if (target[0] === 'NotificationDetails') {
+                  navigation.navigate(...target);
+                } else {
+                  // A fresh screen applies this record's selection even when
+                  // another instance of its destination is already on the stack.
+                  navigation.push(...target);
+                  if (!item.readAt)
+                    action.run(
+                      () =>
+                        mutate(
+                          `/notifications/${item.id}/read`,
+                          undefined,
+                          'PATCH',
+                        ),
+                      '',
+                    );
+                }
+              }}
               style={({ pressed }) => [
                 local.notification,
                 !item.readAt && local.unread,

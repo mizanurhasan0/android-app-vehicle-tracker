@@ -75,10 +75,11 @@ function RequestCard({
 
 function RequestActions({
   label,
+  initiallyExpanded = false,
   children,
-}: React.PropsWithChildren<{ label: string }>) {
+}: React.PropsWithChildren<{ label: string; initiallyExpanded?: boolean }>) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initiallyExpanded);
   return (
     <View style={local.actions}>
       <Pressable
@@ -156,7 +157,10 @@ function CallGuardian({ id, phone }: { id: string; phone: string }) {
     </View>
   );
 }
-export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
+export function RequestsScreen({
+  section,
+  targetId,
+}: { section?: RequestTab; targetId?: string } = {}) {
   const { t } = useTranslation();
   const { session } = useAuth();
   const { data, loading, error, refresh, mutate } = useData();
@@ -177,10 +181,25 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
   const selectedFare = journeyFare(route, stopId, dropoffStopId);
   const availableDestinations = journeyDestinations(route, stopId);
   const active = data.subscriptions.filter(item => item.status === 'ACTIVE');
+  const [focusedId, setFocusedId] = useState(targetId);
+  const requests = data.requests.filter(
+    item => !focusedId || item.id === focusedId,
+  );
+  const complaints = data.complaints.filter(
+    item => !focusedId || item.id === focusedId,
+  );
+  const stops = data.stops.filter(item => !focusedId || item.id === focusedId);
   return (
     <Page loading={loading} refresh={refresh} error={error}>
       <Notice text={action.error} kind="error" />
       <Notice text={action.success} />
+      {focusedId ? (
+        <Button
+          secondary
+          title={t('Show all records')}
+          onPress={() => setFocusedId(undefined)}
+        />
+      ) : null}
       <View
         accessibilityRole="tablist"
         accessibilityLabel={t(
@@ -506,7 +525,7 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
         </RequestSection>
       ) : null}
       <RequestSection label="Applications" visible={tab === 'Applications'}>
-        {!data.requests.length ? (
+        {!requests.length ? (
           <Empty
             title={t('No applications yet')}
             detail={t(
@@ -514,7 +533,7 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
             )}
           />
         ) : (
-          data.requests.map(request => (
+          requests.map(request => (
             <RequestCard key={request.id} compact={admin}>
               <View style={admin ? local.cardHeader : styles.between}>
                 <Text style={admin ? local.cardTitle : styles.heading}>
@@ -542,7 +561,10 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
                 </Text>
               ) : null}
               {admin && request.status === 'PENDING' ? (
-                <RequestActions label={request.studentName}>
+                <RequestActions
+                  label={request.studentName}
+                  initiallyExpanded={request.id === targetId}
+                >
                   <CallGuardian id={request.id} phone={request.guardianPhone} />
                   <ReviewActions
                     path={`/admin/requests/${request.id}/decision`}
@@ -557,10 +579,10 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
         )}
       </RequestSection>
       <RequestSection label="Complaints" visible={tab === 'Complaints'}>
-        {!data.complaints.length ? (
+        {!complaints.length ? (
           <Text style={styles.muted}>{t('No complaints to show.')}</Text>
         ) : (
-          data.complaints.map(complaint => (
+          complaints.map(complaint => (
             <RequestCard key={complaint.id} compact={admin}>
               <View style={admin ? local.cardHeader : styles.between}>
                 <Text style={admin ? local.cardTitle : styles.heading}>
@@ -583,6 +605,7 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
               ) : null}
               {admin && complaint.status === 'OPEN' ? (
                 <RequestActions
+                  initiallyExpanded={complaint.id === targetId}
                   label={`${complaint.studentName} · ${readable(
                     complaint.category,
                   )}`}
@@ -601,10 +624,10 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
         )}
       </RequestSection>
       <RequestSection label="Stop requests" visible={tab === 'Stop requests'}>
-        {!data.stops.length ? (
+        {!stops.length ? (
           <Text style={styles.muted}>{t('No stop requests to show.')}</Text>
         ) : (
-          data.stops.map(stop => (
+          stops.map(stop => (
             <RequestCard key={stop.id} compact={admin}>
               <View style={admin ? local.cardHeader : styles.between}>
                 <Text style={admin ? local.cardTitle : styles.heading}>
@@ -623,6 +646,7 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
               ) : null}
               {admin && stop.status === 'PENDING' ? (
                 <RequestActions
+                  initiallyExpanded={stop.id === targetId}
                   label={`${t('Stop requests')} · ${stop.studentName}`}
                 >
                   <ReviewActions

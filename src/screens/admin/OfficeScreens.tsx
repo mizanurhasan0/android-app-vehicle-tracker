@@ -16,6 +16,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useTranslation } from '../../i18n';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeStackParams } from '../../navigation/types';
 import { ValidationError, isValidDate } from '../../utils/validation';
 import { numberLabel } from '../../utils/format';
 import {
@@ -232,12 +234,19 @@ const requestCategories = [
   { value: 'MAINTENANCE', label: 'Vehicle service' },
   { value: 'OTHER', label: 'Other' },
 ];
-export function RequestsScreen() {
+export function RequestsScreen({
+  route,
+}: Partial<
+  NativeStackScreenProps<HomeStackParams, 'OperationalRequests'>
+> = {}) {
   const { t } = useTranslation();
   const { data, loading, error, refresh, mutate } = useManagement();
   const { data: transport } = useData();
   const action = useAction();
-  const [tab, setTab] = useState('PENDING');
+  const [focusedId, setFocusedId] = useState(route?.params?.id);
+  const [tab, setTab] = useState<string>(
+    data?.requests.find(item => item.id === focusedId)?.status || 'PENDING',
+  );
   const [selected, setSelected] = useState<ManagementRequest>();
   const [note, setNote] = useState('');
   const [decision, setDecision] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
@@ -252,7 +261,9 @@ export function RequestsScreen() {
     date: today(),
   });
   const [form, setForm] = useState(blank);
-  const records = (data?.requests || []).filter(item => item.status === tab);
+  const records = (data?.requests || []).filter(item =>
+    focusedId ? item.id === focusedId : item.status === tab,
+  );
   const review = (item: ManagementRequest, next: 'APPROVED' | 'REJECTED') => {
     setSelected(item);
     setDecision(next);
@@ -270,9 +281,18 @@ export function RequestsScreen() {
           setAdding(true);
         }}
       />
+      {focusedId ? (
+        <SmallButton
+          title={t('Show all records')}
+          onPress={() => setFocusedId(undefined)}
+        />
+      ) : null}
       <Tabs
         value={tab}
-        onChange={setTab}
+        onChange={value => {
+          setFocusedId(undefined);
+          setTab(value);
+        }}
         options={[
           {
             value: 'PENDING',

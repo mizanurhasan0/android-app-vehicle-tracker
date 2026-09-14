@@ -211,14 +211,32 @@ function BillGenerator() {
 export function AdminPaymentDesk({
   initialTab = 'review',
   dueOnly = false,
-}: { initialTab?: DeskTab; dueOnly?: boolean } = {}) {
+  billId,
+  paymentId,
+}: {
+  initialTab?: DeskTab;
+  dueOnly?: boolean;
+  billId?: string;
+  paymentId?: string;
+} = {}) {
   const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
-  const [tab, setTab] = useState<DeskTab>(initialTab);
+  const targetPayment = data.payments.find(item => item.id === paymentId);
+  const targetBillId = billId || targetPayment?.billId;
+  const [focused, setFocused] = useState(!!(billId || paymentId));
+  const [tab, setTab] = useState<DeskTab>(
+    paymentId
+      ? targetPayment?.status === 'PENDING'
+        ? 'review'
+        : 'history'
+      : initialTab,
+  );
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [month, setMonth] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(
+    paymentId || null,
+  );
   const [showGenerator, setShowGenerator] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const pending = data.payments.filter(payment => payment.status === 'PENDING');
@@ -233,6 +251,10 @@ export function AdminPaymentDesk({
   const payments = data.payments
     .filter(
       payment =>
+        (!focused ||
+          (paymentId
+            ? payment.id === paymentId
+            : payment.billId === targetBillId)) &&
         (tab === 'review'
           ? payment.status === 'PENDING'
           : payment.status !== 'PENDING') &&
@@ -255,6 +277,7 @@ export function AdminPaymentDesk({
   const bills = data.bills
     .filter(
       bill =>
+        (!focused || bill.id === targetBillId) &&
         (!dueOnly || bill.status === 'UNPAID') &&
         (!month || bill.month === month) &&
         (!status ||
@@ -285,6 +308,13 @@ export function AdminPaymentDesk({
 
   return (
     <Page loading={loading} refresh={refresh} error={error}>
+      {focused ? (
+        <Button
+          secondary
+          title={t('Show all records')}
+          onPress={() => setFocused(false)}
+        />
+      ) : null}
       <View style={desk.overview}>
         <View style={desk.stat}>
           <Text style={desk.overviewLabel}>{t('Total billed')}</Text>

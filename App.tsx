@@ -17,6 +17,7 @@ import {
 import {
   createNativeStackNavigator,
   NativeStackNavigationProp,
+  NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { HomeStackParams } from './src/navigation/types';
@@ -91,20 +92,28 @@ const navigationTheme = {
     notification: colors.primary,
   },
 };
-function BillsScreen() {
-  return <PaymentsScreen initialTab="bills" />;
+function BillsScreen({
+  route,
+}: NativeStackScreenProps<HomeStackParams, 'Bills'>) {
+  return <PaymentsScreen initialTab="bills" {...route.params} />;
 }
 function DueScreen() {
   return <PaymentsScreen initialTab="bills" dueOnly />;
 }
-function RequestedScreen() {
-  return <RequestsScreen section="Applications" />;
+function RequestedScreen({
+  route,
+}: NativeStackScreenProps<HomeStackParams, 'Requested'>) {
+  return <RequestsScreen section="Applications" targetId={route.params?.id} />;
 }
-function ComplaintsScreen() {
-  return <RequestsScreen section="Complaints" />;
+function ComplaintsScreen({
+  route,
+}: NativeStackScreenProps<HomeStackParams, 'Complaints'>) {
+  return <RequestsScreen section="Complaints" targetId={route.params?.id} />;
 }
-function StopScreen() {
-  return <RequestsScreen section="Stop requests" />;
+function StopScreen({
+  route,
+}: NativeStackScreenProps<HomeStackParams, 'StopRequests'>) {
+  return <RequestsScreen section="Stop requests" targetId={route.params?.id} />;
 }
 function FleetMapScreen() {
   const navigation =
