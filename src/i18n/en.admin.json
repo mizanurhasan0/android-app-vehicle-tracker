@@ -32,7 +32,6 @@
   "Remove": "Remove",
   "Guardian details": "Guardian details",
   "Guardian mobile number *": "Guardian mobile number *",
-  "The guardian must first register in the Parent App with this number. Their name and contact details will be linked to that account.": "The guardian must first register in the Parent App with this number. Their name and contact details will be linked to that account.",
   "Emergency contact": "Emergency contact",
   "Pickup address": "Pickup address",
   "Drop-off address": "Drop-off address",
@@ -151,5 +150,9 @@
   "Investment records": "Investment records",
   "Student fares": "Student fares",
   "Paid payments": "Paid payments",
-  "No account entries this month": "No account entries this month"
+  "No account entries this month": "No account entries this month",
+  "Guardian name (optional)": "Guardian name (optional)",
+  "Student added": "Student added",
+  "An existing guardian account will be linked using this number. Otherwise, a new account will be created with the default password \"password\".": "An existing guardian account will be linked using this number. Otherwise, a new account will be created with the default password \"password\".",
+  "A guardian account was created. Share these Parent App login details with the guardian:\nMobile number: {{phone}}\nPassword: {{password}}": "A guardian account was created. Share these Parent App login details with the guardian:\nMobile number: {{phone}}\nPassword: {{password}}"
 }

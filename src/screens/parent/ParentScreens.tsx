@@ -1,3 +1,4 @@
+import { journeyFare, journeyDestinations } from '../../utils/routeFares';
 import React, { useState } from 'react';
 import {
   Keyboard,
@@ -72,10 +73,15 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
   const [dropAddress, setDropAddress] = useState('');
   const [routeId, setRouteId] = useState('');
   const [stopId, setStopId] = useState('');
+  const [dropoffStopId, setDropoffStopId] = useState('');
   const [routeSearch, setRouteSearch] = useState('');
   const [validation, setValidation] = useState('');
   const route = data.routes.find(item => item.id === routeId);
   const stop = route?.stops.find(item => item.id === stopId);
+  const destination = route?.stops.find(item => item.id === dropoffStopId);
+  const monthlyFare = journeyFare(route, stopId, dropoffStopId);
+  const hasJourneyFares = !!route?.fares?.length;
+  const availableDestinations = journeyDestinations(route, stopId);
   const routes = data.routes.filter(item =>
     `${item.name} ${item.vehicleName}`
       .toLocaleLowerCase()
@@ -94,6 +100,12 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
       return 'Enter a valid emergency contact number.';
     if (page === 2 && (!route || !stop))
       return 'Select a route and pickup stop.';
+    if (
+      page === 2 &&
+      hasJourneyFares &&
+      (!destination || monthlyFare === undefined)
+    )
+      return 'Select a destination with a configured fare.';
     return '';
   };
   const next = () => {
@@ -279,6 +291,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
                 onPress={() => {
                   setRouteId(item.id);
                   setStopId('');
+                  setDropoffStopId('');
                 }}
                 style={[
                   local.routeCard,
@@ -297,7 +310,11 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
                   <Text style={styles.heading}>{item.name}</Text>
                   <Text style={styles.muted}>{item.vehicleName}</Text>
                 </View>
-                <Text style={local.routeFare}>{money(item.monthlyAmount)}</Text>
+                <Text style={local.routeFare}>
+                  {item.fares?.length
+                    ? t('Fare by destination')
+                    : money(item.monthlyAmount)}
+                </Text>
               </Pressable>
             ))
           )}
@@ -306,17 +323,45 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
               <Select
                 label={t('Pickup stop *')}
                 value={stopId}
-                onChange={setStopId}
+                onChange={value => {
+                  setStopId(value);
+                  setDropoffStopId('');
+                }}
                 options={route.stops.map(item => ({
                   value: item.id,
                   label: item.name,
                 }))}
               />
+              {hasJourneyFares ? (
+                <>
+                  <Select
+                    label={t('Destination stop *')}
+                    value={dropoffStopId}
+                    onChange={setDropoffStopId}
+                    options={availableDestinations.map(item => ({
+                      value: item.id,
+                      label: item.name,
+                    }))}
+                  />
+                  {stopId && !availableDestinations.length ? (
+                    <Text style={styles.muted}>
+                      {t(
+                        'No fares are configured from this boarding stop. Choose another stop or contact the admin.',
+                      )}
+                    </Text>
+                  ) : null}
+                </>
+              ) : null}
               <Text style={styles.muted}>
                 {t(
                   'Monthly fare {{amount}}. Service starts after admin approval.',
                   {
-                    amount: money(route.monthlyAmount),
+                    amount:
+                      hasJourneyFares && !dropoffStopId
+                        ? '—'
+                        : monthlyFare === undefined
+                        ? '—'
+                        : money(monthlyFare),
                   },
                 )}
               </Text>
@@ -353,7 +398,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
               icon="route"
               label={t('Route and fare')}
               value={`${route?.name || '—'} · ${
-                route ? money(route.monthlyAmount) : '—'
+                monthlyFare === undefined ? '—' : money(monthlyFare)
               }`}
             />
             <InfoRow
@@ -368,7 +413,13 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
                 pickupAddress ? ` · ${pickupAddress}` : ''
               }`}
             />
-            <InfoRow icon="pin" label={t('Drop-off')} value={dropAddress} />
+            <InfoRow
+              icon="pin"
+              label={t('Drop-off')}
+              value={[destination?.name, dropAddress]
+                .filter(Boolean)
+                .join(' · ')}
+            />
             {emergencyContact ? (
               <InfoRow
                 icon="phone"
@@ -395,6 +446,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
                   studentName: studentName.trim(),
                   routeId,
                   stopId,
+                  ...(dropoffStopId ? { dropoffStopId } : {}),
                   className: className.trim(),
                   roll: roll.trim(),
                   photoUrl,
@@ -659,6 +711,18 @@ export function ParentStudentScreen({
               value={student.routeName}
             />
             <InfoRow
+              icon="pin"
+              label={t('Boarding stop')}
+              value={student.stopName}
+            />
+            {student.dropoffStopName ? (
+              <InfoRow
+                icon="pin"
+                label={t('Destination stop')}
+                value={student.dropoffStopName}
+              />
+            ) : null}
+            <InfoRow
               icon="money"
               label={t('Monthly fare')}
               value={money(student.monthlyAmount)}
@@ -683,7 +747,9 @@ export function ParentStudentScreen({
             <InfoRow
               icon="pin"
               label={t('Drop-off')}
-              value={student.dropAddress}
+              value={[student.dropoffStopName, student.dropAddress]
+                .filter(Boolean)
+                .join(' · ')}
             />
             <View style={parent.divider} />
             <Text style={styles.heading}>{t('Contact the driver')}</Text>

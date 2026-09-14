@@ -11,6 +11,7 @@ import { useAction } from '../hooks/useAction';
 import { NoorIcon, NoorCard, NoorBadge, NoorSection } from '../components/Noor';
 import { Page, Button, Field, Select, Notice, Empty } from '../components/ui';
 import { VehicleEditSheet } from '../components/VehicleEditSheet';
+import { RouteFareManager } from '../components/RouteFareManager';
 import { RouteForm } from '../components/setup/SetupForms';
 import { money, numberLabel } from '../utils/format';
 import { colors, styles } from '../theme';
@@ -451,6 +452,9 @@ export function NoorRoutesScreen({
                     .join(' → ')}
                 </Text>
                 <Text style={f.sub}>
+                  {r.fares?.length
+                    ? `${t('Stop-to-stop monthly fares')} · `
+                    : ''}
                   {r.vehicleName} ·{' '}
                   {extra
                     ? t('{{number}} people', {
@@ -509,6 +513,10 @@ export function RouteDetailsScreen({
       error={management.error}
       refresh={management.refresh}
     >
+      <RouteFareManager
+        route={selected}
+        editable={session?.user.role === 'ADMIN'}
+      />
       <NoorCard>
         <View style={f.vehicleRow}>
           <VehicleMark />

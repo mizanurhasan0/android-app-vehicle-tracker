@@ -56,6 +56,29 @@ numbers are included.
 
 ## Behaviour and boundaries
 
+### Monthly fares by journey
+
+In admin **Routes**, create a route with the boarding and destination stops in
+travel order, then open **Manage route fares** on that route. Save a monthly fee for each
+boarding/destination pair. For example, Uttara → Khilkhet can cost ৳1,000 while
+Uttara → Mirpur costs ৳1,500 on the same vehicle. Enter taka in the app; the API
+stores integer poisha. Reverse journeys need their own fare entry.
+
+When admitting a student or editing their transport assignment, select the route,
+boarding stop and destination. The configured fee is shown before saving and is
+verified by the API. Guardian applications carry the chosen stops; approval
+uses the fare configured at that time. Routes with configured fares require a
+destination for new guardian applications. Admins can retain a flat fee by leaving
+the destination empty. Routes without fare entries retain their default monthly fee.
+
+Changing the route's fare table does not automatically change existing students'
+agreed fees. A changed student journey uses its configured fare for bills generated
+afterward. Previously generated bills and payment receipts retain their amounts.
+Update the companion API before using the new app; its database migration runs
+automatically on startup and preserves existing routes and subscriptions.
+
+### Other boundaries
+
 - **No payment gateway**, no wallet PIN/OTP collection and no automatic checking
   of external transactions. Approval always requires an admin decision.
 - Payment amounts use integer poisha at the API boundary. Partial payments,

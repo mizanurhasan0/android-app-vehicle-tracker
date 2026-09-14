@@ -636,3 +636,64 @@ it('keeps the tracked vehicle and localizes last-update text on a mounted screen
   expect(text()).toContain('Current location');
   expect(JSON.stringify(mockData)).toBe(original);
 });
+
+it('requires a configured destination and previews its own fare before submitting an admission', async () => {
+  mockData.routes[0].stops.push(
+    { id: 'khilkhet', name: 'Khilkhet' },
+    { id: 'mirpur', name: 'Mirpur' },
+  );
+  mockData.routes[0].fares = [
+    {
+      boardingStopId: 'stop-1',
+      dropoffStopId: 'khilkhet',
+      monthlyAmount: 100000,
+    },
+    {
+      boardingStopId: 'stop-1',
+      dropoffStopId: 'mirpur',
+      monthlyAmount: 150000,
+    },
+  ];
+  await act(async () => {
+    screen = TestRenderer.create(<AdmissionScreen {...props('Admission')} />);
+  });
+  await field('Student name *', 'Journey Student');
+  await field('Class *', 'Class 6');
+  await button('Next');
+  await field('Pickup address *', 'Uttara');
+  await button('Next');
+  await selectRoute(0);
+  const choose = async (label: string, value: string) => {
+    await act(async () =>
+      screen.root
+        .findAllByType(Select)
+        .find(node => node.props.label === label)!
+        .props.onChange(value),
+    );
+  };
+  await choose('Pickup stop *', 'stop-1');
+  await button('Next');
+  expect(text()).toContain('Select a destination with a configured fare.');
+  await choose('Destination stop *', 'khilkhet');
+  expect(text()).toContain('1,000');
+  await choose('Destination stop *', 'mirpur');
+  expect(text()).toContain('1,500');
+  await choose('Pickup stop *', 'khilkhet');
+  const destinationSelect = () =>
+    screen.root
+      .findAllByType(Select)
+      .find(node => node.props.label === 'Destination stop *')!;
+  expect(destinationSelect().props.value).toBe('');
+  expect(destinationSelect().props.options).toEqual([]);
+  await choose('Pickup stop *', 'stop-1');
+  await choose('Destination stop *', 'mirpur');
+  await button('Next');
+  expect(text()).toContain('Mirpur');
+  expect(text()).toContain('1,500');
+  await button('Submit application');
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/requests/guardian/new',
+    expect.objectContaining({ stopId: 'stop-1', dropoffStopId: 'mirpur' }),
+  );
+  expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('monthlyAmount');
+});

@@ -1,3 +1,4 @@
+import { journeyFare, journeyDestinations } from '../utils/routeFares';
 import { useTranslation } from '../i18n';
 import React, { useState } from 'react';
 import {
@@ -160,12 +161,15 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
   const [studentName, setStudentName] = useState('');
   const [routeId, setRouteId] = useState('');
   const [stopId, setStopId] = useState('');
+  const [dropoffStopId, setDropoffStopId] = useState('');
   const [subscriptionId, setSubscriptionId] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [reason, setReason] = useState('');
   const action = useAction();
   const route = data.routes.find(item => item.id === routeId);
+  const selectedFare = journeyFare(route, stopId, dropoffStopId);
+  const availableDestinations = journeyDestinations(route, stopId);
   const active = data.subscriptions.filter(item => item.status === 'ACTIVE');
   return (
     <Page loading={loading} refresh={refresh} error={error}>
@@ -236,31 +240,62 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
               onChange={value => {
                 setRouteId(value);
                 setStopId('');
+                setDropoffStopId('');
               }}
               options={data.routes.map(item => ({
                 value: item.id,
-                label: t('{{route}} · {{amount}}/month', {
-                  route: item.name,
-                  amount: money(item.monthlyAmount),
-                }),
+                label: item.fares?.length
+                  ? `${item.name} · ${t('Fare by destination')}`
+                  : t('{{route}} · {{amount}}/month', {
+                      route: item.name,
+                      amount: money(item.monthlyAmount),
+                    }),
               }))}
             />
             <Select
               label={t('Pickup stop')}
               value={stopId}
-              onChange={setStopId}
+              onChange={value => {
+                setStopId(value);
+                setDropoffStopId('');
+              }}
               options={(route?.stops || []).map(item => ({
                 value: item.id,
                 label: item.name,
               }))}
             />
+            {route?.fares?.length ? (
+              <>
+                <Select
+                  label={t('Destination stop *')}
+                  value={dropoffStopId}
+                  onChange={setDropoffStopId}
+                  options={availableDestinations.map(item => ({
+                    value: item.id,
+                    label: item.name,
+                  }))}
+                />
+                {stopId && !availableDestinations.length ? (
+                  <Text style={styles.muted}>
+                    {t(
+                      'No fares are configured from this boarding stop. Choose another stop or contact the admin.',
+                    )}
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
             {route ? (
               <Text style={styles.muted}>
                 {t(
                   'Vehicle: {{name}} · Full monthly fee {{amount}}. The admin will confirm your service.',
                   {
                     name: route.vehicleName,
-                    amount: money(route.monthlyAmount),
+                    amount:
+                      route.fares?.length && !dropoffStopId
+                        ? '—'
+                        : selectedFare === undefined
+                        ? '—'
+                        : money(selectedFare),
                   },
                 )}
               </Text>
@@ -282,14 +317,23 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
                     throw new Error(
                       'Enter the student’s name and select a route and pickup stop.',
                     );
+                  if (
+                    route?.fares?.length &&
+                    (!dropoffStopId || selectedFare === undefined)
+                  )
+                    throw new Error(
+                      'Select a destination with a configured fare.',
+                    );
                   await mutate('/requests/guardian/new', {
                     studentName: studentName.trim(),
                     routeId,
                     stopId,
+                    ...(dropoffStopId ? { dropoffStopId } : {}),
                   });
                   setStudentName('');
                   setRouteId('');
                   setStopId('');
+                  setDropoffStopId('');
                 }, 'Request sent. You’ll receive an update after admin review.');
               }}
             />
@@ -414,12 +458,18 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
                 <Badge status={request.status} />
               </View>
               <Text style={admin ? local.body : styles.body}>
-                {request.routeName} → {request.stopName}
+                {request.routeName} · {request.stopName}
+                {request.dropoffStopName ? ` → ${request.dropoffStopName}` : ''}
               </Text>
               <Text style={styles.muted}>
                 {request.vehicleName}
                 {admin ? ` · ${request.guardianName}` : ''}
               </Text>
+              {request.monthlyAmount !== undefined ? (
+                <Text style={styles.muted}>
+                  {t('Monthly fare')}: {money(request.monthlyAmount)}
+                </Text>
+              ) : null}
               {request.note ? (
                 <Text style={admin ? local.body : styles.body}>
                   {t('Admin note: ')}

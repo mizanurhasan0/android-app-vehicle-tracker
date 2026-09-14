@@ -4,14 +4,21 @@ export interface Student {
   studentCode: string; className: string; roll: string; photoUrl: string;
   guardianName: string; guardianPhone: string; pickupAddress: string; dropAddress: string;
   emergencyContact: string; routeId: string; routeName: string; stopId: string; stopName: string;
+  dropoffStopId?: string | null; dropoffStopName?: string | null;
   vehicleId: string; vehicleName: string; driverName: string | null; driverPhone: string | null;
   monthlyAmount: number; status: 'ACTIVE' | 'STOPPED'; startedAt: string;
 }
 export interface StudentInput {
   studentName: string; guardianPhone: string; routeId: string; stopId: string;
+  /** Used only when enrollment creates a new guardian account. */
+  guardianName?: string;
+  dropoffStopId?: string | null;
   studentCode?: string; className?: string; roll?: string; photoUrl?: string;
   pickupAddress?: string; dropAddress?: string; emergencyContact?: string;
   monthlyAmount?: number; status?: 'ACTIVE' | 'STOPPED';
+}
+export interface StudentCreateResult extends Student {
+  guardianAccountCreated: boolean;
 }
 export interface Driver {
   id: string; name: string; phone: string; nid: string; address: string;
@@ -90,7 +97,8 @@ export interface ManagementReport {
   ledger: LedgerEntry[];
 }
 /** GET /management/overview; guardian responses contain only their own student data.
- * POST /admin/students (guardianPhone must belong to a registered guardian)
+ * POST /admin/students returns StudentCreateResult; reuses the guardian phone or
+ * creates a guardian with the initial password "password" when no account exists.
  * PATCH /admin/students/:id with Partial<StudentInput>
  * POST /admin/drivers; PATCH /admin/drivers/:id with Partial<DriverInput>
  * PUT /admin/attendance {entries: AttendanceInput[]} (atomic batch)

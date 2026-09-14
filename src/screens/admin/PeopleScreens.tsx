@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Alert, Image, Pressable, Text, View } from 'react-native';
 import {
   NavigationProp,
   ParamListBase,
@@ -10,12 +10,14 @@ import {
   Driver,
   DriverInput,
   Student,
+  StudentCreateResult,
   StudentInput,
 } from '../../api/management';
 import { useManagement } from '../../context/ManagementContext';
 import { useData } from '../../context/DataContext';
 import { locale, useTranslation } from '../../i18n';
 import { currentMonth, money, numberLabel, toPoisha } from '../../utils/format';
+import { journeyFare, journeyDestinations } from '../../utils/routeFares';
 import { pickStudentPhoto } from '../../utils/photo';
 import {
   AdminPage,
@@ -43,12 +45,14 @@ type StudentFormValue = {
   studentCode: string;
   className: string;
   roll: string;
+  guardianName: string;
   guardianPhone: string;
   pickupAddress: string;
   dropAddress: string;
   emergencyContact: string;
   routeId: string;
   stopId: string;
+  dropoffStopId: string;
   amount: string;
   photoUrl: string;
   status: Student['status'];
@@ -58,12 +62,14 @@ const blankStudent = (): StudentFormValue => ({
   studentCode: '',
   className: '',
   roll: '',
+  guardianName: '',
   guardianPhone: '',
   pickupAddress: '',
   dropAddress: '',
   emergencyContact: '',
   routeId: '',
   stopId: '',
+  dropoffStopId: '',
   amount: '',
   photoUrl: '',
   status: 'ACTIVE',
@@ -109,12 +115,14 @@ function StudentForm({
               studentCode: student.studentCode,
               className: student.className,
               roll: student.roll,
+              guardianName: student.guardianName,
               guardianPhone: student.guardianPhone,
               pickupAddress: student.pickupAddress,
               dropAddress: student.dropAddress,
               emergencyContact: student.emergencyContact,
               routeId: student.routeId,
               stopId: student.stopId,
+              dropoffStopId: student.dropoffStopId || '',
               amount: String(student.monthlyAmount / 100),
               photoUrl: student.photoUrl,
               status: student.status,
@@ -128,6 +136,28 @@ function StudentForm({
     value: StudentFormValue[K],
   ) => setForm(current => ({ ...current, [key]: value }));
   const selectedRoute = transport.routes.find(item => item.id === form.routeId);
+  const sameJourney =
+    !!student &&
+    student.routeId === form.routeId &&
+    student.stopId === form.stopId &&
+    (student.dropoffStopId || '') === form.dropoffStopId;
+  const configuredAmount = journeyFare(
+    selectedRoute,
+    form.stopId,
+    form.dropoffStopId,
+  );
+  const assignedAmount = sameJourney ? student.monthlyAmount : configuredAmount;
+  const destinations = journeyDestinations(selectedRoute, form.stopId);
+  if (
+    sameJourney &&
+    student.dropoffStopId &&
+    !destinations.some(stop => stop.id === student.dropoffStopId)
+  ) {
+    destinations.push({
+      id: student.dropoffStopId,
+      name: student.dropoffStopName || student.dropoffStopId,
+    });
+  }
   const save = () =>
     action.run(async () => {
       if (
@@ -139,18 +169,39 @@ function StudentForm({
         throw new Error(
           'Enter the student name, guardian phone number, route and pickup stop.',
         );
-      const { amount, ...rest } = form;
+      if (form.dropoffStopId && !sameJourney && configuredAmount === undefined)
+        throw new Error(
+          'No fare is configured for this journey. Select another destination.',
+        );
+      const { amount, dropoffStopId, guardianName, ...rest } = form;
       const input: StudentInput = {
         ...rest,
         studentName: form.studentName.trim(),
         guardianPhone: form.guardianPhone.trim(),
-        monthlyAmount: toPoisha(amount),
+        ...(!student && guardianName.trim()
+          ? { guardianName: guardianName.trim() }
+          : {}),
+        dropoffStopId: dropoffStopId || null,
+        ...(!dropoffStopId ? { monthlyAmount: toPoisha(amount) } : {}),
       };
-      await mutate(
-        student ? `/admin/students/${student.id}` : '/admin/students',
-        input,
-        student ? 'PATCH' : 'POST',
-      );
+      if (student) {
+        await mutate<Student>(`/admin/students/${student.id}`, input, 'PATCH');
+      } else {
+        const result = await mutate<StudentCreateResult>(
+          '/admin/students',
+          input,
+          'POST',
+        );
+        if (result.guardianAccountCreated) {
+          Alert.alert(
+            t('Student added'),
+            t(
+              'A guardian account was created. Share these Parent App login details with the guardian:\nMobile number: {{phone}}\nPassword: {{password}}',
+              { phone: result.guardianPhone, password: 'password' },
+            ),
+          );
+        }
+      }
       onClose();
     });
   return (
@@ -216,6 +267,14 @@ function StudentForm({
         ) : null}
       </View>
       <Heading title={t('Guardian details')} />
+      {!student && (
+        <Input
+          label={t('Guardian name (optional)')}
+          value={form.guardianName}
+          onChangeText={v => set('guardianName', v)}
+          maxLength={80}
+        />
+      )}
       <Input
         label={t('Guardian mobile number *')}
         editable={!student}
@@ -224,11 +283,13 @@ function StudentForm({
         keyboardType="phone-pad"
         maxLength={16}
       />
-      <Text style={s.muted}>
-        {t(
-          'The guardian must first register in the Parent App with this number. Their name and contact details will be linked to that account.',
-        )}
-      </Text>
+      {!student && (
+        <Text style={s.muted}>
+          {t(
+            'An existing guardian account will be linked using this number. Otherwise, a new account will be created with the default password "password".',
+          )}
+        </Text>
+      )}
       <Input
         label={t('Emergency contact')}
         value={form.emergencyContact}
@@ -263,6 +324,7 @@ function StudentForm({
             ...current,
             routeId: v,
             stopId: '',
+            dropoffStopId: '',
             amount: chosen ? String(chosen.monthlyAmount / 100) : '',
           }));
         }}
@@ -274,14 +336,63 @@ function StudentForm({
           value: item.id,
           label: item.name,
         }))}
-        onChange={v => set('stopId', v)}
+        onChange={v =>
+          setForm(current => ({
+            ...current,
+            stopId: v,
+            dropoffStopId: '',
+            amount: selectedRoute
+              ? String(selectedRoute.monthlyAmount / 100)
+              : '',
+          }))
+        }
       />
-      <Input
-        label={t('Monthly fee (৳) *')}
-        value={form.amount}
-        onChangeText={v => set('amount', v)}
-        keyboardType="decimal-pad"
+      <Choice
+        label={t('Destination stop')}
+        value={form.dropoffStopId}
+        optional={false}
+        options={[
+          { value: '', label: t('Default / custom monthly fee') },
+          ...destinations.map(stop => ({ value: stop.id, label: stop.name })),
+        ]}
+        onChange={v =>
+          setForm(current => ({
+            ...current,
+            dropoffStopId: v,
+            amount:
+              !v && selectedRoute
+                ? String(selectedRoute.monthlyAmount / 100)
+                : current.amount,
+          }))
+        }
       />
+      {form.dropoffStopId ? (
+        <>
+          <Detail
+            label={t('Journey monthly fee')}
+            value={assignedAmount === undefined ? '—' : money(assignedAmount)}
+          />
+          <Text style={s.muted}>
+            {t(
+              'The monthly fee is set by the selected boarding and destination stops.',
+            )}
+          </Text>
+          {sameJourney ? (
+            <Text style={s.muted}>
+              {t(
+                'The existing assigned fee is kept unless the journey changes.',
+              )}
+            </Text>
+          ) : null}
+        </>
+      ) : (
+        <Input
+          label={t('Monthly fee (৳) *')}
+          value={form.amount}
+          onChangeText={v => set('amount', v)}
+          keyboardType="decimal-pad"
+        />
+      )}
       {student ? (
         <Choice
           label={t('Status')}
@@ -517,6 +628,11 @@ export function StudentProfileScreen() {
         />
         <Detail icon="routes" label={t('Route')} value={student.routeName} />
         <Detail
+          icon="location"
+          label={t('Boarding stop')}
+          value={student.stopName}
+        />
+        <Detail
           icon="vehicles"
           label={t('Vehicle')}
           value={student.vehicleName}
@@ -525,7 +641,7 @@ export function StudentProfileScreen() {
         <Detail
           icon="location"
           label={t('Drop-off stop')}
-          value={student.dropAddress}
+          value={student.dropoffStopName || student.dropAddress}
         />
         <Detail
           icon="phone"

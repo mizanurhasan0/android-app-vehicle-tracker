@@ -42,6 +42,11 @@ export interface Location {
   positionAt?: string;
   lastSeen: string;
 }
+export interface RouteFare {
+  boardingStopId: string;
+  dropoffStopId: string;
+  monthlyAmount: number;
+}
 export interface Route {
   id: string;
   name: string;
@@ -49,12 +54,15 @@ export interface Route {
   vehicleName: string;
   monthlyAmount: number;
   stops: { id: string; name: string }[];
+  fares?: RouteFare[];
 }
 export interface Subscription {
   id: string;
   studentName: string;
   routeName: string;
   stopName: string;
+  dropoffStopId?: string | null;
+  dropoffStopName?: string | null;
   vehicleName: string;
   vehicleId: string;
   status: Status;
@@ -92,12 +100,15 @@ export interface Payment {
   createdAt: string;
 }
 export interface ServiceRequest {
+  monthlyAmount?: number;
   id: string;
   studentName: string;
   guardianName: string;
   guardianPhone: string;
   routeName: string;
   stopName: string;
+  dropoffStopId?: string | null;
+  dropoffStopName?: string | null;
   vehicleName: string;
   status: Status;
   note: string;

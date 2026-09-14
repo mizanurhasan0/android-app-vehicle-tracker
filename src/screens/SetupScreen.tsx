@@ -1,3 +1,4 @@
+import { RouteFareManager } from '../components/RouteFareManager';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -208,6 +209,9 @@ export function SetupScreen() {
             ))}
           </Card>
         ) : null}
+        {data.routes.map(route => (
+          <RouteFareManager key={route.id} route={route} editable />
+        ))}
       </SetupPanel>
     </Page>
   );

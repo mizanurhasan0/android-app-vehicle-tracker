@@ -279,7 +279,9 @@ export function RouteForm({ onAddVehicle }: { onAddVehicle: () => void }) {
     <Card>
       <FormHeading
         title={t('Create a route')}
-        detail={t('Choose a vehicle, set the fee and add pickup stops.')}
+        detail={t(
+          'Choose a vehicle and list boarding and destination stops in order. After creating the route, use Manage route fares to set each journey fee.',
+        )}
       />
       <View style={form.group}>
         <Field

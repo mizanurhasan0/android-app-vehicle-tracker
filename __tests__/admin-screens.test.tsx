@@ -1,6 +1,6 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Text, TextInput } from 'react-native';
+import { Alert, Text, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { i18n, locale } from '../src/i18n';
 import { ManagementOverview, Student } from '../src/api/management';
@@ -336,6 +336,70 @@ it('creates a linked student with the selected stop and integer poisha, and rese
     }),
     'POST',
   );
+  expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('guardianName');
+});
+it.each([
+  ['en', true],
+  ['bn', true],
+  ['en', false],
+  ['en', undefined],
+] as const)(
+  'shows new guardian credentials in %s only when creation is confirmed (%s)',
+  async (language, guardianAccountCreated) => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    try {
+      mockMutate.mockResolvedValue({
+        ...student('new-student'),
+        guardianAccountCreated,
+      });
+      await changeLanguage(language);
+      await render(StudentsScreen);
+      await pressButton('Add');
+      await setInput('Student name *', 'New Student');
+      await setInput('Guardian name (optional)', ' New Guardian ');
+      await setInput('Guardian mobile number *', '+8801700000001');
+      await select('Route *', 'route-1');
+      await select('Pickup stop *', 'stop-1');
+      await save();
+      expect(mockMutate).toHaveBeenCalledWith(
+        '/admin/students',
+        expect.objectContaining({ guardianName: 'New Guardian' }),
+        'POST',
+      );
+      expect(screen.root.findByType(FormModal).props.visible).toBe(false);
+      if (guardianAccountCreated) {
+        expect(alert).toHaveBeenCalledWith(
+          i18n.t('Student added'),
+          i18n.t(
+            'A guardian account was created. Share these Parent App login details with the guardian:\nMobile number: {{phone}}\nPassword: {{password}}',
+            { phone: '01700000001', password: 'password' },
+          ),
+        );
+      } else {
+        expect(alert).not.toHaveBeenCalled();
+      }
+    } finally {
+      alert.mockRestore();
+    }
+  },
+);
+it('keeps guardian account details out of student profile edits', async () => {
+  mockParams = { id: 'student-1' };
+  await render(StudentProfileScreen);
+  await pressButton('Edit');
+  expect(
+    screen.root
+      .findAllByType(Input)
+      .some(item => item.props.label === 'Guardian name (optional)'),
+  ).toBe(false);
+  await setInput('Roll number', '23');
+  await save();
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/students/student-1',
+    expect.objectContaining({ roll: '23' }),
+    'PATCH',
+  );
+  expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('guardianName');
 });
 it('saves only explicitly selected attendance and never silently marks remaining students present', async () => {
   await render(AttendanceScreen);
@@ -685,4 +749,82 @@ it('renders stable student and driver detail routes', async () => {
   mockParams = { id: 'driver-1' };
   await render(DriverProfileScreen);
   expect(screen.toJSON()).toBeTruthy();
+});
+
+it('uses the selected destination fare for enrollment without submitting a client price override', async () => {
+  mockData.routes[0].stops.push(
+    { id: 'khilkhet', name: 'Khilkhet' },
+    { id: 'mirpur', name: 'Mirpur' },
+  );
+  mockData.routes[0].fares = [
+    {
+      boardingStopId: 'stop-1',
+      dropoffStopId: 'khilkhet',
+      monthlyAmount: 100000,
+    },
+    {
+      boardingStopId: 'stop-1',
+      dropoffStopId: 'mirpur',
+      monthlyAmount: 150000,
+    },
+  ];
+  await render(StudentsScreen);
+  await pressButton('Add');
+  await setInput('Student name *', 'Journey Student');
+  await setInput('Guardian mobile number *', '01700000001');
+  await select('Route *', 'route-1');
+  await select('Pickup stop *', 'stop-1');
+  await select('Destination stop', 'khilkhet');
+  const fareValue = () =>
+    screen.root
+      .findAllByType(Detail)
+      .find(node => node.props.label === 'Journey monthly fee')!.props.value;
+  expect(fareValue()).toContain('1,000');
+  expect(
+    screen.root
+      .findAllByType(Input)
+      .some(node => node.props.label === 'Monthly fee (৳) *'),
+  ).toBe(false);
+  await select('Destination stop', 'mirpur');
+  expect(fareValue()).toContain('1,500');
+  await save();
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/students',
+    expect.objectContaining({ stopId: 'stop-1', dropoffStopId: 'mirpur' }),
+    'POST',
+  );
+  expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('monthlyAmount');
+});
+
+it('keeps an existing agreed journey fee when editing a profile after route pricing changes', async () => {
+  mockData.routes[0].stops.push({ id: 'mirpur', name: 'Mirpur' });
+  mockData.routes[0].fares = [
+    {
+      boardingStopId: 'stop-1',
+      dropoffStopId: 'mirpur',
+      monthlyAmount: 180000,
+    },
+  ];
+  mockManagement.students[0] = {
+    ...mockManagement.students[0],
+    dropoffStopId: 'mirpur',
+    dropoffStopName: 'Mirpur',
+    monthlyAmount: 150000,
+  };
+  mockParams = { id: 'student-1' };
+  await render(StudentProfileScreen);
+  await pressButton('Edit');
+  expect(
+    screen.root
+      .findAllByType(Detail)
+      .find(node => node.props.label === 'Journey monthly fee')!.props.value,
+  ).toContain('1,500');
+  await setInput('Roll number', '22');
+  await save();
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/students/student-1',
+    expect.objectContaining({ dropoffStopId: 'mirpur', roll: '22' }),
+    'PATCH',
+  );
+  expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('monthlyAmount');
 });
