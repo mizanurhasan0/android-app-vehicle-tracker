@@ -74,6 +74,7 @@ import { ReceiptsScreen } from './src/screens/parent/ReceiptsScreen';
 import { NoorBrand, NoorIcon } from './src/components/Noor';
 import { colors } from './src/theme';
 import { LanguageProvider } from './src/i18n/LanguageProvider';
+import { useTranslation } from './src/i18n';
 
 const Stack = createNativeStackNavigator<HomeStackParams>();
 const navigationRef = createNavigationContainerRef<HomeStackParams>();
@@ -115,11 +116,11 @@ function FleetMapScreen() {
   );
 }
 const adminTabs: [keyof HomeStackParams, string, string][] = [
-  ['Fleet', 'হোম', 'home'],
-  ['Vehicles', 'গাড়ি', 'vehicle'],
-  ['Students', 'শিক্ষার্থী', 'students'],
-  ['Bills', 'পেমেন্ট', 'payment'],
-  ['More', 'মেনু', 'menu'],
+  ['Fleet', 'Home', 'home'],
+  ['Vehicles', 'Vehicles', 'vehicle'],
+  ['Students', 'Students', 'students'],
+  ['Bills', 'Payment', 'payment'],
+  ['More', 'Menu', 'menu'],
 ];
 const parentTabs: [keyof HomeStackParams, string, string][] = [
   ['Fleet', 'Home', 'home'],
@@ -128,7 +129,8 @@ const parentTabs: [keyof HomeStackParams, string, string][] = [
   ['Inbox', 'Notice', 'bell'],
   ['More', 'More', 'more'],
 ];
-function Navigator() {
+export function Navigator() {
+  const { t } = useTranslation();
   const { session } = useAuth();
   const admin = session?.user.role === 'ADMIN';
   const [active, setActive] = useState<string>('Fleet');
@@ -162,154 +164,154 @@ function Navigator() {
           <Stack.Screen
             name="More"
             component={NoorMenuScreen}
-            options={{ title: admin ? 'NOOR TRANSPORT · Admin' : 'More' }}
+            options={{ title: t(admin ? 'NOOR TRANSPORT · Admin' : 'More') }}
           />
           <Stack.Screen
             name="Vehicles"
             component={NoorVehiclesScreen}
-            options={{ title: 'গাড়ি তালিকা' }}
+            options={{ title: t('Vehicle list') }}
           />
           <Stack.Screen
             name="VehicleDetails"
             component={VehicleDetailsScreen}
-            options={{ title: 'গাড়ির প্রোফাইল' }}
+            options={{ title: t('Vehicle profile') }}
           />
           <Stack.Screen
             name="FleetMap"
             component={FleetMapScreen}
-            options={{ title: 'লাইভ লোকেশন' }}
+            options={{ title: t('Live location') }}
           />
           <Stack.Screen
             name="Routes"
             component={NoorRoutesScreen}
-            options={{ title: 'রুট সমূহ' }}
+            options={{ title: t('Routes') }}
           />
           <Stack.Screen
             name="RouteDetails"
             component={RouteDetailsScreen}
-            options={{ title: 'রুট ও সময়সূচি' }}
+            options={{ title: t('Route and schedule') }}
           />
           <Stack.Screen
             name="Bills"
             component={BillsScreen}
-            options={{ title: 'পেমেন্ট' }}
+            options={{ title: t('Payment') }}
           />
           <Stack.Screen
             name="DueList"
             component={DueScreen}
-            options={{ title: 'বকেয়া তালিকা' }}
+            options={{ title: t('Due list') }}
           />
           <Stack.Screen
             name="Requested"
             component={RequestedScreen}
-            options={{ title: 'ভর্তি আবেদন' }}
+            options={{ title: t('Admission applications') }}
           />
           <Stack.Screen
             name="Complaints"
             component={ComplaintsScreen}
-            options={{ title: 'অভিযোগ' }}
+            options={{ title: t('Complaints') }}
           />
           <Stack.Screen
             name="StopRequests"
             component={StopScreen}
-            options={{ title: 'সেবা বন্ধের আবেদন' }}
+            options={{ title: t('Stop service requests') }}
           />
           <Stack.Screen
             name="PaymentAccounts"
             component={PaymentAccountsScreen}
-            options={{ title: 'পেমেন্ট গ্রহণের নম্বর' }}
+            options={{ title: t('Payment accounts') }}
           />
           <Stack.Screen
             name="Inbox"
             component={NotificationsScreen}
-            options={{ title: 'নোটিফিকেশন' }}
+            options={{ title: t('Notifications') }}
           />
           <Stack.Screen
             name="NotificationDetails"
             component={NotificationDetailsScreen}
-            options={{ title: 'নোটিফিকেশন' }}
+            options={{ title: t('Notifications') }}
           />
           <Stack.Screen
             name="Settings"
             component={SettingsScreen}
-            options={{ title: 'সেটিংস' }}
+            options={{ title: t('Settings') }}
           />
           <Stack.Screen
             name="Emergency"
             component={EmergencyScreen}
-            options={{ title: 'জরুরি সহায়তা' }}
+            options={{ title: t('Emergency help') }}
           />
           <Stack.Screen
             name="LiveTracking"
             component={ParentTrackingScreen}
-            options={{ title: 'Live Tracking' }}
+            options={{ title: t('Live Tracking') }}
           />
           {admin ? (
             <>
               <Stack.Screen
                 name="CreateVehicle"
                 component={CreateVehicleScreen}
-                options={{ title: 'গাড়ি যোগ করুন' }}
+                options={{ title: t('Add vehicle') }}
               />
               <Stack.Screen
                 name="VehicleHistory"
                 component={VehicleHistoryScreen}
-                options={{ title: 'ভ্রমণ ইতিহাস' }}
+                options={{ title: t('Travel history') }}
               />
               <Stack.Screen
                 name="Students"
                 component={StudentsScreen}
-                options={{ title: 'শিক্ষার্থী তালিকা' }}
+                options={{ title: t('Student list') }}
               />
               <Stack.Screen
                 name="StudentDetails"
                 component={StudentProfileScreen}
-                options={{ title: 'শিক্ষার্থী প্রোফাইল' }}
+                options={{ title: t('Student profile') }}
               />
               <Stack.Screen
                 name="Drivers"
                 component={DriversScreen}
-                options={{ title: 'ড্রাইভার তালিকা' }}
+                options={{ title: t('Driver list') }}
               />
               <Stack.Screen
                 name="DriverDetails"
                 component={DriverProfileScreen}
-                options={{ title: 'ড্রাইভার প্রোফাইল' }}
+                options={{ title: t('Driver profile') }}
               />
               <Stack.Screen
                 name="Attendance"
                 component={AttendanceScreen}
-                options={{ title: 'উপস্থিতি' }}
+                options={{ title: t('Attendance') }}
               />
               <Stack.Screen
                 name="Maintenance"
                 component={MaintenanceScreen}
-                options={{ title: 'মেইনটেন্যান্স' }}
+                options={{ title: t('Maintenance') }}
               />
               <Stack.Screen
                 name="Accounts"
                 component={AccountsScreen}
-                options={{ title: 'আয়–ব্যয়' }}
+                options={{ title: t('Income and expenses') }}
               />
               <Stack.Screen
                 name="Notices"
                 component={NoticesScreen}
-                options={{ title: 'নোটিশ' }}
+                options={{ title: t('Notices') }}
               />
               <Stack.Screen
                 name="OperationalRequests"
                 component={OperationalRequestsScreen}
-                options={{ title: 'রিকোয়েস্ট' }}
+                options={{ title: t('Requests') }}
               />
               <Stack.Screen
                 name="Communication"
                 component={CommunicationScreen}
-                options={{ title: 'যোগাযোগ' }}
+                options={{ title: t('Communication') }}
               />
               <Stack.Screen
                 name="Reports"
                 component={ReportsScreen}
-                options={{ title: 'রিপোর্ট' }}
+                options={{ title: t('Reports') }}
               />
             </>
           ) : (
@@ -317,32 +319,32 @@ function Navigator() {
               <Stack.Screen
                 name="Receipts"
                 component={ReceiptsScreen}
-                options={{ title: 'রসিদ' }}
+                options={{ title: t('Receipts') }}
               />
               <Stack.Screen
                 name="ParentProfile"
                 component={ParentStudentScreen}
-                options={{ title: 'শিক্ষার্থীর প্রোফাইল' }}
+                options={{ title: t('Student profile') }}
               />
               <Stack.Screen
                 name="Admission"
                 component={AdmissionScreen}
-                options={{ title: 'অনলাইন ভর্তি ফরম' }}
+                options={{ title: t('Online admission form') }}
               />
               <Stack.Screen
                 name="ApplicationStatus"
                 component={ApplicationStatusScreen}
-                options={{ title: 'আবেদনের স্ট্যাটাস' }}
+                options={{ title: t('Application status') }}
               />
               <Stack.Screen
                 name="TodayJourney"
                 component={ParentJourneyScreen}
-                options={{ title: 'আজকের যাত্রা' }}
+                options={{ title: t("Today's journey") }}
               />
               <Stack.Screen
                 name="Contact"
                 component={ParentContactScreen}
-                options={{ title: 'যোগাযোগ' }}
+                options={{ title: t('Contact') }}
               />
             </>
           )}
@@ -354,7 +356,7 @@ function Navigator() {
                 <Pressable
                   key={name}
                   accessibilityRole="tab"
-                  accessibilityLabel={title}
+                  accessibilityLabel={t(title)}
                   accessibilityState={{ selected: active === name }}
                   onPress={() =>
                     navigationRef.isReady() &&
@@ -370,7 +372,7 @@ function Navigator() {
                   <Text
                     style={[local.tabLabel, active === name && local.selected]}
                   >
-                    {title}
+                    {t(title)}
                   </Text>
                 </Pressable>
               ))}
@@ -452,6 +454,6 @@ const local = StyleSheet.create({
     alignSelf: 'center',
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  tabLabel: { fontSize: 11, color: '#677C88' },
+  tabLabel: { fontSize: 11, color: '#677C88', textAlign: 'center' },
   selected: { color: colors.primary, fontWeight: '700' },
 });

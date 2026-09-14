@@ -14,6 +14,32 @@ import { VehicleEditSheet } from '../components/VehicleEditSheet';
 import { RouteForm } from '../components/setup/SetupForms';
 import { money, numberLabel } from '../utils/format';
 import { colors, styles } from '../theme';
+import { locale, useTranslation } from '../i18n';
+
+function fleetDate(value?: string | null) {
+  if (!value) return value;
+  const date = new Date(
+    /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00+06:00` : value,
+  );
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString(locale(), {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'Asia/Dhaka',
+      });
+}
+
+function scheduleTime(value: string) {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return value;
+  return new Date(`2000-01-01T${value}:00+06:00`).toLocaleTimeString(locale(), {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Dhaka',
+  });
+}
 
 function VehicleMark() {
   return (
@@ -23,14 +49,15 @@ function VehicleMark() {
   );
 }
 function VehicleStatus({ vehicle }: { vehicle: Vehicle }) {
+  const { t } = useTranslation();
   return (
     <NoorBadge
       label={
         vehicle.status === 'MAINTENANCE'
-          ? 'রক্ষণাবেক্ষণ'
+          ? t('Maintenance')
           : vehicle.status === 'INACTIVE'
-          ? 'নিষ্ক্রিয়'
-          : 'চলমান'
+          ? t('Inactive')
+          : t('Running')
       }
       tone={
         vehicle.status === 'MAINTENANCE'
@@ -45,6 +72,7 @@ function VehicleStatus({ vehicle }: { vehicle: Vehicle }) {
 export function NoorVehiclesScreen({
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'Vehicles'>) {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
   const { session } = useAuth();
   const [query, setQuery] = useState('');
@@ -56,19 +84,19 @@ export function NoorVehiclesScreen({
   return (
     <Page loading={loading} error={error} refresh={refresh}>
       <View style={f.toolbar}>
-        <Text style={styles.heading}>গাড়ি তালিকা</Text>
+        <Text style={styles.heading}>{t('Vehicle list')}</Text>
         {session?.user.role === 'ADMIN' ? (
           <Button
-            title="+ যোগ করুন"
+            title={t('+ Add')}
             onPress={() => navigation.navigate('CreateVehicle')}
           />
         ) : null}
       </View>
       <Field
-        label="গাড়ি খুঁজুন"
+        label={t('Search vehicles')}
         value={query}
         onChangeText={setQuery}
-        placeholder="নাম, গাড়ির নম্বর অথবা ড্রাইভার"
+        placeholder={t('Search name, plate or driver')}
       />
       <NoorCard style={f.list}>
         {vehicles.map(vehicle => (
@@ -85,7 +113,9 @@ export function NoorVehiclesScreen({
               <Text style={f.title}>{vehicle.name}</Text>
               <Text style={f.sub}>{vehicle.plate}</Text>
               <Text style={f.sub}>
-                ড্রাইভার: {vehicle.driverName || 'নির্ধারিত হয়নি'}
+                {t('Driver: {{name}}', {
+                  name: vehicle.driverName || t('Not assigned'),
+                })}
               </Text>
             </View>
             <VehicleStatus vehicle={vehicle} />
@@ -94,14 +124,16 @@ export function NoorVehiclesScreen({
       </NoorCard>
       {!vehicles.length ? (
         <Empty
-          title="কোনো গাড়ি পাওয়া যায়নি"
+          title={t('No matching vehicles')}
           detail={
-            loading ? 'তথ্য লোড হচ্ছে…' : 'গাড়ি যোগ করুন অথবা অন্য নামে খুঁজুন।'
+            loading
+              ? t('Loading data…')
+              : t('Add a vehicle or search for another name.')
           }
         />
       ) : null}
       <Button
-        title="লাইভ লোকেশন ম্যাপ"
+        title={t('Live location map')}
         secondary
         onPress={() => navigation.navigate('FleetMap')}
       />
@@ -112,6 +144,7 @@ export function VehicleDetailsScreen({
   route,
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'VehicleDetails'>) {
+  const { t } = useTranslation();
   const core = useData(),
     management = useManagement(),
     { session } = useAuth();
@@ -122,8 +155,8 @@ export function VehicleDetailsScreen({
     return (
       <Page>
         <Empty
-          title="গাড়ি পাওয়া যায়নি"
-          detail="তালিকায় ফিরে আবার চেষ্টা করুন।"
+          title={t('Vehicle not found')}
+          detail={t('Return to the list and try again.')}
         />
       </Page>
     );
@@ -157,7 +190,7 @@ export function VehicleDetailsScreen({
           {admin ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="গাড়ি সম্পাদনা"
+              accessibilityLabel={t('Edit vehicle')}
               onPress={() => setEditing(true)}
               style={f.iconButton}
             >
@@ -165,36 +198,38 @@ export function VehicleDetailsScreen({
             </Pressable>
           ) : null}
         </View>
-        <Detail icon="driver" label="ড্রাইভার" value={vehicle.driverName} />
+        <Detail icon="driver" label={t('Driver')} value={vehicle.driverName} />
         <Detail
           icon="route"
-          label="রুট"
+          label={t('Route')}
           value={routes.map(r => r.name).join(', ')}
         />
         <Detail
           icon="students"
-          label="শিক্ষার্থী সংখ্যা"
+          label={t('Student count')}
           value={management.data ? numberLabel(students.length) : '—'}
         />
-        <Detail icon="vehicle" label="মডেল" value={vehicle.model} />
+        <Detail icon="vehicle" label={t('Model')} value={vehicle.model} />
         <Detail
           icon="calendar"
-          label="ক্রয় তারিখ"
-          value={vehicle.purchaseDate}
+          label={t('Purchase date')}
+          value={fleetDate(vehicle.purchaseDate)}
         />
         <Detail
           icon="document"
-          label="লাইসেন্স নবায়ন"
-          value={vehicle.licenseExpiresAt}
+          label={t('License renewal')}
+          value={fleetDate(vehicle.licenseExpiresAt)}
         />
         <Detail
           icon="document"
-          label="ফিটনেস"
-          value={vehicle.fitnessExpiresAt}
+          label={t('Fitness expiry')}
+          value={fleetDate(vehicle.fitnessExpiresAt)}
         />
         {admin ? (
           <Button
-            title={metadata ? 'বন্ধ করুন' : 'গাড়ির নথি ও স্ট্যাটাস সম্পাদনা'}
+            title={
+              metadata ? t('Close') : t('Edit vehicle documents and status')
+            }
             secondary
             onPress={() => setMetadata(!metadata)}
           />
@@ -205,26 +240,26 @@ export function VehicleDetailsScreen({
             onDone={() => setMetadata(false)}
           />
         ) : null}
-        <NoorSection title="দৈনিক সময়সূচি">
+        <NoorSection title={t('Daily schedule')}>
           {schedules.length ? (
             schedules.map(s => (
               <Detail
                 key={s.id}
                 icon="clock"
-                label={`${s.period === 'MORNING' ? 'সকাল' : 'বিকাল'} · ${
-                  s.label
-                }`}
-                value={s.time}
+                label={`${
+                  s.period === 'MORNING' ? t('Morning') : t('Afternoon')
+                } · ${s.label}`}
+                value={scheduleTime(s.time)}
               />
             ))
           ) : (
-            <Text style={f.sub}>সময়সূচি এখনো যোগ করা হয়নি।</Text>
+            <Text style={f.sub}>{t('No schedule has been added yet.')}</Text>
           )}
         </NoorSection>
         <View style={f.actionRow}>
           <View style={f.flex}>
             <Button
-              title="লোকেশন"
+              title={t('Live location')}
               onPress={() =>
                 navigation.navigate('LiveTracking', { vehicleId: vehicle.id })
               }
@@ -233,7 +268,7 @@ export function VehicleDetailsScreen({
           {admin ? (
             <View style={f.flex}>
               <Button
-                title="মেইনটেন্যান্স"
+                title={t('Maintenance')}
                 onPress={() =>
                   navigation.navigate('Maintenance', { vehicleId: vehicle.id })
                 }
@@ -244,14 +279,14 @@ export function VehicleDetailsScreen({
         {admin ? (
           <>
             <Button
-              title="জ্বালানি / খরচ"
+              title={t('Fuel / expenses')}
               secondary
               onPress={() =>
                 navigation.navigate('Accounts', { tab: 'EXPENSE' })
               }
             />
             <Button
-              title="ভ্রমণ ইতিহাস"
+              title={t('Travel history')}
               secondary
               onPress={() =>
                 navigation.navigate('VehicleHistory', {
@@ -280,6 +315,7 @@ function VehicleMetadata({
   vehicle: Vehicle;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const { mutate } = useData();
   const action = useAction();
   const [model, setModel] = useState(vehicle.model || ''),
@@ -290,42 +326,42 @@ function VehicleMetadata({
   return (
     <NoorCard>
       <Field
-        label="মডেল"
+        label={t('Model')}
         value={model}
         onChangeText={setModel}
         maxLength={100}
       />
       <Field
-        label="ক্রয় তারিখ (YYYY-MM-DD)"
+        label={t('Purchase date (YYYY-MM-DD)')}
         value={purchaseDate}
         onChangeText={setPurchaseDate}
         maxLength={10}
       />
       <Field
-        label="ফিটনেস মেয়াদ (YYYY-MM-DD)"
+        label={t('Fitness expiry (YYYY-MM-DD)')}
         value={fitnessExpiresAt}
         onChangeText={setFitness}
         maxLength={10}
       />
       <Field
-        label="লাইসেন্স মেয়াদ (YYYY-MM-DD)"
+        label={t('License expiry (YYYY-MM-DD)')}
         value={licenseExpiresAt}
         onChangeText={setLicense}
         maxLength={10}
       />
       <Select
-        label="স্ট্যাটাস"
+        label={t('Status')}
         value={status}
         onChange={v => setStatus(v as Vehicle['status'] & string)}
         options={[
-          { value: 'RUNNING', label: 'চলমান' },
-          { value: 'MAINTENANCE', label: 'রক্ষণাবেক্ষণ' },
-          { value: 'INACTIVE', label: 'নিষ্ক্রিয়' },
+          { value: 'RUNNING', label: t('Running') },
+          { value: 'MAINTENANCE', label: t('Maintenance') },
+          { value: 'INACTIVE', label: t('Inactive') },
         ]}
       />
       <Notice text={action.error} kind="error" />
       <Button
-        title="সংরক্ষণ"
+        title={t('Save')}
         busy={action.busy}
         onPress={() =>
           action.run(async () => {
@@ -356,17 +392,19 @@ function Detail({
   label: string;
   value?: string | null;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={f.detail}>
       <NoorIcon name={icon} size={17} />
       <Text style={f.detailLabel}>{label}</Text>
-      <Text style={f.detailValue}>{value || 'যোগ করা হয়নি'}</Text>
+      <Text style={f.detailValue}>{value || t('Not added')}</Text>
     </View>
   );
 }
 export function NoorRoutesScreen({
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'Routes'>) {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
   const { data: extra } = useManagement();
   const { session } = useAuth();
@@ -375,19 +413,19 @@ export function NoorRoutesScreen({
   return (
     <Page refresh={refresh} loading={loading} error={error}>
       <View style={f.toolbar}>
-        <Text style={styles.heading}>রুট সমূহ</Text>
+        <Text style={styles.heading}>{t('Routes')}</Text>
         {session?.user.role === 'ADMIN' ? (
           <Button
-            title={adding ? 'বন্ধ করুন' : '+ যোগ করুন'}
+            title={adding ? t('Close') : t('+ Add')}
             onPress={() => setAdding(!adding)}
           />
         ) : null}
       </View>
       <Field
-        label="রুট খুঁজুন"
+        label={t('Search routes')}
         value={query}
         onChangeText={setQuery}
-        placeholder="রুটের নাম"
+        placeholder={t('Route name')}
       />
       {adding ? (
         <RouteForm onAddVehicle={() => navigation.navigate('CreateVehicle')} />
@@ -415,11 +453,13 @@ export function NoorRoutesScreen({
                 <Text style={f.sub}>
                   {r.vehicleName} ·{' '}
                   {extra
-                    ? `${numberLabel(
-                        extra.students.filter(
-                          s => s.routeId === r.id && s.status === 'ACTIVE',
-                        ).length,
-                      )} জন`
+                    ? t('{{number}} people', {
+                        number: numberLabel(
+                          extra.students.filter(
+                            s => s.routeId === r.id && s.status === 'ACTIVE',
+                          ).length,
+                        ),
+                      })
                     : money(r.monthlyAmount)}
                 </Text>
               </View>
@@ -429,8 +469,8 @@ export function NoorRoutesScreen({
         ))}
       {!data.routes.length ? (
         <Empty
-          title="রুট যোগ করা হয়নি"
-          detail="রুট, গাড়ি এবং পিকআপ পয়েন্ট যোগ করুন।"
+          title={t('No routes yet')}
+          detail={t('Add routes, vehicles and pickup stops.')}
         />
       ) : null}
     </Page>
@@ -440,6 +480,7 @@ export function RouteDetailsScreen({
   route,
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'RouteDetails'>) {
+  const { t } = useTranslation();
   const { data } = useData();
   const { session } = useAuth();
   const management = useManagement();
@@ -449,7 +490,10 @@ export function RouteDetailsScreen({
   if (!selected)
     return (
       <Page>
-        <Empty title="রুট পাওয়া যায়নি" detail="রুট তালিকায় ফিরে যান।" />
+        <Empty
+          title={t('Route not found')}
+          detail={t('Return to the route list.')}
+        />
       </Page>
     );
   const vehicle = data.vehicles.find(v => v.id === selected.vehicleId);
@@ -471,11 +515,15 @@ export function RouteDetailsScreen({
           <View style={f.flex}>
             <Text style={f.title}>{vehicle?.name || selected.vehicleName}</Text>
             <Text style={f.sub}>
-              ড্রাইভার: {vehicle?.driverName || 'নির্ধারিত হয়নি'}
+              {t('Driver: {{name}}', {
+                name: vehicle?.driverName || t('Not assigned'),
+              })}
             </Text>
             <Text style={f.sub}>
-              শিক্ষার্থী: {numberLabel(students.length)} জন ·{' '}
-              {money(selected.monthlyAmount)}
+              {t('Students: {{number}}', {
+                number: numberLabel(students.length),
+              })}{' '}
+              · {money(selected.monthlyAmount)}
             </Text>
           </View>
         </View>
@@ -489,15 +537,17 @@ export function RouteDetailsScreen({
               style={[f.period, p === period && f.periodSelected]}
             >
               <Text style={p === period ? f.white : f.sub}>
-                {p === 'MORNING' ? 'পিকআপ ক্রম' : 'ফেরার সময়সূচি'}
+                {p === 'MORNING' ? t('Pickup order') : t('Return schedule')}
               </Text>
             </Pressable>
           ))}
         </View>
         <View style={f.tableHeader}>
           <Text style={f.number}>#</Text>
-          <Text style={[f.detailLabel, f.bold]}>শিক্ষার্থীর নাম / স্টপ</Text>
-          <Text style={[f.sub, f.bold]}>সময়</Text>
+          <Text style={[f.detailLabel, f.bold]}>
+            {t('Student name / stop')}
+          </Text>
+          <Text style={[f.sub, f.bold]}>{t('Time')}</Text>
         </View>
         {schedules
           .filter(s => s.period === period)
@@ -506,7 +556,7 @@ export function RouteDetailsScreen({
             <View key={s.id} style={f.tableRow}>
               <Text style={f.number}>{numberLabel(i + 1)}</Text>
               <Text style={f.detailLabel}>{s.label}</Text>
-              <Text style={f.sub}>{s.time}</Text>
+              <Text style={f.sub}>{scheduleTime(s.time)}</Text>
             </View>
           ))}
         {!schedules.some(s => s.period === period)
@@ -520,12 +570,12 @@ export function RouteDetailsScreen({
           : null}
         {session?.user.role === 'ADMIN' ? (
           <Button
-            title={editing ? 'বন্ধ করুন' : 'সময়সূচি সম্পাদনা'}
+            title={editing ? t('Close') : t('Edit schedule')}
             onPress={() => setEditing(!editing)}
           />
         ) : (
           <Button
-            title="এই রুটে ভর্তি আবেদন"
+            title={t('Apply for this route')}
             onPress={() => navigation.navigate('Admission')}
           />
         )}
@@ -540,7 +590,7 @@ export function RouteDetailsScreen({
           />
         ) : null}
         <Button
-          title="লাইভ ম্যাপে দেখুন"
+          title={t('View on live map')}
           secondary
           onPress={() =>
             navigation.navigate('LiveTracking', {
@@ -563,6 +613,7 @@ function ScheduleEditor({
   stops: { id: string; name: string }[];
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const { mutate } = useManagement();
   const action = useAction();
   const [entries, setEntries] = useState<ScheduleInput[]>(
@@ -588,14 +639,14 @@ function ScheduleEditor({
       {entries.map((entry, i) => (
         <View key={i} style={f.scheduleEdit}>
           <Field
-            label={`স্টপ ${numberLabel(i + 1)}`}
+            label={t('Stop {{number}}', { number: numberLabel(i + 1) })}
             value={entry.label}
             onChangeText={label => update(i, { label })}
           />
           <View style={f.actionRow}>
             <View style={f.flex}>
               <Field
-                label="সময় (HH:mm)"
+                label={t('Time (HH:mm)')}
                 value={entry.time}
                 maxLength={5}
                 onChangeText={time => update(i, { time })}
@@ -603,11 +654,11 @@ function ScheduleEditor({
             </View>
             <View style={f.flex}>
               <Select
-                label="যাত্রা"
+                label={t('Trip')}
                 value={entry.period}
                 options={[
-                  { value: 'MORNING', label: 'সকাল' },
-                  { value: 'AFTERNOON', label: 'বিকাল' },
+                  { value: 'MORNING', label: t('Morning') },
+                  { value: 'AFTERNOON', label: t('Afternoon') },
                 ]}
                 onChange={period =>
                   update(i, { period: period as ScheduleInput['period'] })
@@ -616,7 +667,7 @@ function ScheduleEditor({
             </View>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="স্টপ সরান"
+              accessibilityLabel={t('Remove stop')}
               onPress={() =>
                 setEntries(current => current.filter((_, index) => index !== i))
               }
@@ -627,7 +678,7 @@ function ScheduleEditor({
         </View>
       ))}
       <Button
-        title="+ স্টপ যোগ করুন"
+        title={t('+ Add stop')}
         secondary
         onPress={() =>
           setEntries(current => [
@@ -645,7 +696,7 @@ function ScheduleEditor({
       />
       <Notice text={action.error} kind="error" />
       <Button
-        title="সময়সূচি সংরক্ষণ"
+        title={t('Save schedule')}
         busy={action.busy}
         onPress={() =>
           action.run(async () => {
@@ -655,7 +706,7 @@ function ScheduleEditor({
                   !e.label.trim() || !/^([01]\d|2[0-3]):[0-5]\d$/.test(e.time),
               )
             )
-              throw new Error('স্টপের নাম ও সঠিক সময় লিখুন।');
+              throw new Error('Enter a stop name and valid time.');
             await mutate(
               `/admin/routes/${routeId}/schedule`,
               {

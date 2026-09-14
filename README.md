@@ -149,8 +149,8 @@ an app build, and the provider's attribution/cache requirements must be retained
 
 ## Languages
 
-Use **English / বাংলা** in the page header to change language, including before
-signing in. Bengali is the default on a new installation; the selected language is saved on the device
+Use **English / বাংলা** on the welcome/sign-in screen or in **Settings > Language**
+to change language. Bengali is the default on a new installation; the selected language is saved on the device
 and restored after restarting. Switching language keeps form input and the current
 screen. Translation dictionaries are bundled and work offline.
 
@@ -159,8 +159,11 @@ server notification templates are localized. Names, phone numbers, transaction I
 and custom school/admin notes remain as entered. Numeric fields accept English
 and Bangla digits; API values and date input formats stay unchanged.
 
-Translations live in `src/i18n/en.json` and `src/i18n/bn.json`. Add new interface
-copy to both dictionaries with matching interpolation placeholders, then use
+Shared translations live in `src/i18n/en.json` and `src/i18n/bn.json`; admin,
+office, parent and fleet screen translations use the corresponding
+`en.<area>.json` and `bn.<area>.json` files. `src/i18n/resources.ts` bundles all
+catalogs. Add new interface copy to the matching dictionary pair with identical
+interpolation placeholders, then use
 `useTranslation` from `src/i18n`. Tests check catalog coverage, language persistence,
 form preservation and localized map controls.
 
@@ -190,9 +193,10 @@ JPEG. Reports and receipts use Android's document save dialog. PDF files are
 rendered natively with Bengali text; CSV reports open in Excel and escape formula
 prefixes. These native changes require rebuilding the Android app.
 
-New management/reference screens use Bengali copy. The saved language selector
-continues to translate the existing authentication, payment, request and tracking
-flows; it does not yet translate all newly added management copy into English.
+English and Bangla selection also applies to navigation, dashboards, management,
+parent workflows and exported report/receipt labels. Names, entered notes and
+configured message templates retain their original content. Rebuild the Android
+app to include translation updates in an installed release APK.
 
 Automatic payment gateways, background push delivery, automated SMS/WhatsApp
 broadcasts, inferred ETA/geofences/pickup events, separate driver login/app,

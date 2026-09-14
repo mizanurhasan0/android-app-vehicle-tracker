@@ -25,11 +25,18 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useAction } from '../../hooks/useAction';
+import { useTranslation, translateMessage } from '../../i18n';
 import { HomeStackParams } from '../../navigation/types';
 import { colors, styles } from '../../theme';
-import { dateLabel, money, numberLabel } from '../../utils/format';
+import { dateLabel, money, numberLabel, readable } from '../../utils/format';
 import { pickStudentPhoto } from '../../utils/photo';
-import { contactUrl, dhakaDate, studentSchedule } from './parentUtils';
+import {
+  contactUrl,
+  dhakaDate,
+  parentDateLabel,
+  scheduleTimeLabel,
+  studentSchedule,
+} from './parentUtils';
 import {
   InfoRow,
   parent,
@@ -43,13 +50,14 @@ type Props<N extends keyof HomeStackParams> = NativeStackScreenProps<
   N
 >;
 const admissionSteps = [
-  'শিক্ষার্থীর তথ্য',
-  'অভিভাবক ও ঠিকানা',
-  'রুট ও ভাড়া',
-  'সাবমিট',
+  'Student information',
+  'Guardian and address',
+  'Route and fare',
+  'Submit',
 ];
 
 export function AdmissionScreen({ navigation }: Props<'Admission'>) {
+  const { t } = useTranslation();
   const { session } = useAuth();
   const { data, loading, error, refresh, mutate } = useData();
   const management = useManagement();
@@ -76,16 +84,16 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
 
   const validate = (page: number) => {
     if (page === 0 && (studentName.trim().length < 2 || !className.trim()))
-      return 'শিক্ষার্থীর নাম ও শ্রেণি লিখুন।';
-    if (page === 1 && !pickupAddress.trim()) return 'পিকআপের ঠিকানা লিখুন।';
+      return 'Enter the student name and class.';
+    if (page === 1 && !pickupAddress.trim()) return 'Enter the pickup address.';
     if (
       page === 1 &&
       emergencyContact.trim() &&
       !/^(?:\+?88)?01[3-9]\d{8}$/.test(emergencyContact.trim())
     )
-      return 'সঠিক জরুরি যোগাযোগ নম্বর লিখুন।';
+      return 'Enter a valid emergency contact number.';
     if (page === 2 && (!route || !stop))
-      return 'রুট এবং পিকআপ স্টপ নির্বাচন করুন।';
+      return 'Select a route and pickup stop.';
     return '';
   };
   const next = () => {
@@ -137,41 +145,44 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
             <Text
               style={[local.stepLabel, index === step && local.stepLabelActive]}
             >
-              {label}
+              {t(label)}
             </Text>
           </View>
         ))}
       </View>
-      <Notice text={validation || action.error} kind="error" />
+      <Notice
+        text={translateMessage(validation || action.error)}
+        kind="error"
+      />
       {step === 0 ? (
         <NoorCard>
-          <Text style={styles.heading}>শিক্ষার্থীর তথ্য</Text>
+          <Text style={styles.heading}>{t('Student information')}</Text>
           <Field
-            label="শিক্ষার্থীর নাম *"
+            label={t('Student name *')}
             value={studentName}
             onChangeText={setStudentName}
             maxLength={100}
-            placeholder="শিক্ষার্থীর পূর্ণ নাম"
+            placeholder={t('Student full name')}
           />
           <Field
-            label="শ্রেণি *"
+            label={t('Class *')}
             value={className}
             onChangeText={setClassName}
             maxLength={40}
-            placeholder="যেমন: Class 6"
+            placeholder={t('e.g. Class 6')}
           />
           <Field
-            label="রোল নম্বর"
+            label={t('Roll number')}
             value={roll}
             onChangeText={setRoll}
             maxLength={20}
             keyboardType="number-pad"
           />
-          <Text style={styles.label}>ছবি আপলোড</Text>
+          <Text style={styles.label}>{t('Upload photo')}</Text>
           <View style={local.photoRow}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="শিক্ষার্থীর ছবি নির্বাচন করুন"
+              accessibilityLabel={t('Select a student photo')}
               accessibilityState={{ busy: action.busy, disabled: action.busy }}
               disabled={action.busy}
               onPress={() =>
@@ -183,10 +194,10 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
               style={local.photoPicker}
             >
               <NoorIcon name="plus" size={24} color="#2185DA" />
-              <Text style={styles.muted}>ছবি নির্বাচন</Text>
+              <Text style={styles.muted}>{t('Choose photo')}</Text>
             </Pressable>
             <StudentAvatar
-              name={studentName || 'শিক্ষার্থী'}
+              name={studentName || t('Student')}
               photoUrl={photoUrl}
               size={84}
             />
@@ -194,7 +205,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           {photoUrl ? (
             <Button
               secondary
-              title="ছবি সরান"
+              title={t('Remove photo')}
               onPress={() => setPhotoUrl('')}
               disabled={action.busy}
             />
@@ -202,12 +213,20 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
         </NoorCard>
       ) : step === 1 ? (
         <NoorCard>
-          <Text style={styles.heading}>অভিভাবকের তথ্য</Text>
-          <InfoRow icon="user" label="অভিভাবক" value={session?.user.name} />
-          <InfoRow icon="phone" label="মোবাইল" value={session?.user.phone} />
+          <Text style={styles.heading}>{t('Guardian information')}</Text>
+          <InfoRow
+            icon="user"
+            label={t('Guardian')}
+            value={session?.user.name}
+          />
+          <InfoRow
+            icon="phone"
+            label={t('Mobile')}
+            value={session?.user.phone}
+          />
           <View style={parent.divider} />
           <Field
-            label="জরুরি যোগাযোগ নম্বর"
+            label={t('Emergency contact number')}
             value={emergencyContact}
             onChangeText={setEmergencyContact}
             keyboardType="phone-pad"
@@ -215,40 +234,40 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
             placeholder="01XXXXXXXXX"
           />
           <Field
-            label="পিকআপ ঠিকানা *"
+            label={t('Pickup address *')}
             value={pickupAddress}
             onChangeText={setPickupAddress}
             maxLength={500}
             multiline
-            placeholder="বাড়ি, সড়ক ও এলাকার নাম"
+            placeholder={t('House, road and area')}
           />
           <Field
-            label="ড্রপ ঠিকানা"
+            label={t('Drop-off address')}
             value={dropAddress}
             onChangeText={setDropAddress}
             maxLength={500}
-            placeholder="শিক্ষাপ্রতিষ্ঠানের নাম ও ঠিকানা"
+            placeholder={t('School name and address')}
           />
         </NoorCard>
       ) : step === 2 ? (
         <>
           <NoorCard>
             <Field
-              label="আপনার এলাকার রুট নির্বাচন করুন"
-              placeholder="এলাকা বা গাড়ির নাম খুঁজুন"
+              label={t('Select a route in your area')}
+              placeholder={t('Search area or vehicle name')}
               value={routeSearch}
               onChangeText={setRouteSearch}
               maxLength={100}
             />
           </NoorCard>
-          <Text style={styles.heading}>উপলব্ধ রুট</Text>
+          <Text style={styles.heading}>{t('Available routes')}</Text>
           {!routes.length ? (
             <Empty
-              title="কোনো রুট পাওয়া যায়নি"
+              title={t('No routes found')}
               detail={
                 data.routes.length
-                  ? 'অন্য নাম দিয়ে খুঁজুন।'
-                  : 'অ্যাডমিন রুট যুক্ত করলে এখানে দেখা যাবে।'
+                  ? t('Try another name.')
+                  : t('Routes will appear here when the admin adds them.')
               }
             />
           ) : (
@@ -285,7 +304,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           {route ? (
             <NoorCard>
               <Select
-                label="পিকআপ স্টপ *"
+                label={t('Pickup stop *')}
                 value={stopId}
                 onChange={setStopId}
                 options={route.stops.map(item => ({
@@ -294,8 +313,12 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
                 }))}
               />
               <Text style={styles.muted}>
-                মাসিক ভাড়া {money(route.monthlyAmount)}। অ্যাডমিন অনুমোদনের পর
-                সেবা শুরু হবে।
+                {t(
+                  'Monthly fare {{amount}}. Service starts after admin approval.',
+                  {
+                    amount: money(route.monthlyAmount),
+                  },
+                )}
               </Text>
             </NoorCard>
           ) : null}
@@ -303,41 +326,53 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
       ) : (
         <>
           <NoorCard>
-            <Text style={styles.heading}>আবেদন পর্যালোচনা</Text>
+            <Text style={styles.heading}>{t('Review application')}</Text>
             <View style={parent.identity}>
               <StudentAvatar name={studentName} photoUrl={photoUrl} />
               <View style={parent.grow}>
                 <Text style={styles.heading}>{studentName.trim()}</Text>
                 <Text style={styles.muted}>
                   {className}
-                  {roll ? ` · রোল ${roll}` : ''}
+                  {roll ? ` · ${t('Roll {{roll}}', { roll })}` : ''}
                 </Text>
               </View>
             </View>
-            <InfoRow icon="user" label="অভিভাবক" value={session?.user.name} />
-            <InfoRow icon="phone" label="মোবাইল" value={session?.user.phone} />
+            <InfoRow
+              icon="user"
+              label={t('Guardian')}
+              value={session?.user.name}
+            />
+            <InfoRow
+              icon="phone"
+              label={t('Mobile')}
+              value={session?.user.phone}
+            />
           </NoorCard>
           <NoorCard>
             <InfoRow
               icon="route"
-              label="রুট ও ভাড়া"
+              label={t('Route and fare')}
               value={`${route?.name || '—'} · ${
                 route ? money(route.monthlyAmount) : '—'
               }`}
             />
-            <InfoRow icon="vehicle" label="গাড়ি" value={route?.vehicleName} />
+            <InfoRow
+              icon="vehicle"
+              label={t('Vehicle')}
+              value={route?.vehicleName}
+            />
             <InfoRow
               icon="pin"
-              label="পিকআপ"
+              label={t('Pickup')}
               value={`${stop?.name || ''}${
                 pickupAddress ? ` · ${pickupAddress}` : ''
               }`}
             />
-            <InfoRow icon="pin" label="ড্রপ" value={dropAddress} />
+            <InfoRow icon="pin" label={t('Drop-off')} value={dropAddress} />
             {emergencyContact ? (
               <InfoRow
                 icon="phone"
-                label="জরুরি নম্বর"
+                label={t('Emergency number')}
                 value={emergencyContact}
               />
             ) : null}
@@ -345,10 +380,10 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
         </>
       )}
       {step < 3 ? (
-        <Button title="পরবর্তী" onPress={next} disabled={action.busy} />
+        <Button title={t('Next')} onPress={next} disabled={action.busy} />
       ) : (
         <Button
-          title="আবেদন জমা দিন"
+          title={t('Submit application')}
           busy={action.busy}
           onPress={() =>
             action.run(async () => {
@@ -377,7 +412,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
       {step > 0 ? (
         <Button
           secondary
-          title="আগের ধাপ"
+          title={t('Previous step')}
           disabled={action.busy}
           onPress={() => {
             Keyboard.dismiss();
@@ -401,6 +436,7 @@ export function ApplicationStatusScreen({
   navigation,
   route,
 }: Props<'ApplicationStatus'>) {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
   const [selectedId, setSelectedId] = useState(route.params?.id || '');
   const requests: Application[] = data.requests;
@@ -413,7 +449,7 @@ export function ApplicationStatusScreen({
     <Page loading={loading} refresh={refresh} error={error}>
       {requests.length > 1 ? (
         <Select
-          label="আবেদন নির্বাচন"
+          label={t('Select application')}
           value={request?.id || ''}
           onChange={setSelectedId}
           options={requests.map(item => ({
@@ -425,11 +461,11 @@ export function ApplicationStatusScreen({
       {!request ? (
         <>
           <Empty
-            title="আবেদন পাওয়া যায়নি"
-            detail="পরিবহন সেবার জন্য নতুন আবেদন করুন অথবা তালিকা রিফ্রেশ করুন।"
+            title={t('Application not found')}
+            detail={t('Apply for transport service or refresh the list.')}
           />
           <Button
-            title="নতুন ভর্তি আবেদন"
+            title={t('New admission application')}
             onPress={() => navigation.navigate('Admission')}
           />
         </>
@@ -445,17 +481,19 @@ export function ApplicationStatusScreen({
             </View>
             <Text style={[styles.heading, parent.center]}>
               {approved
-                ? 'আবেদন গৃহীত হয়েছে'
+                ? t('Application approved')
                 : rejected
-                ? 'আবেদন অনুমোদিত হয়নি'
-                : 'আবেদন জমা হয়েছে'}
+                ? t('Application not approved')
+                : t('Application submitted')}
             </Text>
             <Text style={[styles.muted, parent.center]}>
               {approved
-                ? 'আপনার সন্তানের পরিবহন সেবা অনুমোদিত হয়েছে।'
+                ? t("Your child's transport service has been approved.")
                 : rejected
-                ? 'অ্যাডমিনের সিদ্ধান্ত ও কারণ নিচে দেখুন।'
-                : 'অ্যাডমিন আপনার আবেদন পর্যালোচনা করবেন। সিদ্ধান্ত হলে নোটিফিকেশন পাবেন।'}
+                ? t('See the admin decision and reason below.')
+                : t(
+                    'The admin will review your application. You will be notified of the decision.',
+                  )}
             </Text>
           </View>
           <NoorCard>
@@ -474,7 +512,7 @@ export function ApplicationStatusScreen({
             <View style={parent.divider} />
             <TimelineItem
               icon="check"
-              title="আবেদন জমা"
+              title={t('Application submission')}
               active
               detail={
                 request.createdAt ? dateLabel(request.createdAt) : undefined
@@ -484,8 +522,8 @@ export function ApplicationStatusScreen({
               icon="document"
               title={
                 approved || rejected
-                  ? 'পর্যালোচনা সম্পন্ন'
-                  : 'পর্যালোচনার অপেক্ষায়'
+                  ? t('Review completed')
+                  : t('Awaiting review')
               }
               active={approved || rejected}
               detail={
@@ -496,31 +534,37 @@ export function ApplicationStatusScreen({
               icon={rejected ? 'close' : 'check'}
               title={
                 approved
-                  ? 'অনুমোদিত'
+                  ? t('Approved')
                   : rejected
-                  ? 'প্রত্যাখ্যাত'
-                  : 'সিদ্ধান্তের অপেক্ষায়'
+                  ? t('Rejected')
+                  : t('Awaiting decision')
               }
               active={approved}
               last
             >
               {request.note ? (
-                <Notice
-                  text={request.note}
-                  kind={rejected ? 'error' : 'success'}
-                />
+                <View
+                  style={[local.reviewNote, rejected && local.reviewNoteError]}
+                >
+                  <Text
+                    accessibilityLiveRegion="polite"
+                    style={[styles.body, rejected && local.reviewNoteErrorText]}
+                  >
+                    {request.note}
+                  </Text>
+                </View>
               ) : null}
             </TimelineItem>
           </NoorCard>
           {approved ? (
             <Button
-              title="শিক্ষার্থীর প্রোফাইল"
+              title={t('Student profile')}
               onPress={() => navigation.navigate('ParentProfile')}
             />
           ) : null}
           <Button
             secondary
-            title="ফিরে যান"
+            title={t('Go back')}
             onPress={() =>
               navigation.canGoBack()
                 ? navigation.goBack()
@@ -537,6 +581,7 @@ export function ParentStudentScreen({
   navigation,
   route,
 }: Props<'ParentProfile'>) {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useManagement();
   const action = useAction();
   const [selectedId, setSelectedId] = useState(route.params?.id || '');
@@ -549,7 +594,7 @@ export function ParentStudentScreen({
       <Notice text={action.error} kind="error" />
       {students.length > 1 ? (
         <Select
-          label="আমার সন্তান"
+          label={t('My child')}
           value={student?.id || ''}
           onChange={setSelectedId}
           options={students.map(item => ({
@@ -561,11 +606,13 @@ export function ParentStudentScreen({
       {!student ? (
         <>
           <Empty
-            title="শিক্ষার্থীর তথ্য পাওয়া যায়নি"
-            detail="ভর্তি আবেদন অনুমোদিত হলে শিক্ষার্থীর প্রোফাইল এখানে দেখা যাবে।"
+            title={t('Student information not found')}
+            detail={t(
+              'The student profile will appear here after admission is approved.',
+            )}
           />
           <Button
-            title="ভর্তি আবেদন করুন"
+            title={t('Apply for admission')}
             onPress={() => navigation.navigate('Admission')}
           />
         </>
@@ -581,51 +628,79 @@ export function ParentStudentScreen({
               <View style={parent.grow}>
                 <Text style={styles.heading}>{student.studentName}</Text>
                 <Text style={styles.muted}>
-                  {student.className || 'শ্রেণি দেওয়া হয়নি'}
-                  {student.roll ? ` · রোল: ${student.roll}` : ''}
+                  {student.className || t('Class not provided')}
+                  {student.roll
+                    ? ` · ${t('Roll: {{roll}}', { roll: student.roll })}`
+                    : ''}
                 </Text>
                 {student.studentCode ? (
                   <Text style={styles.muted}>{student.studentCode}</Text>
                 ) : null}
               </View>
               <NoorBadge
-                label={student.status === 'ACTIVE' ? 'Active' : 'বন্ধ'}
+                label={readable(student.status)}
                 tone={student.status === 'ACTIVE' ? 'green' : 'gray'}
               />
             </View>
             <View style={parent.divider} />
-            <InfoRow icon="vehicle" label="গাড়ি" value={student.vehicleName} />
-            <InfoRow icon="user" label="ড্রাইভার" value={student.driverName} />
-            <InfoRow icon="route" label="রুট" value={student.routeName} />
+            <InfoRow
+              icon="vehicle"
+              label={t('Vehicle')}
+              value={student.vehicleName}
+            />
+            <InfoRow
+              icon="user"
+              label={t('Driver')}
+              value={student.driverName}
+            />
+            <InfoRow
+              icon="route"
+              label={t('Route')}
+              value={student.routeName}
+            />
             <InfoRow
               icon="money"
-              label="মাসিক ভাড়া"
+              label={t('Monthly fare')}
               value={money(student.monthlyAmount)}
             />
             <View style={parent.divider} />
-            <Text style={styles.heading}>অভিভাবকের তথ্য</Text>
-            <InfoRow icon="user" label="নাম" value={student.guardianName} />
+            <Text style={styles.heading}>{t('Guardian information')}</Text>
+            <InfoRow
+              icon="user"
+              label={t('Name')}
+              value={student.guardianName}
+            />
             <InfoRow
               icon="phone"
-              label="মোবাইল"
+              label={t('Mobile')}
               value={student.guardianPhone}
             />
             <InfoRow
               icon="pin"
-              label="পিকআপ"
+              label={t('Pickup')}
               value={student.pickupAddress || student.stopName}
             />
-            <InfoRow icon="pin" label="ড্রপ" value={student.dropAddress} />
+            <InfoRow
+              icon="pin"
+              label={t('Drop-off')}
+              value={student.dropAddress}
+            />
             <View style={parent.divider} />
-            <Text style={styles.heading}>ড্রাইভারের সঙ্গে যোগাযোগ</Text>
+            <Text style={styles.heading}>{t('Contact the driver')}</Text>
             <View style={parent.compactActions}>
               {(['call', 'whatsapp', 'sms'] as const).map(kind => (
                 <Pressable
                   key={kind}
                   accessibilityRole="button"
-                  accessibilityLabel={`${kind} — ${
-                    student.driverName || 'ড্রাইভার'
-                  }`}
+                  accessibilityLabel={t('{{method}} - {{name}}', {
+                    method:
+                      kind === 'call'
+                        ? t('Call')
+                        : kind === 'whatsapp'
+                        ? t('WhatsApp')
+                        : t('SMS'),
+                    name: student.driverName || t('Driver'),
+                  })}
                   accessibilityState={{
                     disabled: !student.driverPhone || action.busy,
                   }}
@@ -649,10 +724,10 @@ export function ParentStudentScreen({
                   />
                   <Text style={parent.compactActionText}>
                     {kind === 'call'
-                      ? 'Call'
+                      ? t('Call')
                       : kind === 'whatsapp'
-                      ? 'WhatsApp'
-                      : 'SMS'}
+                      ? t('WhatsApp')
+                      : t('SMS')}
                   </Text>
                 </Pressable>
               ))}
@@ -661,17 +736,17 @@ export function ParentStudentScreen({
           <NoorCard>
             <NoorRow
               icon="calendar"
-              title="আজকের যাত্রা ও উপস্থিতি"
+              title={t("Today's journey and attendance")}
               onPress={() => navigation.navigate('TodayJourney')}
             />
             <NoorRow
               icon="receipt"
-              title="পেমেন্ট ইতিহাস"
+              title={t('Payment history')}
               onPress={() => navigation.navigate('Bills')}
             />
             <NoorRow
               icon="bell"
-              title="নোটিশ"
+              title={t('Notices')}
               onPress={() => navigation.navigate('Inbox')}
             />
           </NoorCard>
@@ -682,6 +757,7 @@ export function ParentStudentScreen({
 }
 
 export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useManagement();
   const [selectedId, setSelectedId] = useState('');
   const [period, setPeriod] = useState<RouteSchedule['period']>('MORNING');
@@ -699,7 +775,7 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
     <Page loading={loading} refresh={refresh} error={error}>
       {students.length > 1 ? (
         <Select
-          label="শিক্ষার্থী"
+          label={t('Student')}
           value={student?.id || ''}
           onChange={setSelectedId}
           options={students.map(item => ({
@@ -708,40 +784,43 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
           }))}
         />
       ) : null}
-      <Segment
-        labels={['সকাল', 'বিকাল']}
-        value={period === 'MORNING' ? 'সকাল' : 'বিকাল'}
-        onChange={value =>
-          setPeriod(value === 'সকাল' ? 'MORNING' : 'AFTERNOON')
-        }
+      <Segment<RouteSchedule['period']>
+        options={[
+          { value: 'MORNING', label: t('Morning') },
+          { value: 'AFTERNOON', label: t('Afternoon') },
+        ]}
+        value={period}
+        onChange={setPeriod}
       />
       {!student ? (
         <Empty
-          title="এখনও পরিবহন সেবা নেই"
-          detail="ভর্তি অনুমোদিত হলে নির্ধারিত রুটের সময়সূচি এখানে দেখা যাবে।"
+          title={t('No transport service yet')}
+          detail={t(
+            'The assigned route schedule will appear here after admission is approved.',
+          )}
         />
       ) : (
         <>
           <NoorCard>
             <View style={styles.between}>
               <Text style={styles.heading}>{student.studentName}</Text>
-              <Text style={styles.muted}>{dhakaDate()}</Text>
+              <Text style={styles.muted}>{parentDateLabel(dhakaDate())}</Text>
             </View>
             <Text style={styles.muted}>
               {student.routeName} · {student.vehicleName}
             </Text>
             <View style={parent.divider} />
             <View style={styles.between}>
-              <Text style={styles.body}>আজকের উপস্থিতি</Text>
+              <Text style={styles.body}>{t("Today's attendance")}</Text>
               <NoorBadge
                 label={
                   attendance
                     ? {
-                        PRESENT: 'উপস্থিত',
-                        ABSENT: 'অনুপস্থিত',
-                        LEAVE: 'ছুটি',
+                        PRESENT: t('Present'),
+                        ABSENT: t('Absent'),
+                        LEAVE: t('Leave'),
                       }[attendance.status]
-                    : 'এখনও নথিভুক্ত হয়নি'
+                    : t('Not recorded yet')
                 }
                 tone={
                   !attendance
@@ -759,7 +838,7 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
             ) : null}
           </NoorCard>
           <NoorCard>
-            <Text style={styles.heading}>নির্ধারিত যাত্রার সময়সূচি</Text>
+            <Text style={styles.heading}>{t('Scheduled journey')}</Text>
             {entries.length ? (
               entries.map((entry, index) => (
                 <TimelineItem
@@ -772,25 +851,31 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
                       : 'clock'
                   }
                   title={entry.label}
-                  detail={entry.time}
+                  detail={scheduleTimeLabel(entry.time)}
                   last={index === entries.length - 1}
                 >
-                  <NoorBadge label="নির্ধারিত সময়" tone="gray" />
+                  <NoorBadge label={t('Scheduled time')} tone="gray" />
                 </TimelineItem>
               ))
             ) : (
               <Text style={styles.muted}>
-                অ্যাডমিন এই রুটের {period === 'MORNING' ? 'সকালের' : 'বিকালের'}{' '}
-                সময়সূচি যুক্ত করেননি।
+                {period === 'MORNING'
+                  ? t(
+                      'The admin has not added a morning schedule for this route.',
+                    )
+                  : t(
+                      'The admin has not added an afternoon schedule for this route.',
+                    )}
               </Text>
             )}
             <Text style={styles.muted}>
-              সময়গুলো নির্ধারিত সূচি। গাড়ির বর্তমান অবস্থান লাইভ ট্র্যাকিংয়ে
-              দেখুন।
+              {t(
+                "These are scheduled times. View the vehicle's current position in live tracking.",
+              )}
             </Text>
           </NoorCard>
           <Button
-            title="লাইভ লোকেশন দেখুন"
+            title={t('View live location')}
             onPress={() =>
               navigation.navigate('LiveTracking', {
                 vehicleId: student.vehicleId,
@@ -798,20 +883,20 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
             }
           />
           <NoorCard>
-            <Text style={styles.heading}>উপস্থিতির ইতিহাস</Text>
+            <Text style={styles.heading}>{t('Attendance history')}</Text>
             {(data?.attendance || [])
               .filter(item => item.studentId === student.id)
               .sort((a, b) => b.date.localeCompare(a.date))
               .slice(0, 15)
               .map(item => (
                 <View key={item.id} style={styles.between}>
-                  <Text style={styles.body}>{item.date}</Text>
+                  <Text style={styles.body}>{parentDateLabel(item.date)}</Text>
                   <NoorBadge
                     label={
                       {
-                        PRESENT: 'উপস্থিত',
-                        ABSENT: 'অনুপস্থিত',
-                        LEAVE: 'ছুটি',
+                        PRESENT: t('Present'),
+                        ABSENT: t('Absent'),
+                        LEAVE: t('Leave'),
                       }[item.status]
                     }
                     tone={
@@ -825,7 +910,9 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
                 </View>
               ))}
             {!data?.attendance.some(item => item.studentId === student.id) ? (
-              <Text style={styles.muted}>এখনও উপস্থিতির রেকর্ড নেই।</Text>
+              <Text style={styles.muted}>
+                {t('No attendance records yet.')}
+              </Text>
             ) : null}
           </NoorCard>
         </>
@@ -835,6 +922,7 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
 }
 
 export function ParentContactScreen() {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useManagement();
   const action = useAction();
   const [selectedId, setSelectedId] = useState('');
@@ -848,7 +936,7 @@ export function ParentContactScreen() {
     <Page loading={loading} refresh={refresh} error={error}>
       {students.length > 1 ? (
         <Select
-          label="শিক্ষার্থীর ড্রাইভার"
+          label={t("Student's driver")}
           value={student?.id || ''}
           onChange={setSelectedId}
           options={students.map(item => ({
@@ -861,11 +949,11 @@ export function ParentContactScreen() {
       <NoorCard>
         <NoorRow
           icon="phone"
-          title="ড্রাইভারের সাথে কথা বলুন"
+          title={t('Call the driver')}
           subtitle={
             student?.driverPhone
-              ? `${student.driverName || 'ড্রাইভার'} · ${student.driverPhone}`
-              : 'ড্রাইভারের নম্বর যুক্ত হয়নি'
+              ? `${student.driverName || t('Driver')} · ${student.driverPhone}`
+              : t('Driver phone number not added')
           }
           onPress={
             student?.driverPhone && !action.busy
@@ -875,11 +963,11 @@ export function ParentContactScreen() {
         />
         <NoorRow
           icon="whatsapp"
-          title="ড্রাইভারকে WhatsApp করুন"
+          title={t('WhatsApp the driver')}
           subtitle={
             student?.driverPhone
-              ? 'WhatsApp-এ বার্তা লিখুন'
-              : 'ড্রাইভারের নম্বর যুক্ত হয়নি'
+              ? t('Write a message on WhatsApp')
+              : t('Driver phone number not added')
           }
           onPress={
             student?.driverPhone && !action.busy
@@ -889,24 +977,28 @@ export function ParentContactScreen() {
         />
         <NoorRow
           icon="phone"
-          title="অফিসের সাথে যোগাযোগ"
-          subtitle={office || 'অফিসের নম্বর যুক্ত হয়নি'}
+          title={t('Contact the office')}
+          subtitle={office || t('Office phone number not added')}
           onPress={
             office && !action.busy ? () => open(office, 'call') : undefined
           }
         />
         <NoorRow
           icon="sms"
-          title="SMS পাঠান"
-          subtitle={office ? 'অফিসকে বার্তা পাঠান' : 'অফিসের নম্বর যুক্ত হয়নি'}
+          title={t('Send SMS')}
+          subtitle={
+            office
+              ? t('Message the office')
+              : t('Office phone number not added')
+          }
           onPress={
             office && !action.busy ? () => open(office, 'sms') : undefined
           }
         />
         <NoorRow
           icon="whatsapp"
-          title="WhatsApp যোগাযোগ"
-          subtitle={whatsapp || 'WhatsApp নম্বর যুক্ত হয়নি'}
+          title={t('WhatsApp contact')}
+          subtitle={whatsapp || t('WhatsApp number not added')}
           onPress={
             whatsapp && !action.busy
               ? () => open(whatsapp, 'whatsapp')
@@ -918,7 +1010,7 @@ export function ParentContactScreen() {
         <NoorCard>
           <NoorRow
             icon="bell"
-            title="জরুরি যোগাযোগ"
+            title={t('Emergency contact')}
             subtitle={data.settings.emergencyPhone}
             color={colors.danger}
             onPress={
@@ -931,7 +1023,11 @@ export function ParentContactScreen() {
       ) : null}
       {data?.settings.address ? (
         <NoorCard>
-          <InfoRow icon="pin" label="অফিস" value={data.settings.address} />
+          <InfoRow
+            icon="pin"
+            label={t('Office')}
+            value={data.settings.address}
+          />
         </NoorCard>
       ) : null}
     </Page>
@@ -939,6 +1035,7 @@ export function ParentContactScreen() {
 }
 
 export function ParentTrackingScreen({ route }: Props<'LiveTracking'>) {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
   const action = useAction();
   const [selectedId, setSelectedId] = useState(route.params?.vehicleId || '');
@@ -957,7 +1054,7 @@ export function ParentTrackingScreen({ route }: Props<'LiveTracking'>) {
       <Notice text={action.error} kind="error" />
       {data.vehicles.length > 1 ? (
         <Select
-          label="গাড়ি নির্বাচন"
+          label={t('Select vehicle')}
           value={vehicle?.id || ''}
           onChange={setSelectedId}
           options={data.vehicles.map(item => ({
@@ -968,8 +1065,10 @@ export function ParentTrackingScreen({ route }: Props<'LiveTracking'>) {
       ) : null}
       {!vehicle ? (
         <Empty
-          title="ট্র্যাকিংয়ের জন্য গাড়ি নেই"
-          detail="সক্রিয় পরিবহন সেবা অনুমোদিত হলে নির্ধারিত গাড়ির অবস্থান দেখা যাবে।"
+          title={t('No vehicle to track')}
+          detail={t(
+            "The assigned vehicle's location will appear after transport service is approved.",
+          )}
         />
       ) : (
         <>
@@ -981,14 +1080,14 @@ export function ParentTrackingScreen({ route }: Props<'LiveTracking'>) {
               <View style={parent.grow}>
                 <Text style={styles.heading}>{vehicle.name}</Text>
                 <Text style={styles.muted}>
-                  Driver: {vehicle.driverName || '—'}
+                  {t('Driver: {{name}}', { name: vehicle.driverName || '—' })}
                 </Text>
                 <Text style={styles.muted}>
-                  Route: {service?.routeName || '—'}
+                  {t('Route: {{name}}', { name: service?.routeName || '—' })}
                 </Text>
               </View>
               <NoorBadge
-                label={fresh ? 'Live' : 'সর্বশেষ'}
+                label={readable(fresh ? 'live' : 'lastKnown')}
                 tone={fresh ? 'green' : 'gray'}
               />
             </View>
@@ -1001,22 +1100,24 @@ export function ParentTrackingScreen({ route }: Props<'LiveTracking'>) {
             style={parent.map}
           />
           <NoorCard>
-            <Text style={styles.heading}>বর্তমান অবস্থান</Text>
+            <Text style={styles.heading}>{t('Current location')}</Text>
             <Text style={styles.body}>
               {location?.latitude != null && location.longitude != null
                 ? `${location.latitude.toFixed(
                     5,
                   )}, ${location.longitude.toFixed(5)}`
-                : 'ট্র্যাকার থেকে অবস্থান পাওয়া যায়নি।'}
+                : t('No location received from the tracker.')}
             </Text>
             {location?.lastSeen ? (
               <Text style={styles.muted}>
-                সর্বশেষ আপডেট: {dateLabel(location.lastSeen)}
+                {t('Last updated: {{time}}', {
+                  time: dateLabel(location.lastSeen),
+                })}
               </Text>
             ) : null}
             {location && !fresh ? (
               <Text style={local.stale}>
-                পুরোনো অবস্থান দেখানো হচ্ছে। নতুন GPS আপডেটের অপেক্ষায়।
+                {t('Showing an older location. Waiting for a new GPS update.')}
               </Text>
             ) : null}
           </NoorCard>
@@ -1033,6 +1134,9 @@ export function ParentTrackingScreen({ route }: Props<'LiveTracking'>) {
 }
 
 const local = StyleSheet.create({
+  reviewNote: { padding: 10, borderRadius: 7, backgroundColor: colors.mint },
+  reviewNoteError: { backgroundColor: '#FBEAEC' },
+  reviewNoteErrorText: { color: colors.danger },
   stepper: { flexDirection: 'row', paddingVertical: 5 },
   step: { flex: 1, alignItems: 'center', gap: 7 },
   stepTop: {

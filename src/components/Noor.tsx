@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { AppIcon, AppIconKind } from './AppIcon';
 import { colors } from '../theme';
+import { useTranslation } from '../i18n';
 
 const iconMap: Record<string, AppIconKind> = {
   student: 'students',
@@ -266,6 +267,7 @@ export function NoorBrand({
   light?: boolean;
   subtitle?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={[n.brand, compact && n.brandCompact]}>
       <NoorLogo size={compact ? 34 : 82} light={light} />
@@ -287,10 +289,7 @@ export function NoorBrand({
             compact && n.brandTagSmall,
           ]}
         >
-          {subtitle ||
-            (compact
-              ? 'Safe Journey, Bright Future'
-              : 'Safe Journey, Bright Future')}
+          {subtitle || t('Safe Journey, Bright Future')}
         </Text>
       </View>
     </View>

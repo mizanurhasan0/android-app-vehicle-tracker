@@ -17,7 +17,8 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NoorIcon } from '../../components/Noor';
-import { normalizeDigits } from '../../utils/format';
+import { i18n, locale, translateMessage, useTranslation } from '../../i18n';
+import { normalizeDigits, readable } from '../../utils/format';
 
 export const C = {
   green: '#006A45',
@@ -38,31 +39,42 @@ export const niceDate = (date?: string | null) =>
   date
     ? new Date(
         date.length === 10 ? `${date}T00:00:00+06:00` : date,
-      ).toLocaleDateString('en-GB', {
+      ).toLocaleDateString(locale(), {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
         timeZone: 'Asia/Dhaka',
       })
     : '—';
-export const labelStatus = (value: string) =>
-  ({
-    ACTIVE: 'Active',
-    INACTIVE: 'Inactive',
-    STOPPED: 'Inactive',
-    PAID: 'Paid',
-    UNPAID: 'Due',
-    PRESENT: 'উপস্থিত',
-    ABSENT: 'অনুপস্থিত',
-    LEAVE: 'ছুটি',
-    PENDING: 'অপেক্ষমান',
-    APPROVED: 'অনুমোদিত',
-    REJECTED: 'প্রত্যাখ্যাত',
-    OPEN: 'চলমান',
-    COMPLETED: 'সম্পন্ন',
-    RUNNING: 'চলমান',
-    MAINTENANCE: 'রক্ষণাবেক্ষণ',
-  }[value] || value);
+const adminStatusLabels: Record<string, string> = {
+  INACTIVE: 'Inactive',
+  STOPPED: 'Inactive',
+  UNPAID: 'Due',
+  PRESENT: 'Present',
+  ABSENT: 'Absent',
+  LEAVE: 'Leave',
+  PENDING: 'Pending',
+  COMPLETED: 'Completed',
+  RUNNING: 'Running',
+  MAINTENANCE: 'Maintenance',
+  PLANNED: 'Planned',
+  IN_PROGRESS: 'In progress',
+};
+export const labelStatus = (value: string) => {
+  if (Object.prototype.hasOwnProperty.call(adminStatusLabels, value))
+    return i18n.t(adminStatusLabels[value]);
+  return [
+    'ACTIVE',
+    'PAID',
+    'APPROVED',
+    'REJECTED',
+    'OPEN',
+    'RESOLVED',
+    'NEW',
+  ].includes(value)
+    ? readable(value)
+    : value;
+};
 export function AdminPage({
   children,
   loading,
@@ -73,6 +85,7 @@ export function AdminPage({
   refresh?: () => Promise<void>;
   error?: string;
 }>) {
+  const { t } = useTranslation();
   return (
     <SafeAreaView style={s.safe} edges={['left', 'right', 'bottom']}>
       <KeyboardAvoidingView
@@ -96,7 +109,7 @@ export function AdminPage({
           {loading ? (
             <ActivityIndicator
               color={C.green}
-              accessibilityLabel="তথ্য লোড হচ্ছে"
+              accessibilityLabel={t('Loading data')}
             />
           ) : null}
           {children}
@@ -109,30 +122,33 @@ export function Box({ children }: React.PropsWithChildren) {
   return <View style={s.box}>{children}</View>;
 }
 export function ErrorText({ message }: { message?: string }) {
+  useTranslation();
   return message ? (
     <View style={s.error}>
       <Text accessibilityLiveRegion="polite" style={s.errorText}>
-        {message}
+        {translateMessage(message)}
       </Text>
     </View>
   ) : null;
 }
 export function EmptyState({
-  text = 'এখনো কোনো তথ্য নেই',
+  text = 'No data yet',
   detail,
 }: {
   text?: string;
   detail?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={s.empty}>
       <NoorIcon name="reports" size={28} color={C.muted} />
-      <Text style={s.title}>{text}</Text>
-      {detail ? <Text style={s.muted}>{detail}</Text> : null}
+      <Text style={s.title}>{t(text)}</Text>
+      {detail ? <Text style={s.muted}>{t(detail)}</Text> : null}
     </View>
   );
 }
 export function Pill({ value }: { value: string }) {
+  useTranslation();
   const bad = ['UNPAID', 'ABSENT', 'REJECTED', 'MAINTENANCE'].includes(value);
   const pending = ['PENDING', 'LEAVE', 'OPEN'].includes(value);
   return (
@@ -179,6 +195,7 @@ export function SmallButton({
   busy?: boolean;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Pressable
       accessibilityRole="button"
@@ -197,7 +214,7 @@ export function SmallButton({
       ) : icon ? (
         <NoorIcon name={icon} size={17} color={secondary ? C.green : C.white} />
       ) : null}
-      <Text style={[s.buttonText, secondary && s.green]}>{title}</Text>
+      <Text style={[s.buttonText, secondary && s.green]}>{t(title)}</Text>
     </Pressable>
   );
 }
@@ -205,13 +222,14 @@ export function SearchBar({
   value,
   onChange,
   onAdd,
-  placeholder = 'খুঁজুন…',
+  placeholder = 'Search...',
 }: {
   value: string;
   onChange: (text: string) => void;
   onAdd?: () => void;
   placeholder?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={s.row}>
       <View style={s.search}>
@@ -219,9 +237,9 @@ export function SearchBar({
         <TextInput
           value={value}
           onChangeText={onChange}
-          placeholder={placeholder}
+          placeholder={t(placeholder)}
           placeholderTextColor={C.muted}
-          accessibilityLabel={placeholder}
+          accessibilityLabel={t(placeholder)}
           style={s.searchInput}
           multiline={false}
           numberOfLines={1}
@@ -229,7 +247,7 @@ export function SearchBar({
         />
       </View>
       {onAdd ? (
-        <SmallButton title="যোগ করুন" icon="plus" onPress={onAdd} />
+        <SmallButton title={t('Add')} icon="plus" onPress={onAdd} />
       ) : null}
     </View>
   );
@@ -243,6 +261,7 @@ export function Tabs({
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={s.tabs}>
       {options.map(option => (
@@ -254,7 +273,7 @@ export function Tabs({
           style={[s.tab, value === option.value && s.tabActive]}
         >
           <Text style={[s.tabLabel, value === option.value && s.white]}>
-            {option.label}
+            {t(option.label)}
           </Text>
         </Pressable>
       ))}
@@ -262,12 +281,14 @@ export function Tabs({
   );
 }
 export function Input({ label, ...props }: TextInputProps & { label: string }) {
+  const { t } = useTranslation();
   return (
     <View style={s.field}>
-      <Text style={s.label}>{label}</Text>
+      <Text style={s.label}>{t(label)}</Text>
       <TextInput
         {...props}
-        accessibilityLabel={label}
+        accessibilityLabel={t(label)}
+        placeholder={props.placeholder ? t(props.placeholder) : undefined}
         placeholderTextColor={C.muted}
         onChangeText={value =>
           props.onChangeText?.(
@@ -297,17 +318,20 @@ export function Choice({
   onChange: (value: string) => void;
   optional?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={s.field}>
-      <Text style={s.label}>{label}</Text>
+      <Text style={s.label}>{t(label)}</Text>
       <View style={s.select}>
         <Picker
           selectedValue={value}
           onValueChange={item => onChange(String(item))}
-          accessibilityLabel={label}
+          accessibilityLabel={t(label)}
           style={s.picker}
         >
-          {optional ? <Picker.Item label="নির্বাচন করুন" value="" /> : null}
+          {optional ? (
+            <Picker.Item label={t('Select an option')} value="" />
+          ) : null}
           {options.map(option => (
             <Picker.Item
               key={option.value}
@@ -329,10 +353,11 @@ export function Detail({
   label: string;
   value?: string | number | null;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={s.detail}>
       {icon ? <NoorIcon name={icon} size={17} color={C.green} /> : null}
-      <Text style={s.detailLabel}>{label}</Text>
+      <Text style={s.detailLabel}>{t(label)}</Text>
       <Text selectable style={s.detailValue}>
         {value === '' || value === undefined || value === null ? '—' : value}
       </Text>
@@ -348,10 +373,11 @@ export function Heading({
   action?: string;
   onAction?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={s.between}>
       <Text accessibilityRole="header" style={s.heading}>
-        {title}
+        {t(title)}
       </Text>
       {action && onAction ? (
         <Pressable
@@ -359,7 +385,7 @@ export function Heading({
           onPress={onAction}
           style={s.linkHit}
         >
-          <Text style={s.link}>{action}</Text>
+          <Text style={s.link}>{t(action)}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -371,7 +397,7 @@ export function FormModal({
   onClose,
   children,
   onSave,
-  saveTitle = 'সংরক্ষণ করুন',
+  saveTitle = 'Save',
   busy,
   error,
 }: React.PropsWithChildren<{
@@ -383,6 +409,7 @@ export function FormModal({
   busy?: boolean;
   error?: string;
 }>) {
+  const { t } = useTranslation();
   return (
     <Modal
       visible={visible}
@@ -395,14 +422,14 @@ export function FormModal({
         <View style={s.modalHeader}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="ফিরে যান"
+            accessibilityLabel={t('Go back')}
             disabled={busy}
             onPress={onClose}
             style={s.back}
           >
             <NoorIcon name="back" color={C.white} size={22} />
           </Pressable>
-          <Text style={s.modalTitle}>{title}</Text>
+          <Text style={s.modalTitle}>{t(title)}</Text>
         </View>
         <KeyboardAvoidingView
           style={s.safe}
@@ -434,7 +461,7 @@ export function useAction() {
       await task();
     } catch (e) {
       setError(
-        e instanceof Error ? e.message : 'সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।',
+        e instanceof Error ? e.message : 'Could not save. Please try again.',
       );
     } finally {
       running.current = false;
@@ -450,7 +477,7 @@ export async function contact(
 ) {
   let cleaned = normalizeDigits(phone).replace(/[^+\d]/g, '');
   if (!/^\+?\d{7,15}$/.test(cleaned))
-    throw new Error('একটি সঠিক মোবাইল নম্বর যোগ করুন।');
+    throw new Error('Enter a valid mobile number.');
   if (channel === 'whatsapp' && cleaned.startsWith('01'))
     cleaned = `88${cleaned}`;
   const url =
@@ -468,8 +495,8 @@ export async function contact(
   } catch {
     throw new Error(
       channel === 'whatsapp'
-        ? 'WhatsApp খোলা যায়নি। অ্যাপটি ইনস্টল আছে কি না দেখুন।'
-        : 'এই ডিভাইসে যোগাযোগের অ্যাপ খোলা যায়নি।',
+        ? 'Could not open WhatsApp. Check that the app is installed.'
+        : 'Could not open the contact app on this device.',
     );
   }
 }
@@ -480,6 +507,7 @@ export function ContactActions({
   phone: string;
   onEdit?: () => void;
 }) {
+  const { t } = useTranslation();
   const action = useAction();
   return (
     <View style={s.stack}>
@@ -487,7 +515,7 @@ export function ContactActions({
       <View style={s.row}>
         <View style={s.flex}>
           <SmallButton
-            title="কল"
+            title={t('Call')}
             icon="phone"
             disabled={!phone}
             busy={action.busy}
@@ -496,7 +524,7 @@ export function ContactActions({
         </View>
         <View style={s.flex}>
           <SmallButton
-            title="WhatsApp"
+            title={t('WhatsApp')}
             icon="whatsapp"
             disabled={!phone}
             busy={action.busy}
@@ -505,7 +533,7 @@ export function ContactActions({
         </View>
         <View style={s.flex}>
           <SmallButton
-            title={onEdit ? 'এডিট' : 'SMS'}
+            title={t(onEdit ? 'Edit' : 'SMS')}
             icon={onEdit ? 'edit' : 'sms'}
             onPress={onEdit || (() => action.run(() => contact(phone, 'sms')))}
             disabled={!onEdit && !phone}

@@ -3,7 +3,7 @@ import { NativeModules, Platform } from 'react-native';
 /** Uses Android's system picker; no broad storage permission is requested. */
 export async function pickStudentPhoto(): Promise<string | null> {
   if (Platform.OS !== 'android' || !NativeModules.NoorMedia?.pickPhoto)
-    throw new Error('ছবি নির্বাচন করতে আপডেট করা Android অ্যাপ ব্যবহার করুন।');
+    throw new Error('Use the updated Android app to select a photo.');
   return NativeModules.NoorMedia.pickPhoto();
 }
 
@@ -14,6 +14,6 @@ export async function saveReportFile(
   mimeType = 'text/csv',
 ): Promise<boolean> {
   if (Platform.OS !== 'android' || !NativeModules.NoorMedia?.saveDocument)
-    throw new Error('ফাইল সংরক্ষণ করতে আপডেট করা Android অ্যাপ ব্যবহার করুন।');
+    throw new Error('Use the updated Android app to save files.');
   return NativeModules.NoorMedia.saveDocument(filename, content, mimeType);
 }

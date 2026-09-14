@@ -13,10 +13,12 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParams } from '../navigation/types';
 import { Page, Button, Notice } from '../components/ui';
 import { NoorBrand, NoorIcon, NoorRow, NoorCard } from '../components/Noor';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { useAuth } from '../context/AuthContext';
 import { useManagement } from '../context/ManagementContext';
 import { useAction } from '../hooks/useAction';
 import { colors } from '../theme';
+import { useTranslation } from '../i18n';
 
 const groups: {
   title: string;
@@ -83,6 +85,7 @@ const groups: {
 export function NoorMenuScreen({
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'More'>) {
+  const { t } = useTranslation();
   const { session, signOut } = useAuth();
   const action = useAction();
   const admin = session?.user.role === 'ADMIN';
@@ -90,11 +93,12 @@ export function NoorMenuScreen({
     navigation.navigate(screen as 'Fleet');
   return (
     <Page>
+      <LanguageSwitcher />
       {admin ? (
         groups.map(group => (
           <View key={group.title} style={m.group}>
             <View style={[m.groupTitle, { backgroundColor: group.tint }]}>
-              <Text style={m.groupTitleText}>{group.title}</Text>
+              <Text style={m.groupTitleText}>{t(group.title)}</Text>
             </View>
             <View style={m.grid}>
               {group.items.map(([icon, title, screen]) => (
@@ -118,7 +122,7 @@ export function NoorMenuScreen({
                   >
                     <NoorIcon name={icon} color="#FFFFFF" size={20} />
                   </View>
-                  <Text style={m.cellText}>{title}</Text>
+                  <Text style={m.cellText}>{t(title)}</Text>
                   <Text style={m.chevron}>›</Text>
                 </Pressable>
               ))}
@@ -129,84 +133,84 @@ export function NoorMenuScreen({
         <NoorCard style={m.noPadding}>
           <NoorRow
             icon="student"
-            title="My Children (আমার সন্তান)"
+            title={t('My children')}
             onPress={() => go('ParentProfile')}
           />
           <NoorRow
             icon="route"
-            title="Route & Fare (রুট ও ভাড়া)"
+            title={t('Route and fare')}
             onPress={() => go('Routes')}
           />
           <NoorRow
             icon="attendance"
-            title="Attendance (উপস্থিতি)"
+            title={t('Attendance')}
             onPress={() => go('TodayJourney')}
           />
           <NoorRow
             icon="payment"
-            title="Payment History (পেমেন্ট হিস্ট্রি)"
+            title={t('Payment history')}
             onPress={() => go('Bills')}
           />
           <NoorRow
             icon="receipt"
-            title="Receipts (রসিদ)"
+            title={t('Receipts')}
             onPress={() => go('Receipts')}
           />
           <NoorRow
             icon="admission"
-            title="Admission (অনলাইন ভর্তি)"
+            title={t('Online admission form')}
             onPress={() => go('Admission')}
           />
           <NoorRow
             icon="document"
-            title="Application Status (আবেদনের অবস্থা)"
+            title={t('Application status')}
             onPress={() => go('ApplicationStatus')}
           />
           <NoorRow
             icon="document"
-            title="Complaints (অভিযোগ)"
+            title={t('Complaints')}
             onPress={() => go('Complaints')}
           />
           <NoorRow
             icon="document"
-            title="Stop Service (সেবা বন্ধের আবেদন)"
+            title={t('Stop service requests')}
             onPress={() => go('StopRequests')}
           />
           <NoorRow
             icon="phone"
-            title="Contact (যোগাযোগ)"
+            title={t('Contact')}
             onPress={() => go('Contact')}
           />
           <NoorRow
             icon="emergency"
             color="#F0415C"
-            title="Emergency (জরুরি সহায়তা)"
+            title={t('Emergency help')}
             onPress={() => go('Emergency')}
           />
           <NoorRow
             icon="settings"
             color="#697988"
-            title="Settings (সেটিংস)"
+            title={t('Settings')}
             onPress={() => go('Settings')}
           />
         </NoorCard>
       )}
       {admin ? (
         <Button
-          title="পেমেন্ট গ্রহণের নম্বর"
+          title={t('Payment receiving numbers')}
           secondary
           onPress={() => go('PaymentAccounts')}
         />
       ) : null}
       <Notice text={action.error} kind="error" />
       <Button
-        title="লগ আউট"
+        title={t('Sign out')}
         secondary
         busy={action.busy}
         onPress={() =>
-          Alert.alert('লগ আউট', 'আপনি কি লগ আউট করতে চান?', [
-            { text: 'বাতিল', style: 'cancel' },
-            { text: 'লগ আউট', onPress: () => action.run(signOut) },
+          Alert.alert(t('Sign out'), t('Do you want to sign out?'), [
+            { text: t('Cancel'), style: 'cancel' },
+            { text: t('Sign out'), onPress: () => action.run(signOut) },
           ])
         }
       />
@@ -214,6 +218,7 @@ export function NoorMenuScreen({
   );
 }
 export function EmergencyScreen() {
+  const { t } = useTranslation();
   const { data } = useManagement();
   const { session } = useAuth();
   const action = useAction();
@@ -227,27 +232,32 @@ export function EmergencyScreen() {
         <View style={m.emergencyBadge}>
           <NoorIcon name="emergency" size={35} color="#FFFFFF" />
         </View>
-        <Text style={m.emergencyTitle}>জরুরি সহায়তা</Text>
-        <Text style={m.help}>জরুরি প্রয়োজনে সরাসরি কল করুন।</Text>
+        <Text style={m.emergencyTitle}>{t('Emergency help')}</Text>
+        <Text style={m.help}>{t('Call directly in an emergency.')}</Text>
         {phone ? (
-          <Button title="অফিসে জরুরি কল" onPress={() => call(phone)} />
+          <Button
+            title={t('Emergency office call')}
+            onPress={() => call(phone)}
+          />
         ) : (
-          <Text style={m.help}>অফিসের জরুরি নম্বর এখনো যোগ করা হয়নি।</Text>
+          <Text style={m.help}>
+            {t('The office emergency number has not been added yet.')}
+          </Text>
         )}
         {student?.driverPhone ? (
           <Button
-            title="ড্রাইভারকে কল"
+            title={t('Call driver')}
             secondary
             onPress={() => call(student.driverPhone!)}
           />
         ) : null}
         <Button
-          title="জাতীয় জরুরি সেবা — ৯৯৯"
+          title={t('National emergency service — 999')}
           danger
           onPress={() =>
-            Alert.alert('জরুরি কল', '৯৯৯ নম্বরে কল করতে চান?', [
-              { text: 'বাতিল', style: 'cancel' },
-              { text: 'কল করুন', onPress: () => call('999') },
+            Alert.alert(t('Emergency call'), t('Call 999?'), [
+              { text: t('Cancel'), style: 'cancel' },
+              { text: t('Call'), onPress: () => call('999') },
             ])
           }
         />
@@ -255,7 +265,7 @@ export function EmergencyScreen() {
       </NoorCard>
       {session?.user.role === 'ADMIN' ? (
         <Text style={m.help}>
-          সংশ্লিষ্ট অভিভাবকদের জানাতে নোটিশ ও যোগাযোগ মেনু ব্যবহার করুন।
+          {t('Use Notices and Communication to inform the relevant guardians.')}
         </Text>
       ) : null}
     </Page>
@@ -266,6 +276,7 @@ export function WelcomeScreen({
 }: {
   onLogin: (variant: 'parent' | 'admin', register?: boolean) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={m.welcome}>
       <StatusBar barStyle="dark-content" />
@@ -276,29 +287,30 @@ export function WelcomeScreen({
       />
       <View style={m.welcomeBrand}>
         <NoorBrand />
+        <LanguageSwitcher />
       </View>
       <View style={m.welcomeBottom}>
-        <Text style={m.welcomeTag}>নিরাপদ যাত্রা{'\n'}উজ্জ্বল ভবিষ্যৎ</Text>
+        <Text style={m.welcomeTag}>{t('Safe journey\nBright future')}</Text>
         <Pressable
           accessibilityRole="button"
           onPress={() => onLogin('parent')}
           style={m.welcomeButton}
         >
-          <Text style={m.welcomeButtonText}>Login</Text>
+          <Text style={m.welcomeButtonText}>{t('Sign in')}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           onPress={() => onLogin('parent', true)}
           style={m.welcomeButton}
         >
-          <Text style={m.welcomeButtonText}>Register</Text>
+          <Text style={m.welcomeButtonText}>{t('Register')}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           onPress={() => onLogin('admin')}
           style={m.adminLink}
         >
-          <Text style={m.adminLinkText}>Admin Panel ›</Text>
+          <Text style={m.adminLinkText}>{t('Admin Panel')} ›</Text>
         </Pressable>
       </View>
     </View>
@@ -359,7 +371,7 @@ const m = StyleSheet.create({
   },
   welcomeImage: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   welcome: { flex: 1, backgroundColor: colors.primary },
-  welcomeBrand: { alignItems: 'center', paddingTop: 100 },
+  welcomeBrand: { alignItems: 'center', paddingTop: 100, gap: 12 },
   welcomeBottom: {
     position: 'absolute',
     bottom: 0,

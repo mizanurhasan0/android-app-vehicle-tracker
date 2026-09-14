@@ -1,6 +1,8 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Text } from 'react-native';
+import { Text, TextInput } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import { i18n, locale } from '../src/i18n';
 import { ManagementOverview, Student } from '../src/api/management';
 import { DashboardData } from '../src/api/types';
 import {
@@ -22,10 +24,14 @@ import {
 } from '../src/screens/admin/OfficeScreens';
 import {
   Choice,
+  Detail,
+  ErrorText,
   FormModal,
   Heading,
   Input,
   SmallButton,
+  Tabs,
+  niceDate,
   today,
 } from '../src/screens/admin/AdminUi';
 
@@ -83,9 +89,9 @@ jest.mock('../src/utils/photo', () => ({
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
   const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
-  Picker.Item = (props: object) => ReactModule.createElement(View, props);
-  return { Picker };
+  const MockPicker = (props: object) => ReactModule.createElement(View, props);
+  MockPicker.Item = (props: object) => ReactModule.createElement(View, props);
+  return { Picker: MockPicker };
 });
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
@@ -116,7 +122,8 @@ const student = (id: string, name = 'Student One'): Student => ({
   status: 'ACTIVE',
   startedAt: '2026-09-01',
 });
-beforeEach(() => {
+beforeEach(async () => {
+  await i18n.changeLanguage('en');
   jest.clearAllMocks();
   mockRole = 'ADMIN';
   mockParams = {};
@@ -195,6 +202,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   if (screen) await act(async () => screen.unmount());
+  await i18n.changeLanguage('en');
 });
 const render = async (Component: React.ComponentType) => {
   await act(async () => {
@@ -205,7 +213,7 @@ const setInput = async (label: string, value: string) => {
   await act(async () =>
     screen.root
       .findAllByType(Input)
-      .find(item => item.props.label === label)!
+      .find(item => item.props.label === i18n.t(label))!
       .props.onChangeText(value),
   );
 };
@@ -213,7 +221,7 @@ const select = async (label: string, value: string) => {
   await act(async () =>
     screen.root
       .findAllByType(Choice)
-      .find(item => item.props.label === label)!
+      .find(item => item.props.label === i18n.t(label))!
       .props.onChange(value),
   );
 };
@@ -225,29 +233,96 @@ const save = async () => {
       .props.onSave(),
   );
 };
+const textContent = () =>
+  screen.root
+    .findAllByType(Text)
+    .map(item => item.props.children)
+    .flat()
+    .join(' ');
+const changeLanguage = async (language: 'en' | 'bn') => {
+  await act(async () => {
+    await i18n.changeLanguage(language);
+  });
+};
+const pressButton = async (title: string) => {
+  await act(async () =>
+    screen.root
+      .findAllByType(SmallButton)
+      .find(item => item.props.title === i18n.t(title))!
+      .props.onPress(),
+  );
+};
+const openForm = async () => {
+  await act(async () =>
+    screen.root
+      .findAllByType(Heading)
+      .find(item => item.props.onAction)!
+      .props.onAction(),
+  );
+};
+const pressAccessible = async (role: string, label: string) => {
+  await act(async () =>
+    screen.root
+      .findAll(
+        node =>
+          node.props.accessibilityRole === role &&
+          node.props.accessibilityLabel === label &&
+          typeof node.props.onPress === 'function',
+        { deep: false },
+      )[0]
+      .props.onPress(),
+  );
+};
 
 it('creates a linked student with the selected stop and integer poisha, and resets the stop on a route change', async () => {
   await render(StudentsScreen);
   await act(async () =>
     screen.root
       .findAllByType(SmallButton)
-      .find(item => item.props.title === 'যোগ করুন')!
+      .find(item => item.props.title === i18n.t('Add'))!
       .props.onPress(),
   );
-  await setInput('শিক্ষার্থীর নাম *', ' New Student ');
-  await setInput('অভিভাবকের মোবাইল নম্বর *', '01700000001');
-  await select('রুট *', 'route-1');
-  await select('পিকআপ স্থান *', 'stop-1');
-  await select('রুট *', 'route-2');
+  await setInput('Student name *', ' New Student ');
+  await setInput('Guardian mobile number *', '01700000001');
+  await select('Route *', 'route-1');
+  await select('Pickup stop *', 'stop-1');
+  await select('Route *', 'route-2');
   expect(
     screen.root
       .findAllByType(Choice)
-      .find(item => item.props.label === 'পিকআপ স্থান *')!.props.value,
+      .find(item => item.props.label === 'Pickup stop *')!.props.value,
   ).toBe('');
   await save();
   expect(mockMutate).not.toHaveBeenCalled();
-  await select('পিকআপ স্থান *', 'stop-2');
-  await setInput('মাসিক ভাড়া (৳) *', '2800.50');
+  expect(textContent()).toContain(
+    'Enter the student name, guardian phone number, route and pickup stop.',
+  );
+  await changeLanguage('bn');
+  expect(textContent()).toContain(
+    'শিক্ষার্থীর নাম, অভিভাবকের নম্বর, রুট ও পিকআপ স্থান দিন।',
+  );
+  expect(
+    screen.root
+      .findAllByType(TextInput)
+      .find(item => item.props.accessibilityLabel === i18n.t('Student name *'))!
+      .props.value,
+  ).toBe(' New Student ');
+  expect(
+    screen.root
+      .findAllByType(Choice)
+      .find(item => item.props.label === i18n.t('Route *'))!.props.value,
+  ).toBe('route-2');
+  expect(
+    screen.root
+      .findAllByType(Picker.Item)
+      .some(
+        item =>
+          item.props.label === 'North road · Bus 2' &&
+          item.props.value === 'route-2',
+      ),
+  ).toBe(true);
+  await select('Pickup stop *', 'stop-2');
+  await setInput('Monthly fee (৳) *', '2800.50');
   await save();
   expect(mockMutate).toHaveBeenCalledWith(
     '/admin/students',
@@ -257,6 +332,7 @@ it('creates a linked student with the selected stop and integer poisha, and rese
       routeId: 'route-2',
       stopId: 'stop-2',
       monthlyAmount: 280050,
+      status: 'ACTIVE',
     }),
     'POST',
   );
@@ -266,23 +342,33 @@ it('saves only explicitly selected attendance and never silently marks remaining
   expect(
     screen.root
       .findAllByType(SmallButton)
-      .find(item => item.props.title === 'সেভ করুন')!.props.disabled,
+      .find(item => item.props.title === i18n.t('Save'))!.props.disabled,
   ).toBe(true);
   await act(async () =>
     screen.root
       .findAll(
         node =>
           node.props.accessibilityRole === 'radio' &&
-          node.props.accessibilityLabel === 'Student One: অনুপস্থিত' &&
+          node.props.accessibilityLabel === 'Student One: Absent' &&
           typeof node.props.onPress === 'function',
         { deep: false },
       )[0]
       .props.onPress(),
   );
+  await changeLanguage('bn');
+  expect(textContent()).toContain('নির্বাচন করা হয়নি: ১');
+  expect(
+    screen.root.findAll(
+      node =>
+        node.props.accessibilityRole === 'radio' &&
+        node.props.accessibilityLabel === 'Student One: অনুপস্থিত',
+      { deep: false },
+    )[0].props.accessibilityState.checked,
+  ).toBe(true);
   await act(async () =>
     screen.root
       .findAllByType(SmallButton)
-      .find(item => item.props.title === 'সেভ করুন')!
+      .find(item => item.props.title === i18n.t('Save'))!
       .props.onPress(),
   );
   expect(mockMutate).toHaveBeenCalledWith(
@@ -290,6 +376,9 @@ it('saves only explicitly selected attendance and never silently marks remaining
     { entries: [{ studentId: 'student-1', date: today(), status: 'ABSENT' }] },
     'PUT',
   );
+  expect(textContent()).toContain('উপস্থিতি সংরক্ষণ হয়েছে।');
+  await changeLanguage('en');
+  expect(textContent()).toContain('Attendance saved.');
 });
 it('keeps the student form open with a recoverable server error', async () => {
   mockMutate.mockRejectedValue(new Error('Guardian must register first'));
@@ -297,20 +386,244 @@ it('keeps the student form open with a recoverable server error', async () => {
   await act(async () =>
     screen.root
       .findAllByType(SmallButton)
-      .find(item => item.props.title === 'যোগ করুন')!
+      .find(item => item.props.title === i18n.t('Add'))!
       .props.onPress(),
   );
-  await setInput('শিক্ষার্থীর নাম *', 'New Student');
-  await setInput('অভিভাবকের মোবাইল নম্বর *', '01700000001');
-  await select('রুট *', 'route-1');
-  await select('পিকআপ স্থান *', 'stop-1');
+  await setInput('Student name *', 'New Student');
+  await setInput('Guardian mobile number *', '01700000001');
+  await select('Route *', 'route-1');
+  await select('Pickup stop *', 'stop-1');
   await save();
   expect(screen.root.findByType(FormModal).props.visible).toBe(true);
   expect(screen.root.findByType(FormModal).props.error).toBe(
     'Guardian must register first',
   );
   expect(screen.root.findByType(FormModal).props.busy).toBe(false);
+  await changeLanguage('bn');
+  expect(textContent()).toContain('Guardian must register first');
+  expect(screen.root.findByType(FormModal).props.visible).toBe(true);
 });
+
+it('switches shared controls and known errors without translating data values', async () => {
+  const Controls = () => (
+    <>
+      <Input label="Name" value="Active" onChangeText={jest.fn()} />
+      <Choice
+        label="Vehicle"
+        value="bus-1"
+        options={[{ value: 'bus-1', label: 'Paid' }]}
+        onChange={jest.fn()}
+      />
+      <Detail label="Status" value="Paid" />
+      <ErrorText message="Could not save. Please try again." />
+      <ErrorText message="A custom server error" />
+      <FormModal
+        title="Edit student details"
+        visible
+        onClose={jest.fn()}
+        onSave={jest.fn()}
+      />
+    </>
+  );
+  await render(Controls);
+  expect(textContent()).toContain('Could not save. Please try again.');
+  await changeLanguage('bn');
+  expect(textContent()).toContain('সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।');
+  expect(textContent()).toContain('শিক্ষার্থীর তথ্য সম্পাদনা');
+  expect(textContent()).toContain(i18n.t('Save'));
+  expect(textContent()).toContain('Paid');
+  expect(textContent()).toContain('A custom server error');
+  expect(screen.root.findByType(TextInput).props.value).toBe('Active');
+  expect(screen.root.findByType(TextInput).props.accessibilityLabel).toBe(
+    i18n.t('Name'),
+  );
+  expect(screen.root.findByType(Picker).props.selectedValue).toBe('bus-1');
+  expect(
+    screen.root
+      .findAllByType(Picker.Item)
+      .some(item => item.props.label === 'Paid'),
+  ).toBe(true);
+  expect(
+    screen.root
+      .findAllByType(Picker.Item)
+      .some(item => item.props.label === i18n.t('Select an option')),
+  ).toBe(true);
+});
+
+it('keeps driver fields and status intact while switching an open form', async () => {
+  await render(DriversScreen);
+  await pressButton('Add');
+  await setInput('Name *', 'Paid');
+  await setInput('Mobile number *', '01700000002');
+  await setInput('NID', '1234567890');
+  await setInput('Address', 'Maintenance');
+  await setInput('Monthly salary (৳)', '12000.50');
+  await setInput('Joining date (YYYY-MM-DD)', '2026-09-01');
+  await select('Assigned vehicle', 'bus-1');
+  await select('Status', 'LEAVE');
+  await changeLanguage('bn');
+  expect(textContent()).toContain('ড্রাইভার যোগ করুন');
+  expect(
+    screen.root
+      .findAllByType(Picker.Item)
+      .some(
+        item => item.props.value === 'LEAVE' && item.props.label === 'ছুটি',
+      ),
+  ).toBe(true);
+  expect(
+    screen.root
+      .findAllByType(TextInput)
+      .find(item => item.props.accessibilityLabel === i18n.t('NID'))!.props
+      .value,
+  ).toBe('1234567890');
+  await save();
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/drivers',
+    {
+      name: 'Paid',
+      phone: '01700000002',
+      nid: '1234567890',
+      address: 'Maintenance',
+      joiningDate: '2026-09-01',
+      monthlySalary: 1200050,
+      vehicleId: 'bus-1',
+      status: 'LEAVE',
+    },
+    'POST',
+  );
+});
+
+it('keeps maintenance selections and description payloads stable across languages', async () => {
+  await render(MaintenanceScreen);
+  await openForm();
+  await select('Vehicle *', 'bus-1');
+  await setInput('Work title *', 'Paid');
+  await setInput('Details', 'Active');
+  await setInput('Total cost (৳)', '250.50');
+  await setInput('Service date (YYYY-MM-DD)', '2026-09-01');
+  await setInput('Next service (YYYY-MM-DD)', '2026-10-01');
+  await select('Status', 'COMPLETED');
+  await pressAccessible('checkbox', 'Oil change');
+  await changeLanguage('bn');
+  expect(textContent()).toContain('রক্ষণাবেক্ষণ যোগ করুন');
+  expect(
+    screen.root.findAll(
+      node =>
+        node.props.accessibilityRole === 'checkbox' &&
+        node.props.accessibilityLabel === 'তেল পরিবর্তন',
+      { deep: false },
+    )[0].props.accessibilityState.checked,
+  ).toBe(true);
+  await changeLanguage('en');
+  expect(
+    screen.root.findAll(
+      node =>
+        node.props.accessibilityRole === 'checkbox' &&
+        node.props.accessibilityLabel === 'Oil change',
+      { deep: false },
+    )[0].props.accessibilityState.checked,
+  ).toBe(true);
+  await save();
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/maintenance',
+    {
+      vehicleId: 'bus-1',
+      title: 'Paid',
+      description: 'Active\nকাজ: তেল পরিবর্তন',
+      serviceDate: '2026-09-01',
+      nextServiceDate: '2026-10-01',
+      amount: 25050,
+      status: 'COMPLETED',
+    },
+    'POST',
+  );
+});
+
+it('translates account categories while preserving amounts, notes and API enums', async () => {
+  mockParams = { tab: 'EXPENSE' };
+  await render(AccountsScreen);
+  await openForm();
+  await select('Category', 'SALARY');
+  await select('Driver *', 'driver-1');
+  await select('Vehicle (if applicable)', 'bus-1');
+  await setInput('Title *', 'Paid');
+  await setInput('Note', 'Leave');
+  await setInput('Amount (৳) *', '1234.50');
+  await setInput('Date (YYYY-MM-DD)', '2026-09-01');
+  await changeLanguage('bn');
+  expect(textContent()).toContain('খরচ যোগ করুন');
+  expect(
+    screen.root
+      .findAllByType(Picker.Item)
+      .some(
+        item =>
+          item.props.value === 'SALARY' &&
+          item.props.label === 'ড্রাইভারের বেতন',
+      ),
+  ).toBe(true);
+  expect(
+    screen.root
+      .findAllByType(TextInput)
+      .find(item => item.props.accessibilityLabel === i18n.t('Amount (৳) *'))!
+      .props.value,
+  ).toBe('1234.50');
+  await save();
+  expect(mockMutate).toHaveBeenCalledWith('/admin/ledger', {
+    type: 'EXPENSE',
+    category: 'SALARY',
+    title: 'Paid',
+    amount: 123450,
+    date: '2026-09-01',
+    note: 'Leave',
+    vehicleId: 'bus-1',
+    driverId: 'driver-1',
+  });
+});
+
+it.each([
+  [StudentProfileScreen, 'student-1', 'Payment summary', 'পেমেন্ট সারাংশ'],
+  [DriverProfileScreen, 'driver-1', 'Monthly salary', 'মাসিক বেতন'],
+] as const)(
+  'updates profile labels, statuses and dates on a mounted screen %p',
+  async (Component, id, english, bangla) => {
+    mockParams = { id };
+    mockManagement.attendance = [
+      {
+        id: 'attendance-1',
+        studentId: 'student-1',
+        driverId: 'driver-1',
+        date: '2026-09-01',
+        status: 'PRESENT',
+        note: '',
+        updatedAt: '2026-09-01T00:00:00+06:00',
+      },
+    ];
+    await render(Component);
+    await act(async () =>
+      screen.root.findByType(Tabs).props.onChange('ATTENDANCE'),
+    );
+    expect(textContent()).toContain(english);
+    expect(textContent()).toContain('Present');
+    const englishDate = niceDate('2026-09-01');
+    expect(textContent()).toContain(englishDate);
+    await changeLanguage('bn');
+    expect(textContent()).toContain(bangla);
+    expect(textContent()).toContain('উপস্থিত');
+    expect(textContent()).toContain(niceDate('2026-09-01'));
+    expect(niceDate('2026-09-01')).not.toBe(englishDate);
+    expect(niceDate('2026-09-01')).toBe(
+      new Date('2026-09-01T00:00:00+06:00').toLocaleDateString(locale(), {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'Asia/Dhaka',
+      }),
+    );
+    expect(textContent()).toContain('South road');
+    expect(textContent()).toContain('Bus 1');
+    expect(mockMutate).not.toHaveBeenCalled();
+  },
+);
 it('limits parent settings to their own profile and signout', async () => {
   mockRole = 'GUARDIAN';
   await render(SettingsScreen);
@@ -319,9 +632,9 @@ it('limits parent settings to their own profile and signout', async () => {
     .map(item => item.props.children)
     .flat()
     .join(' ');
-  expect(text).toContain('আমার প্রোফাইল');
-  expect(text).not.toContain('ব্যবসার তথ্য');
-  expect(text).not.toContain('SMS সেটিংস');
+  expect(text).toContain('My profile');
+  expect(text).not.toContain('Business information');
+  expect(text).not.toContain('SMS settings');
   expect(mockMutate).not.toHaveBeenCalled();
 });
 it('requires a target before sending a scoped notice', async () => {
@@ -332,12 +645,12 @@ it('requires a target before sending a scoped notice', async () => {
       .find(item => item.props.onAction)!
       .props.onAction(),
   );
-  await setInput('শিরোনাম *', 'Holiday');
-  await setInput('বার্তা *', 'Tomorrow transport is closed.');
-  await select('যাকে পাঠাবেন', 'STUDENT');
+  await setInput('Title *', 'Holiday');
+  await setInput('Message *', 'Tomorrow transport is closed.');
+  await select('Send to', 'STUDENT');
   await save();
   expect(mockMutate).not.toHaveBeenCalled();
-  await select('প্রাপক নির্বাচন করুন', 'student-1');
+  await select('Select recipient', 'student-1');
   await save();
   expect(mockMutate).toHaveBeenCalledWith('/admin/notices', {
     title: 'Holiday',

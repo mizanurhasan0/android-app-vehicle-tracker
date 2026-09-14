@@ -189,19 +189,20 @@ function GuardianPaymentsScreen({ dueOnly }: { dueOnly: boolean }) {
     <Page loading={loading} refresh={refresh} error={error}>
       <Card>
         <Text style={styles.heading}>
-          মাসিক ভাড়া{summaryMonth ? ` (${summaryMonth})` : ''}
+          {t('Monthly fee')}
+          {summaryMonth ? ` (${summaryMonth})` : ''}
         </Text>
         <View style={local.summary}>
           <View style={local.summaryCell}>
-            <Text style={local.summaryLabel}>মোট ভাড়া</Text>
+            <Text style={local.summaryLabel}>{t('Total fare')}</Text>
             <Text style={local.summaryAmount}>{money(monthTotal)}</Text>
           </View>
           <View style={[local.summaryCell, local.summaryMiddle]}>
-            <Text style={local.summaryLabel}>পরিশোধিত</Text>
+            <Text style={local.summaryLabel}>{t('Paid')}</Text>
             <Text style={local.summaryAmount}>{money(monthPaid)}</Text>
           </View>
           <View style={local.summaryCell}>
-            <Text style={[local.summaryLabel, local.dueText]}>বকেয়া</Text>
+            <Text style={[local.summaryLabel, local.dueText]}>{t('Due')}</Text>
             <Text style={[local.summaryAmount, local.dueText]}>
               {money(monthTotal - monthPaid)}
             </Text>
@@ -219,7 +220,7 @@ function GuardianPaymentsScreen({ dueOnly }: { dueOnly: boolean }) {
           </View>
         ) : null}
         <Button
-          title="পেমেন্ট করুন"
+          title={t('Pay now')}
           disabled={!payableBills.length || !data.accounts.length || submitting}
           onPress={() => {
             setSelectedBill(payableBills[0]?.id || null);

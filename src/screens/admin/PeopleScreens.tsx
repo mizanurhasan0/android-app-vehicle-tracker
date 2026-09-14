@@ -14,7 +14,8 @@ import {
 } from '../../api/management';
 import { useManagement } from '../../context/ManagementContext';
 import { useData } from '../../context/DataContext';
-import { currentMonth, money, toPoisha } from '../../utils/format';
+import { locale, useTranslation } from '../../i18n';
+import { currentMonth, money, numberLabel, toPoisha } from '../../utils/format';
 import { pickStudentPhoto } from '../../utils/photo';
 import {
   AdminPage,
@@ -93,6 +94,7 @@ function StudentForm({
   student?: Student;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { data: transport } = useData();
   const { mutate } = useManagement();
   const action = useAction();
@@ -135,7 +137,7 @@ function StudentForm({
         !form.stopId
       )
         throw new Error(
-          'শিক্ষার্থীর নাম, অভিভাবকের নম্বর, রুট ও পিকআপ স্থান দিন।',
+          'Enter the student name, guardian phone number, route and pickup stop.',
         );
       const { amount, ...rest } = form;
       const input: StudentInput = {
@@ -153,16 +155,16 @@ function StudentForm({
     });
   return (
     <FormModal
-      title={student ? 'শিক্ষার্থীর তথ্য সম্পাদনা' : 'নতুন শিক্ষার্থী যোগ করুন'}
+      title={student ? t('Edit student details') : t('Add a new student')}
       visible={visible}
       onClose={onClose}
       busy={action.busy}
       error={action.error}
       onSave={save}
     >
-      <Heading title="শিক্ষার্থীর তথ্য" />
+      <Heading title={t('Student details')} />
       <Input
-        label="শিক্ষার্থীর নাম *"
+        label={t('Student name *')}
         value={form.studentName}
         onChangeText={v => set('studentName', v)}
         maxLength={100}
@@ -170,7 +172,7 @@ function StudentForm({
       <View style={s.row}>
         <View style={s.flex}>
           <Input
-            label="শ্রেণি"
+            label={t('Class')}
             value={form.className}
             onChangeText={v => set('className', v)}
             maxLength={40}
@@ -178,7 +180,7 @@ function StudentForm({
         </View>
         <View style={s.flex}>
           <Input
-            label="রোল নম্বর"
+            label={t('Roll number')}
             value={form.roll}
             onChangeText={v => set('roll', v)}
             maxLength={20}
@@ -186,7 +188,7 @@ function StudentForm({
         </View>
       </View>
       <Input
-        label="শিক্ষার্থী আইডি"
+        label={t('Student ID')}
         value={form.studentCode}
         onChangeText={v => set('studentCode', v)}
         maxLength={40}
@@ -194,7 +196,7 @@ function StudentForm({
       <View style={s.row}>
         <StudentPhoto student={form} />
         <SmallButton
-          title="ছবি যোগ করুন"
+          title={t('Add photo')}
           icon="plus"
           secondary
           busy={action.busy}
@@ -207,15 +209,15 @@ function StudentForm({
         />
         {form.photoUrl ? (
           <SmallButton
-            title="মুছুন"
+            title={t('Remove')}
             secondary
             onPress={() => set('photoUrl', '')}
           />
         ) : null}
       </View>
-      <Heading title="অভিভাবকের তথ্য" />
+      <Heading title={t('Guardian details')} />
       <Input
-        label="অভিভাবকের মোবাইল নম্বর *"
+        label={t('Guardian mobile number *')}
         editable={!student}
         value={form.guardianPhone}
         onChangeText={v => set('guardianPhone', v)}
@@ -223,32 +225,33 @@ function StudentForm({
         maxLength={16}
       />
       <Text style={s.muted}>
-        অভিভাবককে এই নম্বর দিয়ে Parent App-এ আগে নিবন্ধন করতে হবে। নাম ও
-        যোগাযোগের তথ্য সেই অ্যাকাউন্টের সঙ্গে যুক্ত হবে।
+        {t(
+          'The guardian must first register in the Parent App with this number. Their name and contact details will be linked to that account.',
+        )}
       </Text>
       <Input
-        label="জরুরি যোগাযোগ"
+        label={t('Emergency contact')}
         value={form.emergencyContact}
         onChangeText={v => set('emergencyContact', v)}
         keyboardType="phone-pad"
         maxLength={16}
       />
       <Input
-        label="পিকআপ ঠিকানা"
+        label={t('Pickup address')}
         value={form.pickupAddress}
         onChangeText={v => set('pickupAddress', v)}
         multiline
         maxLength={400}
       />
       <Input
-        label="ড্রপ ঠিকানা"
+        label={t('Drop-off address')}
         value={form.dropAddress}
         onChangeText={v => set('dropAddress', v)}
         maxLength={400}
       />
-      <Heading title="রুট ও ভাড়া" />
+      <Heading title={t('Route and fare')} />
       <Choice
-        label="রুট *"
+        label={t('Route *')}
         value={form.routeId}
         options={transport.routes.map(item => ({
           value: item.id,
@@ -265,7 +268,7 @@ function StudentForm({
         }}
       />
       <Choice
-        label="পিকআপ স্থান *"
+        label={t('Pickup stop *')}
         value={form.stopId}
         options={(selectedRoute?.stops || []).map(item => ({
           value: item.id,
@@ -274,22 +277,22 @@ function StudentForm({
         onChange={v => set('stopId', v)}
       />
       <Input
-        label="মাসিক ভাড়া (৳) *"
+        label={t('Monthly fee (৳) *')}
         value={form.amount}
         onChangeText={v => set('amount', v)}
         keyboardType="decimal-pad"
       />
       {student ? (
         <Choice
-          label="অবস্থা"
+          label={t('Status')}
           value={form.status}
           optional={false}
           options={
             student.status === 'STOPPED'
-              ? [{ value: 'STOPPED', label: 'Inactive' }]
+              ? [{ value: 'STOPPED', label: t('Inactive') }]
               : [
-                  { value: 'ACTIVE', label: 'Active' },
-                  { value: 'STOPPED', label: 'Inactive' },
+                  { value: 'ACTIVE', label: t('Active') },
+                  { value: 'STOPPED', label: t('Inactive') },
                 ]
           }
           onChange={v => set('status', v as Student['status'])}
@@ -297,18 +300,22 @@ function StudentForm({
       ) : null}
       {student?.status === 'STOPPED' ? (
         <Text style={s.note}>
-          আগের বিলের ইতিহাস অক্ষত রেখে সেবা চালু করতে নতুন ভর্তি যোগ করুন।
+          {t(
+            'Add a new admission to restart service while preserving previous billing history.',
+          )}
         </Text>
       ) : form.status === 'STOPPED' ? (
         <Text style={s.note}>
-          সংরক্ষণ করলে এই শিক্ষার্থীর পরিবহন সেবা ও গাড়ি ট্র্যাকিং বন্ধ হবে।
-          আগের বিলের ইতিহাস থাকবে।
+          {t(
+            "Saving will stop this student's transport service and vehicle tracking. Previous billing history will remain.",
+          )}
         </Text>
       ) : null}
     </FormModal>
   );
 }
 export function StudentsScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { data, loading, error, refresh } = useManagement();
   const [query, setQuery] = useState('');
@@ -342,35 +349,52 @@ export function StudentsScreen() {
         value={query}
         onChange={setQuery}
         onAdd={() => setAdding(true)}
-        placeholder="নাম, আইডি বা অভিভাবক…"
+        placeholder={t('Name, ID or guardian...')}
       />
       <Tabs
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'ALL', label: `সব (${students.length})` },
+          {
+            value: 'ALL',
+            label: t('All ({{number}})', {
+              number: numberLabel(students.length),
+            }),
+          },
           {
             value: 'ACTIVE',
-            label: `সক্রিয় (${
-              students.filter(item => item.status === 'ACTIVE').length
-            })`,
+            label: t('Active ({{number}})', {
+              number: numberLabel(
+                students.filter(item => item.status === 'ACTIVE').length,
+              ),
+            }),
           },
-          { value: 'ABSENT', label: `অনুপস্থিত (${absent.size})` },
-          { value: 'LEAVE', label: `ছুটি (${leave.size})` },
+          {
+            value: 'ABSENT',
+            label: t('Absent ({{number}})', {
+              number: numberLabel(absent.size),
+            }),
+          },
+          {
+            value: 'LEAVE',
+            label: t('Leave ({{number}})', { number: numberLabel(leave.size) }),
+          },
         ]}
       />
       <Box>
         <View style={s.tableHeader}>
-          <Text style={[s.cell, s.studentColumn]}>নাম</Text>
-          <Text style={s.cell}>রুট</Text>
-          <Text style={s.cell}>গাড়ি</Text>
-          <Text style={s.smallCell}>অবস্থা</Text>
+          <Text style={[s.cell, s.studentColumn]}>{t('Name')}</Text>
+          <Text style={s.cell}>{t('Route')}</Text>
+          <Text style={s.cell}>{t('Vehicle')}</Text>
+          <Text style={s.smallCell}>{t('Status')}</Text>
         </View>
         {matches.map(student => (
           <Pressable
             key={student.id}
             accessibilityRole="button"
-            accessibilityLabel={`${student.studentName} প্রোফাইল`}
+            accessibilityLabel={t('{{name}} profile', {
+              name: student.studentName,
+            })}
             style={[s.tableRow, s.personListRow]}
             onPress={() =>
               navigation.navigate('StudentDetails', { id: student.id })
@@ -406,19 +430,22 @@ export function StudentsScreen() {
         ))}
         {!matches.length ? (
           <EmptyState
-            text={
-              loading ? 'শিক্ষার্থী লোড হচ্ছে…' : 'কোনো শিক্ষার্থী পাওয়া যায়নি'
-            }
-            detail="নতুন শিক্ষার্থী যোগ করুন অথবা অনুসন্ধান পরিবর্তন করুন।"
+            text={loading ? t('Loading students…') : t('No students found')}
+            detail={t('Add a new student or change your search.')}
           />
         ) : null}
-        <Text style={s.muted}>মোট শিক্ষার্থী: {matches.length}</Text>
+        <Text style={s.muted}>
+          {t('Total students: {{number}}', {
+            number: numberLabel(matches.length),
+          })}
+        </Text>
       </Box>
       <StudentForm visible={adding} onClose={() => setAdding(false)} />
     </AdminPage>
   );
 }
 export function StudentProfileScreen() {
+  const { t } = useTranslation();
   const { params } = useRoute();
   const { id } = (params || {}) as { id?: string };
   const { data, loading, error, refresh } = useManagement();
@@ -430,9 +457,7 @@ export function StudentProfileScreen() {
     return (
       <AdminPage loading={loading} error={error} refresh={refresh}>
         <EmptyState
-          text={
-            loading ? 'শিক্ষার্থী লোড হচ্ছে…' : 'শিক্ষার্থীর তথ্য পাওয়া যায়নি'
-          }
+          text={loading ? t('Loading students…') : t('Student unavailable')}
         />
       </AdminPage>
     );
@@ -468,48 +493,59 @@ export function StudentProfileScreen() {
             <Text style={s.title}>{student.studentName}</Text>
             <Text style={s.body}>{student.studentCode || '—'}</Text>
             <Text style={s.muted}>
-              Class {student.className.replace(/^\s*class\s+/i, '') || '—'} |
-              Roll: {student.roll || '—'}
+              {t('Class {{className}} | Roll: {{roll}}', {
+                className:
+                  student.className.replace(/^\s*class\s+/i, '') || '—',
+                roll: student.roll || '—',
+              })}
             </Text>
           </View>
           <Pill value={student.status} />
         </View>
         <View style={s.line} />
-        <Heading title="অভিভাবক" />
+        <Heading title={t('Guardian')} />
         <Text style={s.body}>{student.guardianName}</Text>
-        <Detail icon="phone" label="মোবাইল" value={student.guardianPhone} />
+        <Detail
+          icon="phone"
+          label={t('Mobile')}
+          value={student.guardianPhone}
+        />
         <Detail
           icon="location"
-          label="ঠিকানা"
+          label={t('Address')}
           value={student.pickupAddress || student.stopName}
         />
-        <Detail icon="routes" label="রুট" value={student.routeName} />
-        <Detail icon="vehicles" label="গাড়ি" value={student.vehicleName} />
-        <Detail icon="drivers" label="ড্রাইভার" value={student.driverName} />
+        <Detail icon="routes" label={t('Route')} value={student.routeName} />
+        <Detail
+          icon="vehicles"
+          label={t('Vehicle')}
+          value={student.vehicleName}
+        />
+        <Detail icon="drivers" label={t('Driver')} value={student.driverName} />
         <Detail
           icon="location"
-          label="ড্রপ স্থান"
+          label={t('Drop-off stop')}
           value={student.dropAddress}
         />
         <Detail
           icon="phone"
-          label="জরুরি যোগাযোগ"
+          label={t('Emergency contact')}
           value={student.emergencyContact}
         />
         <View style={s.line} />
         <Detail
           icon="payments"
-          label="মাসিক ভাড়া"
+          label={t('Monthly fee')}
           value={money(student.monthlyAmount)}
         />
-        <Heading title="পেমেন্ট সারাংশ" />
+        <Heading title={t('Payment summary')} />
         <View style={s.row}>
           <View style={s.summary}>
-            <Text style={s.muted}>পরিশোধিত</Text>
+            <Text style={s.muted}>{t('Paid')}</Text>
             <Text style={s.summaryValue}>{money(paid)}</Text>
           </View>
           <View style={[s.summary, s.dangerFill]}>
-            <Text style={s.muted}>বকেয়া</Text>
+            <Text style={s.muted}>{t('Due')}</Text>
             <Text style={[s.summaryValue, s.red]}>{money(due)}</Text>
           </View>
         </View>
@@ -522,9 +558,9 @@ export function StudentProfileScreen() {
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'PAYMENTS', label: 'পেমেন্ট হিস্ট্রি' },
-          { value: 'ATTENDANCE', label: 'উপস্থিতি' },
-          { value: 'NOTICES', label: 'নোটিশ' },
+          { value: 'PAYMENTS', label: t('Payment history') },
+          { value: 'ATTENDANCE', label: t('Attendance') },
+          { value: 'NOTICES', label: t('Notices') },
         ]}
       />
       <Box>
@@ -532,13 +568,21 @@ export function StudentProfileScreen() {
           bills.length ? (
             bills.map(item => (
               <View key={item.id} style={s.tableRow}>
-                <Text style={s.cell}>{item.month}</Text>
+                <Text style={s.cell}>
+                  {new Date(
+                    `${item.month}-01T00:00:00+06:00`,
+                  ).toLocaleDateString(locale(), {
+                    month: 'long',
+                    year: 'numeric',
+                    timeZone: 'Asia/Dhaka',
+                  })}
+                </Text>
                 <Text style={s.body}>{money(item.amount)}</Text>
                 <Pill value={item.status} />
               </View>
             ))
           ) : (
-            <EmptyState text="পেমেন্ট ইতিহাস নেই" />
+            <EmptyState text={t('No payment history yet')} />
           )
         ) : tab === 'ATTENDANCE' ? (
           attendance.length ? (
@@ -549,7 +593,7 @@ export function StudentProfileScreen() {
               </View>
             ))
           ) : (
-            <EmptyState text="উপস্থিতির রেকর্ড নেই" />
+            <EmptyState text={t('No attendance records')} />
           )
         ) : notices.length ? (
           notices.map(item => (
@@ -560,7 +604,7 @@ export function StudentProfileScreen() {
             </View>
           ))
         ) : (
-          <EmptyState text="কোনো নোটিশ নেই" />
+          <EmptyState text={t('No notices')} />
         )}
       </Box>
       <StudentForm
@@ -580,6 +624,7 @@ function DriverForm({
   visible: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { data: transport } = useData();
   const { mutate } = useManagement();
   const action = useAction();
@@ -625,7 +670,7 @@ function DriverForm({
     setForm(current => ({ ...current, [key]: value }));
   return (
     <FormModal
-      title={driver ? 'ড্রাইভারের তথ্য সম্পাদনা' : 'ড্রাইভার যোগ করুন'}
+      title={driver ? t('Edit driver details') : t('Add driver')}
       visible={visible}
       onClose={onClose}
       busy={action.busy}
@@ -633,7 +678,7 @@ function DriverForm({
       onSave={() =>
         action.run(async () => {
           if (!form.name.trim() || !form.phone.trim())
-            throw new Error('ড্রাইভারের নাম ও মোবাইল নম্বর দিন।');
+            throw new Error('Enter the driver name and mobile number.');
           const input: DriverInput = {
             name: form.name.trim(),
             phone: form.phone.trim(),
@@ -657,40 +702,40 @@ function DriverForm({
       }
     >
       <Input
-        label="নাম *"
+        label={t('Name *')}
         value={form.name}
         onChangeText={v => set('name', v)}
         maxLength={100}
       />
       <Input
-        label="মোবাইল নম্বর *"
+        label={t('Mobile number *')}
         value={form.phone}
         onChangeText={v => set('phone', v)}
         keyboardType="phone-pad"
         maxLength={16}
       />
       <Input
-        label="NID"
+        label={t('NID')}
         value={form.nid}
         onChangeText={v => set('nid', v)}
         keyboardType="number-pad"
         maxLength={20}
       />
       <Input
-        label="ঠিকানা"
+        label={t('Address')}
         value={form.address}
         onChangeText={v => set('address', v)}
         multiline
         maxLength={400}
       />
       <Input
-        label="যোগদানের তারিখ (YYYY-MM-DD)"
+        label={t('Joining date (YYYY-MM-DD)')}
         value={form.joiningDate}
         onChangeText={v => set('joiningDate', v)}
         maxLength={10}
       />
       <Choice
-        label="নির্ধারিত গাড়ি"
+        label={t('Assigned vehicle')}
         value={form.vehicleId}
         onChange={v => set('vehicleId', v)}
         options={transport.vehicles.map(item => ({
@@ -699,26 +744,27 @@ function DriverForm({
         }))}
       />
       <Input
-        label="মাসিক বেতন (৳)"
+        label={t('Monthly salary (৳)')}
         value={form.salary}
         onChangeText={v => set('salary', v)}
         keyboardType="decimal-pad"
       />
       <Choice
-        label="অবস্থা"
+        label={t('Status')}
         value={form.status}
         optional={false}
         onChange={v => set('status', v)}
         options={[
-          { value: 'ACTIVE', label: 'Active' },
-          { value: 'LEAVE', label: 'ছুটি' },
-          { value: 'INACTIVE', label: 'Inactive' },
+          { value: 'ACTIVE', label: t('Active') },
+          { value: 'LEAVE', label: t('Leave') },
+          { value: 'INACTIVE', label: t('Inactive') },
         ]}
       />
     </FormModal>
   );
 }
 export function DriversScreen() {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useManagement();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const [query, setQuery] = useState('');
@@ -734,19 +780,19 @@ export function DriversScreen() {
         value={query}
         onChange={setQuery}
         onAdd={() => setAdding(true)}
-        placeholder="ড্রাইভার খুঁজুন…"
+        placeholder={t('Search drivers...')}
       />
       <Box>
         <View style={s.tableHeader}>
-          <Text style={[s.cell, s.driverColumn]}>নাম</Text>
-          <Text style={s.cell}>রুট</Text>
-          <Text style={s.smallCell}>অবস্থা</Text>
+          <Text style={[s.cell, s.driverColumn]}>{t('Name')}</Text>
+          <Text style={s.cell}>{t('Route')}</Text>
+          <Text style={s.smallCell}>{t('Status')}</Text>
         </View>
         {drivers.map(driver => (
           <Pressable
             key={driver.id}
             accessibilityRole="button"
-            accessibilityLabel={`${driver.name} প্রোফাইল`}
+            accessibilityLabel={t('{{name}} profile', { name: driver.name })}
             onPress={() =>
               navigation.navigate('DriverDetails', { id: driver.id })
             }
@@ -758,23 +804,26 @@ export function DriversScreen() {
                 {driver.name}
               </Text>
               <Text style={s.muted}>
-                {driver.vehicleName || 'গাড়ি নির্ধারিত নেই'}
+                {driver.vehicleName || t('No vehicle assigned')}
               </Text>
             </View>
             <Text style={s.cell}>{driver.routeName || '—'}</Text>
             <Pill value={driver.status} />
           </Pressable>
         ))}
-        {!drivers.length ? (
-          <EmptyState text="কোনো ড্রাইভার পাওয়া যায়নি" />
-        ) : null}
-        <Text style={s.muted}>মোট ড্রাইভার: {drivers.length}</Text>
+        {!drivers.length ? <EmptyState text={t('No drivers found')} /> : null}
+        <Text style={s.muted}>
+          {t('Total drivers: {{number}}', {
+            number: numberLabel(drivers.length),
+          })}
+        </Text>
       </Box>
       <DriverForm visible={adding} onClose={() => setAdding(false)} />
     </AdminPage>
   );
 }
 export function DriverProfileScreen() {
+  const { t } = useTranslation();
   const { params } = useRoute();
   const { id } = (params || {}) as { id?: string };
   const { data, loading, error, refresh } = useManagement();
@@ -785,7 +834,7 @@ export function DriverProfileScreen() {
     return (
       <AdminPage loading={loading} error={error} refresh={refresh}>
         <EmptyState
-          text={loading ? 'ড্রাইভার লোড হচ্ছে…' : 'ড্রাইভার পাওয়া যায়নি'}
+          text={loading ? t('Loading driver...') : t('Driver not found')}
         />
       </AdminPage>
     );
@@ -809,35 +858,39 @@ export function DriverProfileScreen() {
           <View style={s.flex}>
             <Text style={s.title}>{driver.name}</Text>
             <Text style={s.muted}>
-              ID: {driver.id.slice(0, 8).toUpperCase()}
+              {t('ID: {{id}}', { id: driver.id.slice(0, 8).toUpperCase() })}
             </Text>
           </View>
           <Pill value={driver.status} />
         </View>
-        <Detail icon="phone" label="মোবাইল" value={driver.phone} />
-        <Detail icon="students" label="NID" value={driver.nid} />
-        <Detail icon="location" label="ঠিকানা" value={driver.address} />
+        <Detail icon="phone" label={t('Mobile')} value={driver.phone} />
+        <Detail icon="students" label={t('NID')} value={driver.nid} />
+        <Detail icon="location" label={t('Address')} value={driver.address} />
         <Detail
           icon="calendar"
-          label="যোগদানের তারিখ"
+          label={t('Joining date')}
           value={niceDate(driver.joiningDate)}
         />
         <View style={s.line} />
-        <Heading title="নির্ধারিত গাড়ি" />
-        <Detail icon="vehicles" label="গাড়ি" value={driver.vehicleName} />
-        <Detail icon="routes" label="রুট" value={driver.routeName} />
+        <Heading title={t('Assigned vehicle')} />
+        <Detail
+          icon="vehicles"
+          label={t('Vehicle')}
+          value={driver.vehicleName}
+        />
+        <Detail icon="routes" label={t('Route')} value={driver.routeName} />
         <Detail
           icon="payments"
-          label="মাসিক বেতন"
+          label={t('Monthly salary')}
           value={money(driver.monthlySalary)}
         />
         <Detail
-          label="এই মাসে বেতন পরিশোধ"
+          label={t('Salary paid this month')}
           value={money(salaryPaidThisMonth)}
         />
         <Detail
           icon="calendar"
-          label="সর্বশেষ বেতন পরিশোধ"
+          label={t('Last salary payment')}
           value={niceDate(
             [...salaries].sort((a, b) => b.date.localeCompare(a.date))[0]?.date,
           )}
@@ -848,9 +901,9 @@ export function DriverProfileScreen() {
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'ATTENDANCE', label: 'উপস্থিতি' },
-          { value: 'SALARY', label: 'বেতন ইতিহাস' },
-          { value: 'LEAVE', label: 'ছুটি' },
+          { value: 'ATTENDANCE', label: t('Attendance') },
+          { value: 'SALARY', label: t('Salary history') },
+          { value: 'LEAVE', label: t('Leave') },
         ]}
       />
       <Box>
@@ -865,8 +918,10 @@ export function DriverProfileScreen() {
             ))
           ) : (
             <EmptyState
-              text="বেতন পরিশোধের রেকর্ড নেই"
-              detail="আয়–ব্যয়ে ড্রাইভারের বেতন যোগ করলে এখানে দেখা যাবে।"
+              text={t('No salary payment records')}
+              detail={t(
+                'Driver salary payments added in Income and expenses will appear here.',
+              )}
             />
           )
         ) : attendance.filter(
@@ -881,7 +936,7 @@ export function DriverProfileScreen() {
               </View>
             ))
         ) : (
-          <EmptyState text="কোনো রেকর্ড নেই" />
+          <EmptyState text={t('No records')} />
         )}
       </Box>
       <DriverForm

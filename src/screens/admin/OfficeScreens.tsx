@@ -15,6 +15,8 @@ import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
+import { useTranslation } from '../../i18n';
+import { numberLabel } from '../../utils/format';
 import {
   AdminPage,
   Box,
@@ -36,14 +38,15 @@ import {
 } from './AdminUi';
 
 const noticeCategories = [
-  { value: 'PAYMENT', label: 'মাসিক ভাড়া পরিশোধ' },
-  { value: 'DELAY', label: 'গাড়ি দেরি' },
-  { value: 'VEHICLE_CHANGE', label: 'গাড়ি পরিবর্তন' },
-  { value: 'HOLIDAY', label: 'ছুটির নোটিশ' },
-  { value: 'EMERGENCY', label: 'জরুরি নোটিশ' },
-  { value: 'GENERAL', label: 'সাধারণ নোটিশ' },
+  { value: 'PAYMENT', label: 'Monthly fare payment' },
+  { value: 'DELAY', label: 'Vehicle delay' },
+  { value: 'VEHICLE_CHANGE', label: 'Vehicle change' },
+  { value: 'HOLIDAY', label: 'Holiday notice' },
+  { value: 'EMERGENCY', label: 'Emergency notice' },
+  { value: 'GENERAL', label: 'General notice' },
 ];
 export function NoticesScreen() {
+  const { t } = useTranslation();
   const { data, loading, error, refresh, mutate } = useManagement();
   const { data: transport } = useData();
   const action = useAction();
@@ -74,7 +77,11 @@ export function NoticesScreen() {
   };
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
-      <Heading title="অভিভাবকদের নোটিশ" action="+ তৈরি করুন" onAction={open} />
+      <Heading
+        title={t('Notices for guardians')}
+        action={t('+ Create')}
+        onAction={open}
+      />
       {(data?.notices || []).map(item => (
         <Box key={item.id}>
           <View style={s.row}>
@@ -98,34 +105,34 @@ export function NoticesScreen() {
           <Text style={s.body}>{item.body}</Text>
           <Text style={s.muted}>
             {item.audience === 'ALL'
-              ? 'সকল অভিভাবক'
+              ? t('All guardians')
               : item.audience === 'STUDENT'
-              ? 'নির্দিষ্ট শিক্ষার্থীর অভিভাবক'
+              ? t("Selected student's guardian")
               : item.audience === 'ROUTE'
-              ? 'নির্দিষ্ট রুটের অভিভাবক'
-              : 'নির্দিষ্ট গাড়ির অভিভাবক'}
+              ? t('Guardians on a selected route')
+              : t('Guardians of a selected vehicle')}
           </Text>
         </Box>
       ))}
       {!data?.notices.length ? (
         <EmptyState
-          text="এখনো কোনো নোটিশ নেই"
-          detail="নতুন নোটিশ তৈরি করে অভিভাবকদের জানান।"
+          text={t('No notices yet')}
+          detail={t('Create a notice to inform guardians.')}
         />
       ) : null}
       <FormModal
-        title="নতুন নোটিশ"
+        title={t('New notice')}
         visible={adding}
         onClose={() => setAdding(false)}
         busy={action.busy}
         error={action.error}
-        saveTitle="নোটিশ পাঠান"
+        saveTitle={t('Send notice')}
         onSave={() =>
           action.run(async () => {
             if (!form.title.trim() || !form.body.trim())
-              throw new Error('নোটিশের শিরোনাম ও বার্তা লিখুন।');
+              throw new Error('Enter a notice title and message.');
             if (form.audience !== 'ALL' && !form.targetId)
-              throw new Error('যাকে পাঠাবেন তাকে নির্বাচন করুন।');
+              throw new Error('Select who should receive the notice.');
             await mutate('/admin/notices', {
               title: form.title.trim(),
               body: form.body.trim(),
@@ -138,34 +145,37 @@ export function NoticesScreen() {
         }
       >
         <Choice
-          label="নোটিশের ধরন"
+          label={t('Notice category')}
           value={form.category}
           optional={false}
-          options={noticeCategories}
+          options={noticeCategories.map(item => ({
+            ...item,
+            label: t(item.label),
+          }))}
           onChange={category => setForm(current => ({ ...current, category }))}
         />
         <Input
-          label="শিরোনাম *"
+          label={t('Title *')}
           value={form.title}
           onChangeText={title => setForm(current => ({ ...current, title }))}
           maxLength={160}
         />
         <Input
-          label="বার্তা *"
+          label={t('Message *')}
           value={form.body}
           onChangeText={body => setForm(current => ({ ...current, body }))}
           multiline
           maxLength={2000}
         />
         <Choice
-          label="যাকে পাঠাবেন"
+          label={t('Send to')}
           value={form.audience}
           optional={false}
           options={[
-            { value: 'ALL', label: 'সকল অভিভাবক' },
-            { value: 'ROUTE', label: 'নির্দিষ্ট রুট' },
-            { value: 'VEHICLE', label: 'নির্দিষ্ট গাড়ি' },
-            { value: 'STUDENT', label: 'নির্দিষ্ট শিক্ষার্থী' },
+            { value: 'ALL', label: t('All guardians') },
+            { value: 'ROUTE', label: t('Selected route') },
+            { value: 'VEHICLE', label: t('Selected vehicle') },
+            { value: 'STUDENT', label: t('Selected student') },
           ]}
           onChange={audience =>
             setForm(current => ({
@@ -177,7 +187,7 @@ export function NoticesScreen() {
         />
         {form.audience !== 'ALL' ? (
           <Choice
-            label="প্রাপক নির্বাচন করুন"
+            label={t('Select recipient')}
             value={form.targetId}
             options={targets}
             onChange={targetId =>
@@ -186,19 +196,22 @@ export function NoticesScreen() {
           />
         ) : null}
         <Text style={s.note}>
-          নির্বাচিত অভিভাবকরা অ্যাপের নোটিফিকেশন ও নোটিশে এই বার্তা দেখতে পাবেন।
+          {t(
+            'Selected guardians will see this message in app notifications and notices.',
+          )}
         </Text>
       </FormModal>
     </AdminPage>
   );
 }
 const requestCategories = [
-  { value: 'ABSENCE', label: 'শিক্ষার্থীর অনুপস্থিতি' },
-  { value: 'LEAVE', label: 'ড্রাইভারের ছুটি' },
-  { value: 'MAINTENANCE', label: 'গাড়ির সার্ভিস' },
-  { value: 'OTHER', label: 'অন্যান্য' },
+  { value: 'ABSENCE', label: 'Student absence' },
+  { value: 'LEAVE', label: 'Driver leave' },
+  { value: 'MAINTENANCE', label: 'Vehicle service' },
+  { value: 'OTHER', label: 'Other' },
 ];
 export function RequestsScreen() {
+  const { t } = useTranslation();
   const { data, loading, error, refresh, mutate } = useManagement();
   const { data: transport } = useData();
   const action = useAction();
@@ -227,8 +240,8 @@ export function RequestsScreen() {
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
       <Heading
-        title="অভিভাবক ও ড্রাইভারের অনুরোধ"
-        action="+ যোগ করুন"
+        title={t('Guardian and driver requests')}
+        action={t('+ Add')}
         onAction={() => {
           setForm(blank());
           action.setError('');
@@ -241,13 +254,15 @@ export function RequestsScreen() {
         options={[
           {
             value: 'PENDING',
-            label: `নতুন (${
-              data?.requests.filter(item => item.status === 'PENDING').length ||
-              0
-            })`,
+            label: t('New ({{number}})', {
+              number: numberLabel(
+                data?.requests.filter(item => item.status === 'PENDING')
+                  .length || 0,
+              ),
+            }),
           },
-          { value: 'APPROVED', label: 'অনুমোদিত' },
-          { value: 'REJECTED', label: 'প্রত্যাখ্যাত' },
+          { value: 'APPROVED', label: t('Approved') },
+          { value: 'REJECTED', label: t('Rejected') },
         ]}
       />
       {records.map(item => (
@@ -270,13 +285,13 @@ export function RequestsScreen() {
             <View style={s.row}>
               <View style={s.flex}>
                 <SmallButton
-                  title="অনুমোদন"
+                  title={t('Approve')}
                   onPress={() => review(item, 'APPROVED')}
                 />
               </View>
               <View style={s.flex}>
                 <SmallButton
-                  title="প্রত্যাখ্যান"
+                  title={t('Reject')}
                   danger
                   onPress={() => review(item, 'REJECTED')}
                 />
@@ -285,21 +300,23 @@ export function RequestsScreen() {
           ) : null}
         </Box>
       ))}
-      {!records.length ? <EmptyState text="এই বিভাগে কোনো অনুরোধ নেই" /> : null}
+      {!records.length ? (
+        <EmptyState text={t('No requests in this category')} />
+      ) : null}
       <FormModal
         title={
-          decision === 'APPROVED' ? 'অনুরোধ অনুমোদন' : 'অনুরোধ প্রত্যাখ্যান'
+          decision === 'APPROVED' ? t('Approve request') : t('Reject request')
         }
         visible={!!selected}
         onClose={() => setSelected(undefined)}
         busy={action.busy}
         error={action.error}
-        saveTitle="সিদ্ধান্ত নিশ্চিত করুন"
+        saveTitle={t('Confirm decision')}
         onSave={() =>
           action.run(async () => {
             if (!selected) return;
             if (decision === 'REJECTED' && !note.trim())
-              throw new Error('প্রত্যাখ্যানের কারণ লিখুন।');
+              throw new Error('Enter a reason for rejection.');
             await mutate(
               `/admin/management-requests/${selected.id}/decision`,
               { decision, note },
@@ -314,8 +331,8 @@ export function RequestsScreen() {
         <Input
           label={
             decision === 'REJECTED'
-              ? 'প্রত্যাখ্যানের কারণ *'
-              : 'মন্তব্য (ঐচ্ছিক)'
+              ? t('Reason for rejection *')
+              : t('Comment (optional)')
           }
           value={note}
           onChangeText={setNote}
@@ -324,7 +341,7 @@ export function RequestsScreen() {
         />
       </FormModal>
       <FormModal
-        title="নতুন অনুরোধ"
+        title={t('New request')}
         visible={adding}
         onClose={() => setAdding(false)}
         busy={action.busy}
@@ -335,11 +352,13 @@ export function RequestsScreen() {
               form.title.trim().length < 2 ||
               form.description.trim().length < 5
             )
-              throw new Error('শিরোনাম এবং অন্তত ৫ অক্ষরের বিস্তারিত লিখুন।');
+              throw new Error(
+                'Enter a title and a description of at least 5 characters.',
+              );
             if (form.category === 'ABSENCE' && !form.studentId)
-              throw new Error('শিক্ষার্থী নির্বাচন করুন।');
+              throw new Error('Select a student.');
             if (form.category === 'LEAVE' && !form.driverId)
-              throw new Error('ড্রাইভার নির্বাচন করুন।');
+              throw new Error('Select a driver.');
             await mutate('/management/requests', {
               category: form.category,
               title: form.title.trim(),
@@ -354,10 +373,13 @@ export function RequestsScreen() {
         }
       >
         <Choice
-          label="ধরন"
+          label={t('Type')}
           value={form.category}
           optional={false}
-          options={requestCategories}
+          options={requestCategories.map(item => ({
+            ...item,
+            label: t(item.label),
+          }))}
           onChange={category =>
             setForm(current => ({
               ...current,
@@ -370,7 +392,7 @@ export function RequestsScreen() {
         />
         {form.category === 'ABSENCE' ? (
           <Choice
-            label="শিক্ষার্থী"
+            label={t('Student')}
             value={form.studentId}
             options={(data?.students || []).map(item => ({
               value: item.id,
@@ -382,7 +404,7 @@ export function RequestsScreen() {
           />
         ) : form.category === 'LEAVE' ? (
           <Choice
-            label="ড্রাইভার"
+            label={t('Driver')}
             value={form.driverId}
             options={(data?.drivers || []).map(item => ({
               value: item.id,
@@ -394,7 +416,7 @@ export function RequestsScreen() {
           />
         ) : form.category === 'MAINTENANCE' ? (
           <Choice
-            label="গাড়ি"
+            label={t('Vehicle')}
             value={form.vehicleId}
             options={transport.vehicles.map(item => ({
               value: item.id,
@@ -406,13 +428,13 @@ export function RequestsScreen() {
           />
         ) : null}
         <Input
-          label="শিরোনাম"
+          label={t('Title')}
           value={form.title}
           onChangeText={title => setForm(current => ({ ...current, title }))}
           maxLength={160}
         />
         <Input
-          label="বিস্তারিত"
+          label={t('Description')}
           value={form.description}
           onChangeText={description =>
             setForm(current => ({ ...current, description }))
@@ -421,7 +443,7 @@ export function RequestsScreen() {
           maxLength={2000}
         />
         <Input
-          label="তারিখ (YYYY-MM-DD)"
+          label={t('Date (YYYY-MM-DD)')}
           value={form.date}
           onChangeText={date => setForm(current => ({ ...current, date }))}
           maxLength={10}
@@ -431,13 +453,14 @@ export function RequestsScreen() {
   );
 }
 const templateLabels: { key: keyof BusinessSettings; title: string }[] = [
-  { key: 'paymentReminder', title: 'পেমেন্ট রিমাইন্ডার' },
-  { key: 'absenceMessage', title: 'অনুপস্থিতির বার্তা' },
-  { key: 'delayMessage', title: 'গাড়ি দেরি' },
-  { key: 'holidayMessage', title: 'ছুটির বার্তা' },
-  { key: 'emergencyMessage', title: 'জরুরি বার্তা' },
+  { key: 'paymentReminder', title: 'Payment reminder' },
+  { key: 'absenceMessage', title: 'Absence message' },
+  { key: 'delayMessage', title: 'Vehicle delay' },
+  { key: 'holidayMessage', title: 'Holiday message' },
+  { key: 'emergencyMessage', title: 'Emergency message' },
 ];
 export function CommunicationScreen() {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useManagement();
   const { data: transport } = useData();
   const action = useAction();
@@ -496,7 +519,7 @@ export function CommunicationScreen() {
       <View style={[s.avatar, s.contactIcon, { backgroundColor: color }]}>
         <NoorIcon name={icon} size={18} color={C.white} />
       </View>
-      <Text style={[s.body, s.flex]}>{title}</Text>
+      <Text style={[s.body, s.flex]}>{t(title)}</Text>
       <Text style={s.muted}>›</Text>
     </Pressable>
   );
@@ -504,19 +527,17 @@ export function CommunicationScreen() {
     <AdminPage loading={loading} error={error} refresh={refresh}>
       <Box>
         <Heading title="WhatsApp" />
-        {row('অভিভাবকের সঙ্গে যোগাযোগ', 'whatsapp', () =>
+        {row('Contact a guardian', 'whatsapp', () =>
           open('whatsapp', 'GUARDIAN'),
         )}
-        {row('ড্রাইভারের সঙ্গে যোগাযোগ', 'whatsapp', () =>
-          open('whatsapp', 'DRIVER'),
-        )}
-        {row('গাড়ি ভিত্তিক যোগাযোগ', 'vehicles', () =>
+        {row('Contact a driver', 'whatsapp', () => open('whatsapp', 'DRIVER'))}
+        {row('Contact by vehicle', 'vehicles', () =>
           open('whatsapp', 'VEHICLE'),
         )}
-        {row('রুট ভিত্তিক যোগাযোগ', 'routes', () => open('whatsapp', 'ROUTE'))}
+        {row('Contact by route', 'routes', () => open('whatsapp', 'ROUTE'))}
       </Box>
       <Box>
-        <Heading title="SMS পাঠান" />
+        <Heading title={t('Send SMS')} />
         {templateLabels.map(template =>
           row(
             template.title,
@@ -525,20 +546,20 @@ export function CommunicationScreen() {
             C.blue,
           ),
         )}
-        {row('কাস্টম SMS', 'sms', () => open('sms', 'GUARDIAN'), C.blue)}
+        {row('Custom SMS', 'sms', () => open('sms', 'GUARDIAN'), C.blue)}
       </Box>
       <Box>
-        <Heading title="ফোন কল" />
-        {row('অভিভাবককে কল করুন', 'phone', () => open('call', 'GUARDIAN'))}
-        {row('ড্রাইভারকে কল করুন', 'phone', () => open('call', 'DRIVER'))}
+        <Heading title={t('Phone call')} />
+        {row('Call a guardian', 'phone', () => open('call', 'GUARDIAN'))}
+        {row('Call a driver', 'phone', () => open('call', 'DRIVER'))}
       </Box>
       <FormModal
         title={
           composer === 'whatsapp'
-            ? 'WhatsApp যোগাযোগ'
+            ? t('WhatsApp contact')
             : composer === 'sms'
-            ? 'SMS বার্তা'
-            : 'ফোন কল'
+            ? t('SMS message')
+            : t('Phone call')
         }
         visible={!!composer}
         onClose={() => setComposer(undefined)}
@@ -546,23 +567,23 @@ export function CommunicationScreen() {
         error={action.error}
         saveTitle={
           composer === 'call'
-            ? 'কল করুন'
+            ? t('Call')
             : composer === 'sms'
-            ? 'SMS অ্যাপে খুলুন'
-            : 'WhatsApp-এ খুলুন'
+            ? t('Open in SMS app')
+            : t('Open in WhatsApp')
         }
         onSave={() =>
           action.run(async () => {
             if (!composer) return;
-            if (!recipient) throw new Error('প্রাপক নির্বাচন করুন।');
+            if (!recipient) throw new Error('Select a recipient.');
             if (composer !== 'call' && !message.trim())
-              throw new Error('বার্তা লিখুন।');
+              throw new Error('Enter a message.');
             await contact(recipient, composer, message);
           })
         }
       >
         <Choice
-          label="যোগাযোগের ধরন"
+          label={t('Contact type')}
           value={group}
           optional={false}
           onChange={value => {
@@ -571,15 +592,15 @@ export function CommunicationScreen() {
             setFilter('');
           }}
           options={[
-            { value: 'GUARDIAN', label: 'অভিভাবক' },
-            { value: 'DRIVER', label: 'ড্রাইভার' },
-            { value: 'VEHICLE', label: 'গাড়ি ভিত্তিক' },
-            { value: 'ROUTE', label: 'রুট ভিত্তিক' },
+            { value: 'GUARDIAN', label: t('Guardian') },
+            { value: 'DRIVER', label: t('Driver') },
+            { value: 'VEHICLE', label: t('By vehicle') },
+            { value: 'ROUTE', label: t('By route') },
           ]}
         />
         {group === 'ROUTE' || group === 'VEHICLE' ? (
           <Choice
-            label={group === 'ROUTE' ? 'রুট' : 'গাড়ি'}
+            label={group === 'ROUTE' ? t('Route') : t('Vehicle')}
             value={filter}
             onChange={value => {
               setFilter(value);
@@ -592,25 +613,27 @@ export function CommunicationScreen() {
           />
         ) : null}
         <Choice
-          label="প্রাপক"
+          label={t('Recipient')}
           value={recipient}
           onChange={setRecipient}
           options={recipients}
         />
         {!recipients.length ? (
-          <Text style={s.muted}>এই তালিকায় কোনো যোগাযোগ নম্বর নেই।</Text>
+          <Text style={s.muted}>{t('No contact numbers in this list.')}</Text>
         ) : null}
         {composer !== 'call' ? (
           <>
             <Input
-              label="বার্তা"
+              label={t('Message')}
               value={message}
               onChangeText={setMessage}
               multiline
               maxLength={2000}
             />
             <Text style={s.note}>
-              বার্তাটি নির্বাচিত অ্যাপে খুলবে। সেখান থেকে পাঠানো নিশ্চিত করুন।
+              {t(
+                'The message will open in the selected app. Confirm sending it there.',
+              )}
             </Text>
           </>
         ) : null}
@@ -626,6 +649,7 @@ type SettingSection =
   | 'EMERGENCY'
   | 'SECURITY';
 export function SettingsScreen() {
+  const { t } = useTranslation();
   const { data, loading, error, refresh, mutate } = useManagement();
   const { session, updateProfile, signOut } = useAuth();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -641,35 +665,51 @@ export function SettingsScreen() {
     setName(session?.user.name || '');
     setSection(next);
   };
-  const rows: { title: string; icon: string; onPress: () => void }[] = [
+  const rows: {
+    id: SettingSection | 'PAYMENTS';
+    title: string;
+    icon: string;
+    onPress: () => void;
+  }[] = [
     {
-      title: 'ব্যবসার তথ্য',
+      id: 'BUSINESS',
+      title: 'Business information',
       icon: 'business',
       onPress: () => open('BUSINESS'),
     },
     {
-      title: 'অ্যাডমিন প্রোফাইল',
+      id: 'PROFILE',
+      title: 'Admin profile',
       icon: 'user',
       onPress: () => open('PROFILE'),
     },
     {
-      title: 'পেমেন্ট পদ্ধতি',
+      id: 'PAYMENTS',
+      title: 'Payment methods',
       icon: 'payments',
       onPress: () => navigation.navigate('PaymentAccounts'),
     },
-    { title: 'SMS সেটিংস', icon: 'sms', onPress: () => open('SMS') },
     {
-      title: 'WhatsApp সেটিংস',
+      id: 'SMS',
+      title: 'SMS settings',
+      icon: 'sms',
+      onPress: () => open('SMS'),
+    },
+    {
+      id: 'WHATSAPP',
+      title: 'WhatsApp settings',
       icon: 'whatsapp',
       onPress: () => open('WHATSAPP'),
     },
     {
-      title: 'জরুরি যোগাযোগ',
+      id: 'EMERGENCY',
+      title: 'Emergency contact',
       icon: 'emergency',
       onPress: () => open('EMERGENCY'),
     },
     {
-      title: 'অ্যাকাউন্ট ও নিরাপত্তা',
+      id: 'SECURITY',
+      title: 'Account and security',
       icon: 'lock',
       onPress: () => open('SECURITY'),
     },
@@ -681,7 +721,7 @@ export function SettingsScreen() {
   ) => (
     <Input
       key={key}
-      label={label}
+      label={t(label)}
       value={form[key] || ''}
       onChangeText={value => setForm(current => ({ ...current, [key]: value }))}
       multiline={multiline}
@@ -702,58 +742,47 @@ export function SettingsScreen() {
     />
   );
   const title =
-    rows.find(
-      item =>
-        ({
-          BUSINESS: 'ব্যবসার তথ্য',
-          PROFILE: 'অ্যাডমিন প্রোফাইল',
-          SMS: 'SMS সেটিংস',
-          WHATSAPP: 'WhatsApp সেটিংস',
-          EMERGENCY: 'জরুরি যোগাযোগ',
-          SECURITY: 'অ্যাকাউন্ট ও নিরাপত্তা',
-        }[section || 'BUSINESS'] === item.title),
-    )?.title || 'সেটিংস';
+    !isAdmin && section === 'PROFILE'
+      ? 'My profile'
+      : rows.find(item => item.id === section)?.title || 'Settings';
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
       <Box>
         {rows
           .filter(
-            item =>
-              isAdmin ||
-              item.title === 'অ্যাডমিন প্রোফাইল' ||
-              item.title === 'অ্যাকাউন্ট ও নিরাপত্তা',
+            item => isAdmin || item.id === 'PROFILE' || item.id === 'SECURITY',
           )
           .map(item => (
             <Pressable
-              key={item.title}
+              key={item.id}
               accessibilityRole="button"
               onPress={item.onPress}
               style={s.tableRow}
             >
               <NoorIcon name={item.icon} size={20} color={C.green} />
               <Text style={[s.body, s.flex]}>
-                {!isAdmin && item.title === 'অ্যাডমিন প্রোফাইল'
-                  ? 'আমার প্রোফাইল'
-                  : item.title}
+                {!isAdmin && item.id === 'PROFILE'
+                  ? t('My profile')
+                  : t(item.title)}
               </Text>
               <Text style={s.muted}>›</Text>
             </Pressable>
           ))}
       </Box>
       <Box>
-        <Heading title="ভাষা / Language" />
+        <Heading title={t('Language')} />
         <LanguageSwitcher />
       </Box>
       <Text style={[s.muted, s.centered]}>
-        NOOR TRANSPORT · Safe Journey, Bright Future
+        NOOR TRANSPORT · {t('Safe Journey, Bright Future')}
       </Text>
       <FormModal
-        title={title}
+        title={t(title)}
         visible={!!section}
         onClose={() => setSection(undefined)}
         busy={action.busy}
         error={action.error}
-        saveTitle={section === 'SECURITY' ? 'লগ আউট' : 'সংরক্ষণ করুন'}
+        saveTitle={section === 'SECURITY' ? t('Sign out') : t('Save')}
         onSave={() =>
           action.run(async () => {
             if (section === 'SECURITY') {
@@ -762,7 +791,10 @@ export function SettingsScreen() {
             }
             if (section === 'PROFILE') await updateProfile({ name });
             else {
-              if (!isAdmin) throw new Error('এই সেটিংস পরিবর্তনের অনুমতি নেই।');
+              if (!isAdmin)
+                throw new Error(
+                  'You do not have permission to change these settings.',
+                );
               const keys: (keyof BusinessSettings)[] =
                 section === 'BUSINESS'
                   ? ['businessName', 'phone', 'address']
@@ -772,7 +804,7 @@ export function SettingsScreen() {
                   ? ['whatsappNumber']
                   : ['emergencyPhone'];
               if (section === 'BUSINESS' && !form.businessName?.trim())
-                throw new Error('ব্যবসার নাম লিখুন।');
+                throw new Error('Enter the business name.');
               await mutate(
                 '/admin/settings',
                 Object.fromEntries(
@@ -787,49 +819,52 @@ export function SettingsScreen() {
       >
         {section === 'BUSINESS' ? (
           <>
-            {input('businessName', 'ব্যবসার নাম')}
-            {input('phone', 'অফিসের ফোন নম্বর')}
-            {input('address', 'ঠিকানা', true)}
+            {input('businessName', 'Business name')}
+            {input('phone', 'Office phone number')}
+            {input('address', 'Address', true)}
           </>
         ) : section === 'PROFILE' ? (
           <>
             <Input
-              label={isAdmin ? 'অ্যাডমিনের নাম' : 'আপনার নাম'}
+              label={isAdmin ? t('Admin name') : t('Your name')}
               value={name}
               onChangeText={setName}
               maxLength={80}
             />
-            <Detail label="মোবাইল" value={session?.user.phone} />
-            <Detail label="ভূমিকা" value={isAdmin ? 'Admin' : 'Parent'} />
+            <Detail label={t('Mobile')} value={session?.user.phone} />
+            <Detail label={t('Role')} value={t(isAdmin ? 'Admin' : 'Parent')} />
           </>
         ) : section === 'SMS' ? (
           <>
             {templateLabels.map(item => input(item.key, item.title, true))}
             <Text style={s.note}>
-              যোগাযোগ কেন্দ্র থেকে এই টেমপ্লেটগুলো SMS অ্যাপে ব্যবহার করুন।
+              {t(
+                'Use these templates in the SMS app from the communication center.',
+              )}
             </Text>
           </>
         ) : section === 'WHATSAPP' ? (
           <>
-            {input('whatsappNumber', 'অফিসের WhatsApp নম্বর')}
+            {input('whatsappNumber', 'Office WhatsApp number')}
             <Text style={s.note}>
-              অভিভাবকরা এই নম্বরে অফিসের সঙ্গে যোগাযোগ করতে পারবেন।
+              {t('Guardians can contact the office at this number.')}
             </Text>
           </>
         ) : section === 'EMERGENCY' ? (
           <>
-            {input('emergencyPhone', 'জরুরি যোগাযোগ নম্বর')}
+            {input('emergencyPhone', 'Emergency contact number')}
             <Text style={s.note}>
-              অভিভাবকদের জরুরি যোগাযোগে এই নম্বর দেখাবে।
+              {t("This number will appear in guardians' emergency contacts.")}
             </Text>
           </>
         ) : (
           <>
-            <Detail label="অ্যাকাউন্ট" value={session?.user.name} />
-            <Detail label="মোবাইল" value={session?.user.phone} />
+            <Detail label={t('Account')} value={session?.user.name} />
+            <Detail label={t('Mobile')} value={session?.user.phone} />
             <Text style={s.body}>
-              লগ আউট করলে এই ডিভাইসের সেশন বন্ধ হবে। আবার ব্যবহার করতে লগইন
-              করুন।
+              {t(
+                'Signing out ends the session on this device. Sign in to use it again.',
+              )}
             </Text>
           </>
         )}

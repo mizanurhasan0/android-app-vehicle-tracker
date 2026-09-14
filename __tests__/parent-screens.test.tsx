@@ -1,6 +1,7 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Text } from 'react-native';
+import { Linking, Text } from 'react-native';
+import { i18n } from '../src/i18n';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParams } from '../src/navigation/types';
 import { ManagementOverview, Student } from '../src/api/management';
@@ -9,8 +10,13 @@ import { Button, Field, Select } from '../src/components/ui';
 import {
   AdmissionScreen,
   ApplicationStatusScreen,
+  ParentContactScreen,
   ParentJourneyScreen,
+  ParentStudentScreen,
+  ParentTrackingScreen,
 } from '../src/screens/parent/ParentScreens';
+import { Segment, StudentAvatar } from '../src/screens/parent/ParentUI';
+import { NoorRow } from '../src/components/Noor';
 import {
   contactUrl,
   dhakaDate,
@@ -74,7 +80,8 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
 }));
 
-beforeEach(() => {
+beforeEach(async () => {
+  await i18n.changeLanguage('en');
   jest.clearAllMocks();
   mockMutate.mockResolvedValue({ id: 'new-request' });
   mockRefresh.mockResolvedValue(undefined);
@@ -133,6 +140,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   if (screen) await act(async () => screen.unmount());
+  await i18n.changeLanguage('en');
 });
 const props = <N extends keyof HomeStackParams>(
   name: N,
@@ -146,7 +154,7 @@ async function button(title: string) {
   await act(async () =>
     screen.root
       .findAllByType(Button)
-      .find(item => item.props.title === title)!
+      .find(item => item.props.title === i18n.t(title))!
       .props.onPress(),
   );
 }
@@ -154,7 +162,7 @@ async function field(label: string, value: string) {
   await act(async () =>
     screen.root
       .findAllByType(Field)
-      .find(item => item.props.label === label)!
+      .find(item => item.props.label === i18n.t(label))!
       .props.onChangeText(value),
   );
 }
@@ -171,42 +179,63 @@ async function selectRoute(index: number) {
   );
 }
 
+const text = () =>
+  screen.root
+    .findAllByType(Text)
+    .map(item => item.props.children)
+    .flat()
+    .join(' ');
+async function language(value: 'en' | 'bn') {
+  await act(async () => {
+    await i18n.changeLanguage(value);
+  });
+}
+
 it('validates and submits the reviewed admission fields, using the authenticated guardian', async () => {
   await act(async () => {
     screen = TestRenderer.create(<AdmissionScreen {...props('Admission')} />);
   });
-  await button('পরবর্তী');
+  await button('Next');
   expect(
     screen.root
       .findAllByType(Field)
-      .some(item => item.props.label === 'শিক্ষার্থীর নাম *'),
+      .some(item => item.props.label === 'Student name *'),
   ).toBe(true);
-  await field('শিক্ষার্থীর নাম *', ' Student One ');
-  await field('শ্রেণি *', 'Class 6');
-  await field('রোল নম্বর', '21');
+  await field('Student name *', ' Student One ');
+  await field('Class *', 'Class 6');
+  await field('Roll number', '21');
   mockPickPhoto.mockResolvedValue('data:image/jpeg;base64,cGhvdG8=');
   await act(async () =>
     screen.root
       .findAll(
         node =>
-          node.props.accessibilityLabel === 'শিক্ষার্থীর ছবি নির্বাচন করুন' &&
+          node.props.accessibilityLabel === 'Select a student photo' &&
           typeof node.props.onPress === 'function',
         { deep: false },
       )[0]
       .props.onPress(),
   );
-  await button('পরবর্তী');
-  await field('পিকআপ ঠিকানা *', ' House 12 ');
-  await field('ড্রপ ঠিকানা', 'Madrasa');
-  await field('জরুরি যোগাযোগ নম্বর', '01700000002');
-  await button('পরবর্তী');
+  await button('Next');
+  await field('Pickup address *', ' House 12 ');
+  await field('Drop-off address', 'Madrasa');
+  await field('Emergency contact number', '01700000002');
+  await button('Next');
   await selectRoute(0);
   await act(async () =>
     screen.root.findByType(Select).props.onChange('stop-1'),
   );
-  await button('পরবর্তী');
+  await language('bn');
+  expect(screen.root.findByType(Select).props.value).toBe('stop-1');
+  expect(screen.root.findByType(Select).props.options).toEqual([
+    { value: 'stop-1', label: 'Main gate' },
+  ]);
+  await button('Next');
+  expect(text()).toContain('আবেদন পর্যালোচনা');
+  expect(text()).toContain('Student One');
+  expect(text()).toContain('Class 6');
+  expect(text()).toContain('House 12');
   expect(mockMutate).not.toHaveBeenCalled();
-  await button('আবেদন জমা দিন');
+  await button('Submit application');
   expect(mockMutate).toHaveBeenCalledWith('/requests/guardian/new', {
     studentName: 'Student One',
     routeId: 'route-1',
@@ -227,11 +256,11 @@ it('clears the old pickup stop when changing route and preserves earlier student
   await act(async () => {
     screen = TestRenderer.create(<AdmissionScreen {...props('Admission')} />);
   });
-  await field('শিক্ষার্থীর নাম *', 'Student One');
-  await field('শ্রেণি *', 'Class 6');
-  await button('পরবর্তী');
-  await field('পিকআপ ঠিকানা *', 'House 12');
-  await button('পরবর্তী');
+  await field('Student name *', 'Student One');
+  await field('Class *', 'Class 6');
+  await button('Next');
+  await field('Pickup address *', 'House 12');
+  await button('Next');
   await selectRoute(0);
   await act(async () =>
     screen.root.findByType(Select).props.onChange('stop-1'),
@@ -241,15 +270,15 @@ it('clears the old pickup stop when changing route and preserves earlier student
   expect(screen.root.findByType(Select).props.options).toEqual([
     { value: 'stop-2', label: 'North gate' },
   ]);
-  await button('পরবর্তী');
+  await button('Next');
   expect(mockMutate).not.toHaveBeenCalled();
-  expect(screen.root.findByType(Select).props.label).toBe('পিকআপ স্টপ *');
-  await button('আগের ধাপ');
-  await button('আগের ধাপ');
+  expect(screen.root.findByType(Select).props.label).toBe('Pickup stop *');
+  await button('Previous step');
+  await button('Previous step');
   expect(
     screen.root
       .findAllByType(Field)
-      .find(item => item.props.label === 'শিক্ষার্থীর নাম *')!.props.value,
+      .find(item => item.props.label === 'Student name *')!.props.value,
   ).toBe('Student One');
 });
 
@@ -274,14 +303,9 @@ it('does not show approval for a pending admission or invent a review timestamp'
       />,
     );
   });
-  const text = screen.root
-    .findAllByType(Text)
-    .map(item => item.props.children)
-    .flat()
-    .join(' ');
-  expect(text).toContain('পর্যালোচনার অপেক্ষায়');
-  expect(text).not.toContain('আবেদন গৃহীত হয়েছে');
-  expect(text).not.toContain('Invalid Date');
+  expect(text()).toContain('Awaiting review');
+  expect(text()).not.toContain('Application approved');
+  expect(text()).not.toContain('Invalid Date');
 });
 
 const student = {
@@ -312,15 +336,10 @@ it('shows schedules as scheduled and keeps missing attendance unknown', async ()
       <ParentJourneyScreen {...props('TodayJourney')} />,
     );
   });
-  const text = screen.root
-    .findAllByType(Text)
-    .map(item => item.props.children)
-    .flat()
-    .join(' ');
-  expect(text).toContain('এখনও নথিভুক্ত হয়নি');
-  expect(text).toContain('নির্ধারিত সময়');
-  expect(text).not.toContain('সম্পন্ন');
-  expect(text).not.toContain('পৌঁছেছে');
+  expect(text()).toContain('Not recorded yet');
+  expect(text()).toContain('Scheduled time');
+  expect(text()).not.toContain('Completed');
+  expect(text()).not.toContain('Arrived');
 });
 
 it('selects only the student’s scheduled stops and orders them by route position', () => {
@@ -354,4 +373,266 @@ it('normalizes Bangladesh WhatsApp links and rejects arbitrary URI content', () 
   expect(() => contactUrl('01712345678?body=private', 'sms')).toThrow();
   expect(() => contactUrl('https://example.test', 'call')).toThrow();
   expect(dhakaDate(Date.parse('2026-09-09T18:15:00Z'))).toBe('2026-09-10');
+});
+
+it('relocalizes mounted admission validation without replacing entered text', async () => {
+  await act(async () => {
+    screen = TestRenderer.create(<AdmissionScreen {...props('Admission')} />);
+  });
+  await field('Student name *', 'শিক্ষার্থী One');
+  await button('Next');
+  expect(text()).toContain('Enter the student name and class.');
+  await language('bn');
+  expect(text()).toContain('শিক্ষার্থীর নাম ও শ্রেণি লিখুন।');
+  expect(screen.root.findAllByType(Field)[0].props.value).toBe(
+    'শিক্ষার্থী One',
+  );
+  await field('Class *', 'Class 6');
+  await language('en');
+  expect(text()).toContain('Enter the student name and class.');
+  expect(screen.root.findAllByType(Field)[1].props.value).toBe('Class 6');
+  expect(mockMutate).not.toHaveBeenCalled();
+});
+
+it('keeps the selected application and a note that matches a translation key verbatim', async () => {
+  const request = {
+    id: 'first',
+    studentName: 'Student One',
+    guardianName: 'Guardian',
+    guardianPhone: '01700000001',
+    routeName: 'South road',
+    stopName: 'Main gate',
+    vehicleName: 'Bus 1',
+    status: 'PENDING' as const,
+    note: '',
+  };
+  mockData.requests = [
+    request,
+    {
+      ...request,
+      id: 'second',
+      studentName: 'Student Two',
+      status: 'REJECTED',
+      note: 'Approved',
+    },
+  ];
+  const original = JSON.stringify(mockData.requests);
+  await act(async () => {
+    screen = TestRenderer.create(
+      <ApplicationStatusScreen {...props('ApplicationStatus')} />,
+    );
+  });
+  await act(async () =>
+    screen.root.findByType(Select).props.onChange('second'),
+  );
+  await language('bn');
+  expect(screen.root.findByType(Select).props.value).toBe('second');
+  expect(text()).toContain('আবেদন অনুমোদিত হয়নি');
+  expect(text()).toContain('Student Two');
+  expect(text()).toContain('Approved');
+  await language('en');
+  expect(text()).toContain('Application not approved');
+  expect(JSON.stringify(mockData.requests)).toBe(original);
+});
+
+it('keeps the child and afternoon tab selected while translating attendance and dates', async () => {
+  const second = { ...student, id: 'second', studentName: 'Student Two' };
+  mockManagement.students = [student, second];
+  mockManagement.schedules = [
+    {
+      id: 'afternoon',
+      routeId: 'route-1',
+      stopId: 'stop-1',
+      studentId: 'second',
+      period: 'AFTERNOON',
+      label: 'Afternoon pickup',
+      time: '15:30',
+      position: 1,
+    },
+  ];
+  mockManagement.attendance = [
+    {
+      id: 'attendance',
+      studentId: 'second',
+      driverId: null,
+      date: dhakaDate(),
+      status: 'PRESENT',
+      note: 'Active',
+      updatedAt: '',
+    },
+  ];
+  const original = JSON.stringify(mockManagement);
+  await act(async () => {
+    screen = TestRenderer.create(
+      <ParentJourneyScreen {...props('TodayJourney')} />,
+    );
+  });
+  await act(async () =>
+    screen.root.findByType(Select).props.onChange('second'),
+  );
+  await act(async () =>
+    screen.root.findByType(Segment).props.onChange('AFTERNOON'),
+  );
+  expect(text()).toContain('15:30');
+  await language('bn');
+  expect(screen.root.findByType(Select).props.value).toBe('second');
+  expect(screen.root.findByType(Segment).props.value).toBe('AFTERNOON');
+  expect(screen.root.findByType(Segment).props.options).toEqual([
+    { value: 'MORNING', label: 'সকাল' },
+    { value: 'AFTERNOON', label: 'বিকাল' },
+  ]);
+  expect(text()).toContain('Student Two');
+  expect(text()).toContain('Afternoon pickup');
+  expect(text()).toContain('উপস্থিত');
+  expect(text()).toContain('Active');
+  expect(text()).toContain('১৫:৩০');
+  expect(text()).toContain(
+    new Date(`${dhakaDate()}T00:00:00+06:00`).toLocaleDateString('bn-BD', {
+      timeZone: 'Asia/Dhaka',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }),
+  );
+  await language('en');
+  expect(text()).toContain('Present');
+  expect(screen.root.findByType(Segment).props.value).toBe('AFTERNOON');
+  expect(JSON.stringify(mockManagement)).toBe(original);
+  await button('View live location');
+  expect(navigation.navigate).toHaveBeenCalledWith('LiveTracking', {
+    vehicleId: 'bus-1',
+  });
+});
+
+it('relocalizes the selected student profile while preserving names, roll, photo and status', async () => {
+  mockManagement.students = [
+    student,
+    {
+      ...student,
+      id: 'second',
+      studentName: 'Active',
+      guardianName: 'Guardian',
+      className: 'Class 6',
+      roll: '21',
+      monthlyAmount: 250000,
+      status: 'ACTIVE',
+      photoUrl: 'https://example.test/photo.jpg',
+      driverName: 'Driver',
+      driverPhone: '01700000001',
+    },
+  ];
+  const original = JSON.stringify(mockManagement.students);
+  await act(async () => {
+    screen = TestRenderer.create(
+      <ParentStudentScreen {...props('ParentProfile', { id: 'second' })} />,
+    );
+  });
+  await language('bn');
+  expect(screen.root.findByType(Select).props.value).toBe('second');
+  expect(text()).toContain('অভিভাবকের তথ্য');
+  expect(text()).toContain('Active');
+  expect(text()).toContain('Guardian');
+  expect(text()).toContain('Class 6');
+  expect(text()).toContain('21');
+  expect(text()).toContain('৳২,৫০০');
+  expect(screen.root.findByType(StudentAvatar).props.photoUrl).toBe(
+    'https://example.test/photo.jpg',
+  );
+  expect(
+    screen.root.findAll(
+      node => node.props.accessibilityLabel === 'Active — ছবি',
+    ).length,
+  ).toBeGreaterThan(0);
+  await language('en');
+  expect(text()).toContain('Guardian information');
+  expect(text()).toContain('৳2,500');
+  expect(JSON.stringify(mockManagement.students)).toBe(original);
+});
+
+it('keeps contact selection and phone targets when switching language', async () => {
+  mockManagement.students = [
+    student,
+    {
+      ...student,
+      id: 'second',
+      studentName: 'Student Two',
+      driverName: 'Driver',
+      driverPhone: '01700000002',
+    },
+  ];
+  const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+  try {
+    await act(async () => {
+      screen = TestRenderer.create(<ParentContactScreen />);
+    });
+    await act(async () =>
+      screen.root.findByType(Select).props.onChange('second'),
+    );
+    await language('bn');
+    expect(screen.root.findByType(Select).props.value).toBe('second');
+    const row = screen.root
+      .findAllByType(NoorRow)
+      .find(item => item.props.title === 'ড্রাইভারের সাথে কথা বলুন')!;
+    expect(row.props.subtitle).toBe('Driver · 01700000002');
+    await act(async () => row.props.onPress());
+    expect(open).toHaveBeenCalledWith('tel:01700000002');
+    await language('en');
+    expect(text()).toContain('Call the driver');
+    expect(screen.root.findByType(Select).props.value).toBe('second');
+  } finally {
+    open.mockRestore();
+  }
+});
+
+it('keeps the tracked vehicle and localizes last-update text on a mounted screen', async () => {
+  mockData.vehicles = [
+    { id: 'first', name: 'Bus 1', plate: 'ABC-1', imei: '111111111111111' },
+    {
+      id: 'second',
+      name: 'Bus 2',
+      plate: 'ABC-2',
+      imei: '222222222222222',
+      driverName: 'Driver',
+    },
+  ];
+  mockData.locations = [
+    {
+      imei: '222222222222222',
+      status: 'lastKnown',
+      latitude: 23.8,
+      longitude: 90.4,
+      lastSeen: '2026-09-10T05:00:00Z',
+    },
+  ];
+  mockData.subscriptions = [
+    {
+      id: 'service',
+      studentName: 'Student Two',
+      routeName: 'South road',
+      stopName: 'Main gate',
+      vehicleName: 'Bus 2',
+      vehicleId: 'second',
+      status: 'ACTIVE',
+    },
+  ];
+  const original = JSON.stringify(mockData);
+  await act(async () => {
+    screen = TestRenderer.create(
+      <ParentTrackingScreen
+        {...props('LiveTracking', { vehicleId: 'second' })}
+      />,
+    );
+  });
+  expect(text()).toContain('Last updated:');
+  await language('bn');
+  expect(screen.root.findByType(Select).props.value).toBe('second');
+  expect(text()).toContain('বর্তমান অবস্থান');
+  expect(text()).toContain('সর্বশেষ আপডেট:');
+  expect(text()).toContain('ড্রাইভার: Driver');
+  expect(text()).toContain('রুট: South road');
+  expect(text()).toContain('Bus 2');
+  expect(text()).toContain('23.80000, 90.40000');
+  await language('en');
+  expect(text()).toContain('Current location');
+  expect(JSON.stringify(mockData)).toBe(original);
 });

@@ -12,7 +12,8 @@ import {
 import { NoorIcon } from '../../components/Noor';
 import { useManagement } from '../../context/ManagementContext';
 import { useData } from '../../context/DataContext';
-import { currentMonth, money, toPoisha } from '../../utils/format';
+import { useTranslation } from '../../i18n';
+import { currentMonth, money, numberLabel, toPoisha } from '../../utils/format';
 import { monthInDhaka } from './reportUtils';
 import {
   AdminPage,
@@ -29,6 +30,7 @@ import {
   Pill,
   SmallButton,
   Tabs,
+  labelStatus,
   niceDate,
   s,
   today,
@@ -36,6 +38,7 @@ import {
 } from './AdminUi';
 
 export function AttendanceScreen() {
+  const { t } = useTranslation();
   const { data, loading, error, refresh, mutate } = useManagement();
   const { data: transport } = useData();
   const action = useAction();
@@ -88,14 +91,14 @@ export function AttendanceScreen() {
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'STUDENT', label: 'শিক্ষার্থী' },
-          { value: 'DRIVER', label: 'ড্রাইভার' },
+          { value: 'STUDENT', label: t('Student') },
+          { value: 'DRIVER', label: t('Driver') },
         ]}
       />
       <View style={s.row}>
         <View style={s.flex}>
           <Input
-            label="তারিখ (YYYY-MM-DD)"
+            label={t('Date (YYYY-MM-DD)')}
             value={date}
             onChangeText={setDate}
             maxLength={10}
@@ -103,7 +106,7 @@ export function AttendanceScreen() {
         </View>
         <View style={s.flex}>
           <Choice
-            label="গাড়ি"
+            label={t('Vehicle')}
             value={vehicleId}
             onChange={setVehicleId}
             options={transport.vehicles.map(item => ({
@@ -121,16 +124,18 @@ export function AttendanceScreen() {
             { label: 'Leave', count: count('LEAVE'), color: C.amber },
           ].map(item => (
             <View key={item.label} style={s.summary}>
-              <Text style={s.muted}>{item.label}</Text>
+              <Text style={s.muted}>{t(item.label)}</Text>
               <Text style={[s.summaryValue, { color: item.color }]}>
-                {item.count}
+                {numberLabel(item.count)}
               </Text>
             </View>
           ))}
         </View>
         <Heading
-          title={`মোট ${people.length} জন`}
-          action="সবাই উপস্থিত"
+          title={t('Total people: {{number}}', {
+            number: numberLabel(people.length),
+          })}
+          action={t('Mark all present')}
           onAction={() => {
             setDraft(
               Object.fromEntries(people.map(item => [item.id, 'PRESENT'])),
@@ -138,7 +143,7 @@ export function AttendanceScreen() {
             setSaved(false);
           }}
         />
-        <Text style={s.muted}>নাম তালিকার পাশে উপস্থিতি নির্বাচন করুন।</Text>
+        <Text style={s.muted}>{t('Select attendance beside each name.')}</Text>
         {people.map(person => (
           <View key={person.id} style={[s.tableRow, s.wrap]}>
             <Avatar name={person.name} driver={tab === 'DRIVER'} />
@@ -151,13 +156,7 @@ export function AttendanceScreen() {
                 <Pressable
                   key={status}
                   accessibilityRole="radio"
-                  accessibilityLabel={`${person.name}: ${
-                    status === 'PRESENT'
-                      ? 'উপস্থিত'
-                      : status === 'ABSENT'
-                      ? 'অনুপস্থিত'
-                      : 'ছুটি'
-                  }`}
+                  accessibilityLabel={`${person.name}: ${labelStatus(status)}`}
                   accessibilityState={{
                     checked: statusFor(person.id) === status,
                   }}
@@ -200,7 +199,7 @@ export function AttendanceScreen() {
                       ? '✓'
                       : status === 'ABSENT'
                       ? '×'
-                      : 'ছু'}
+                      : t('L')}
                   </Text>
                 </Pressable>
               ))}
@@ -208,21 +207,25 @@ export function AttendanceScreen() {
           </View>
         ))}
         {!people.length ? (
-          <EmptyState text="এই গাড়িতে কোনো রেকর্ড নেই" />
+          <EmptyState text={t('No records for this vehicle')} />
         ) : null}
         <Text style={s.muted}>
-          নির্বাচন করা হয়নি: {people.filter(item => !statusFor(item.id)).length}
+          {t('Not selected: {{number}}', {
+            number: numberLabel(
+              people.filter(item => !statusFor(item.id)).length,
+            ),
+          })}
         </Text>
         <ErrorText message={action.error} />
-        {saved ? <Text style={s.note}>উপস্থিতি সংরক্ষণ হয়েছে।</Text> : null}
+        {saved ? <Text style={s.note}>{t('Attendance saved.')}</Text> : null}
         <SmallButton
-          title="সেভ করুন"
+          title={t('Save')}
           busy={action.busy}
           disabled={!Object.keys(draft).length}
           onPress={() =>
             action.run(async () => {
               if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
-                throw new Error('তারিখ YYYY-MM-DD ফরম্যাটে দিন।');
+                throw new Error('Enter the date in YYYY-MM-DD format.');
               const entries: AttendanceInput[] = people
                 .filter(item => draft[item.id])
                 .map(item => ({
@@ -232,8 +235,7 @@ export function AttendanceScreen() {
                   date,
                   status: draft[item.id],
                 }));
-              if (!entries.length)
-                throw new Error('আগে উপস্থিতি নির্বাচন করুন।');
+              if (!entries.length) throw new Error('Select attendance first.');
               await mutate('/admin/attendance', { entries }, 'PUT');
               setDraft({});
               setSaved(true);
@@ -244,7 +246,14 @@ export function AttendanceScreen() {
     </AdminPage>
   );
 }
-const services = ['তেল পরিবর্তন', 'ব্যাটারি', 'টায়ার', 'মেরামত', 'যন্ত্রাংশ'];
+// Keep the existing description values independent of the displayed language.
+const services = [
+  { value: 'তেল পরিবর্তন', label: 'Oil change' },
+  { value: 'ব্যাটারি', label: 'Battery' },
+  { value: 'টায়ার', label: 'Tyres' },
+  { value: 'মেরামত', label: 'Repair' },
+  { value: 'যন্ত্রাংশ', label: 'Parts' },
+];
 function MaintenanceForm({
   item,
   visible,
@@ -256,6 +265,7 @@ function MaintenanceForm({
   onClose: () => void;
   vehicleId?: string;
 }) {
+  const { t } = useTranslation();
   const { data: transport } = useData();
   const { mutate } = useManagement();
   const action = useAction();
@@ -293,7 +303,7 @@ function MaintenanceForm({
     setForm(current => ({ ...current, [key]: value }));
   return (
     <FormModal
-      title={item ? 'রক্ষণাবেক্ষণ সম্পাদনা' : 'রক্ষণাবেক্ষণ যোগ করুন'}
+      title={item ? t('Edit maintenance') : t('Add maintenance')}
       visible={visible}
       onClose={onClose}
       busy={action.busy}
@@ -301,7 +311,7 @@ function MaintenanceForm({
       onSave={() =>
         action.run(async () => {
           if (!form.vehicleId || !form.title.trim())
-            throw new Error('গাড়ি ও কাজের শিরোনাম দিন।');
+            throw new Error('Select a vehicle and enter the work title.');
           const input: MaintenanceInput = {
             ...form,
             title: form.title.trim(),
@@ -327,7 +337,7 @@ function MaintenanceForm({
       }
     >
       <Choice
-        label="গাড়ি *"
+        label={t('Vehicle *')}
         value={form.vehicleId}
         onChange={v => set('vehicleId', v)}
         options={transport.vehicles.map(v => ({
@@ -336,17 +346,17 @@ function MaintenanceForm({
         }))}
       />
       <Input
-        label="কাজের শিরোনাম *"
+        label={t('Work title *')}
         value={form.title}
         onChangeText={v => set('title', v)}
         maxLength={120}
       />
-      <Heading title="সার্ভিসের কাজ" />
-      {services.map(service => (
+      <Heading title={t('Service tasks')} />
+      {services.map(({ value: service, label }) => (
         <Pressable
           key={service}
           accessibilityRole="checkbox"
-          accessibilityLabel={service}
+          accessibilityLabel={t(label)}
           accessibilityState={{ checked: checks.includes(service) }}
           onPress={() =>
             setChecks(current =>
@@ -367,53 +377,55 @@ function MaintenanceForm({
           >
             <Text style={s.white}>{checks.includes(service) ? '✓' : ''}</Text>
           </View>
-          <Text style={s.body}>{service}</Text>
+          <Text style={s.body}>{t(label)}</Text>
         </Pressable>
       ))}
       <Input
-        label="বিস্তারিত"
+        label={t('Details')}
         value={form.description}
         onChangeText={v => set('description', v)}
         multiline
         maxLength={2000}
       />
       <Input
-        label="সার্ভিসের তারিখ (YYYY-MM-DD)"
+        label={t('Service date (YYYY-MM-DD)')}
         value={form.serviceDate}
         onChangeText={v => set('serviceDate', v)}
         maxLength={10}
       />
       <Input
-        label="পরবর্তী সার্ভিস (YYYY-MM-DD)"
+        label={t('Next service (YYYY-MM-DD)')}
         value={form.nextServiceDate}
         onChangeText={v => set('nextServiceDate', v)}
         maxLength={10}
       />
       <Input
-        label="মোট খরচ (৳)"
+        label={t('Total cost (৳)')}
         value={form.amount}
         onChangeText={v => set('amount', v)}
         keyboardType="decimal-pad"
       />
       <Choice
-        label="অবস্থা"
+        label={t('Status')}
         value={form.status}
         optional={false}
         onChange={v => set('status', v)}
         options={[
-          { value: 'PLANNED', label: 'পরিকল্পিত' },
-          { value: 'IN_PROGRESS', label: 'কাজ চলছে' },
-          { value: 'COMPLETED', label: 'সম্পন্ন' },
+          { value: 'PLANNED', label: t('Planned') },
+          { value: 'IN_PROGRESS', label: t('In progress') },
+          { value: 'COMPLETED', label: t('Completed') },
         ]}
       />
       <Text style={s.note}>
-        কাজ সম্পন্ন হলে খরচ স্বয়ংক্রিয়ভাবে আয়–ব্যয়ের হিসাবে যুক্ত হবে। পরিকল্পিত
-        বা চলমান কাজের খরচ এখনো ব্যয় হিসেবে গণনা হবে না।
+        {t(
+          'Completed work costs are automatically added to Income and expenses. Planned or ongoing work is not counted as an expense yet.',
+        )}
       </Text>
     </FormModal>
   );
 }
 export function MaintenanceScreen() {
+  const { t } = useTranslation();
   const { params } = useRoute();
   const initial = (params || {}) as { vehicleId?: string };
   const { data, loading, error, refresh } = useManagement();
@@ -426,12 +438,12 @@ export function MaintenanceScreen() {
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
       <Heading
-        title="গাড়ির সার্ভিস ও মেরামত"
-        action="+ যোগ করুন"
+        title={t('Vehicle service and repairs')}
+        action={t('+ Add')}
         onAction={() => setEditing(null)}
       />
       <Choice
-        label="গাড়ি অনুযায়ী দেখুন"
+        label={t('Filter by vehicle')}
         value={vehicle}
         onChange={setVehicle}
         options={transport.vehicles.map(item => ({
@@ -459,17 +471,17 @@ export function MaintenanceScreen() {
               }
             />
           </View>
-          <Detail label="সার্ভিস" value={niceDate(item.serviceDate)} />
+          <Detail label={t('Service')} value={niceDate(item.serviceDate)} />
           <Detail
-            label="পরবর্তী সার্ভিস"
+            label={t('Next service')}
             value={niceDate(item.nextServiceDate)}
           />
           {item.description ? (
             <Text style={s.body}>{item.description}</Text>
           ) : null}
-          <Detail label="খরচ" value={money(item.amount)} />
+          <Detail label={t('Cost')} value={money(item.amount)} />
           <SmallButton
-            title="সার্ভিস বিবরণ / সম্পাদনা"
+            title={t('Service details / Edit')}
             secondary
             onPress={() => setEditing(item)}
           />
@@ -477,8 +489,8 @@ export function MaintenanceScreen() {
       ))}
       {!records.length ? (
         <EmptyState
-          text="রক্ষণাবেক্ষণের তথ্য নেই"
-          detail="প্রথম সার্ভিসের তথ্য যোগ করুন।"
+          text={t('No maintenance records')}
+          detail={t('Add the first service record.')}
         />
       ) : null}
       <MaintenanceForm
@@ -491,16 +503,16 @@ export function MaintenanceScreen() {
   );
 }
 export const categoryLabels: Record<string, string> = {
-  OTHER: 'অন্যান্য',
-  SALARY: 'ড্রাইভারের বেতন',
-  FUEL: 'জ্বালানি',
-  MAINTENANCE: 'মেইনটেন্যান্স',
-  REPAIR: 'মেরামত',
-  PARTS: 'যন্ত্রাংশ',
-  TAX: 'ট্যাক্স / ফিটনেস',
-  OFFICE: 'অফিস খরচ',
-  VEHICLE: 'গাড়িতে বিনিয়োগ',
-  CAPITAL: 'ব্যবসার মূলধন',
+  OTHER: 'Other',
+  SALARY: 'Driver salary',
+  FUEL: 'Fuel',
+  MAINTENANCE: 'Maintenance',
+  REPAIR: 'Repair',
+  PARTS: 'Parts',
+  TAX: 'Tax / Fitness',
+  OFFICE: 'Office expenses',
+  VEHICLE: 'Vehicle investment',
+  CAPITAL: 'Business capital',
 };
 function LedgerForm({
   visible,
@@ -511,6 +523,7 @@ function LedgerForm({
   onClose: () => void;
   initialType: LedgerEntry['type'];
 }) {
+  const { t } = useTranslation();
   const { data, mutate } = useManagement();
   const { data: transport } = useData();
   const action = useAction();
@@ -551,10 +564,10 @@ function LedgerForm({
     <FormModal
       title={
         form.type === 'EXPENSE'
-          ? 'খরচ যোগ করুন'
+          ? t('Add expense')
           : form.type === 'INVESTMENT'
-          ? 'বিনিয়োগ যোগ করুন'
-          : 'আয় যোগ করুন'
+          ? t('Add investment')
+          : t('Add income')
       }
       visible={visible}
       onClose={onClose}
@@ -562,9 +575,10 @@ function LedgerForm({
       error={action.error}
       onSave={() =>
         action.run(async () => {
-          if (!form.title.trim()) throw new Error('হিসাবের শিরোনাম লিখুন।');
+          if (!form.title.trim())
+            throw new Error('Enter the account entry title.');
           if (form.category === 'SALARY' && !form.driverId)
-            throw new Error('বেতন পরিশোধের জন্য ড্রাইভার নির্বাচন করুন।');
+            throw new Error('Select a driver for the salary payment.');
           const input: LedgerInput = {
             type: form.type,
             category: form.category,
@@ -581,13 +595,13 @@ function LedgerForm({
       }
     >
       <Choice
-        label="হিসাবের ধরন"
+        label={t('Entry type')}
         value={form.type}
         optional={false}
         options={[
-          { value: 'INCOME', label: 'আয়' },
-          { value: 'EXPENSE', label: 'ব্যয়' },
-          { value: 'INVESTMENT', label: 'বিনিয়োগ' },
+          { value: 'INCOME', label: t('Income') },
+          { value: 'EXPENSE', label: t('Expense') },
+          { value: 'INVESTMENT', label: t('Investment') },
         ]}
         onChange={v =>
           setForm(current => ({
@@ -599,35 +613,35 @@ function LedgerForm({
         }
       />
       <Choice
-        label="খাত"
+        label={t('Category')}
         value={form.category}
         optional={false}
         options={categories.map(value => ({
           value,
-          label: categoryLabels[value],
+          label: t(categoryLabels[value]),
         }))}
         onChange={v => set('category', v)}
       />
       <Input
-        label="শিরোনাম *"
+        label={t('Title *')}
         value={form.title}
         onChangeText={v => set('title', v)}
         maxLength={120}
       />
       <Input
-        label="টাকার পরিমাণ (৳) *"
+        label={t('Amount (৳) *')}
         value={form.amount}
         onChangeText={v => set('amount', v)}
         keyboardType="decimal-pad"
       />
       <Input
-        label="তারিখ (YYYY-MM-DD)"
+        label={t('Date (YYYY-MM-DD)')}
         value={form.date}
         onChangeText={v => set('date', v)}
         maxLength={10}
       />
       <Choice
-        label="গাড়ি (প্রযোজ্য হলে)"
+        label={t('Vehicle (if applicable)')}
         value={form.vehicleId}
         options={transport.vehicles.map(item => ({
           value: item.id,
@@ -639,8 +653,8 @@ function LedgerForm({
         <Choice
           label={
             form.category === 'SALARY'
-              ? 'ড্রাইভার *'
-              : 'ড্রাইভার (প্রযোজ্য হলে)'
+              ? t('Driver *')
+              : t('Driver (if applicable)')
           }
           value={form.driverId}
           onChange={v => set('driverId', v)}
@@ -652,7 +666,9 @@ function LedgerForm({
       ) : null}
       <Input
         label={
-          form.type === 'INVESTMENT' ? 'বিনিয়োগকারী / উদ্দেশ্য / নোট' : 'নোট'
+          form.type === 'INVESTMENT'
+            ? t('Investor / Purpose / Note')
+            : t('Note')
         }
         value={form.note}
         onChangeText={v => set('note', v)}
@@ -661,14 +677,16 @@ function LedgerForm({
       />
       {form.type === 'INCOME' ? (
         <Text style={s.note}>
-          শিক্ষার্থীর পরিশোধিত ভাড়া পেমেন্ট থেকে স্বয়ংক্রিয়ভাবে আসে। এখানে
-          অতিরিক্ত আয় লিখুন।
+          {t(
+            'Paid student fares are added automatically from payments. Enter additional income here.',
+          )}
         </Text>
       ) : null}
     </FormModal>
   );
 }
 export function AccountsScreen() {
+  const { t } = useTranslation();
   const { params } = useRoute();
   const { tab: initialTab } = (params || {}) as { tab?: LedgerEntry['type'] };
   const { data, loading, error, refresh } = useManagement();
@@ -699,7 +717,7 @@ export function AccountsScreen() {
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
       <Input
-        label="মাস (YYYY-MM)"
+        label={t('Month (YYYY-MM)')}
         value={month}
         onChangeText={setMonth}
         maxLength={7}
@@ -707,53 +725,56 @@ export function AccountsScreen() {
       <Box>
         <View style={s.row}>
           <View style={s.summary}>
-            <Text style={s.muted}>মোট আয়</Text>
+            <Text style={s.muted}>{t('Total income')}</Text>
             <Text style={s.summaryValue}>{money(income)}</Text>
           </View>
           <View style={[s.summary, s.dangerFill]}>
-            <Text style={s.muted}>মোট ব্যয়</Text>
+            <Text style={s.muted}>{t('Total expenses')}</Text>
             <Text style={[s.summaryValue, s.red]}>{money(expenses)}</Text>
           </View>
         </View>
         <View style={s.profit}>
           <Text style={s.white}>
-            {income - expenses >= 0 ? 'নিট লাভ' : 'নিট ক্ষতি'}
+            {income - expenses >= 0 ? t('Net profit') : t('Net loss')}
           </Text>
           <Text style={[s.summaryValue, s.white]}>
             {money(income - expenses)}
           </Text>
         </View>
         {tab === 'INVESTMENT' ? (
-          <Detail label="মোট বিনিয়োগ" value={money(sum('INVESTMENT'))} />
+          <Detail
+            label={t('Total investment')}
+            value={money(sum('INVESTMENT'))}
+          />
         ) : null}
       </Box>
       <Tabs
         value={tab}
         onChange={v => setTab(v as LedgerEntry['type'])}
         options={[
-          { value: 'INCOME', label: 'আয়' },
-          { value: 'EXPENSE', label: 'ব্যয়' },
-          { value: 'INVESTMENT', label: 'বিনিয়োগ' },
+          { value: 'INCOME', label: t('Income') },
+          { value: 'EXPENSE', label: t('Expense') },
+          { value: 'INVESTMENT', label: t('Investment') },
         ]}
       />
       <Box>
         <Heading
           title={
             tab === 'INCOME'
-              ? 'আয়ের হিসাব'
+              ? t('Income records')
               : tab === 'EXPENSE'
-              ? 'ব্যয়ের হিসাব'
-              : 'বিনিয়োগের হিসাব'
+              ? t('Expense records')
+              : t('Investment records')
           }
-          action="+ যোগ করুন"
+          action={t('+ Add')}
           onAction={() => setAdding(true)}
         />
         {tab === 'INCOME' && fare > 0 ? (
           <View style={s.tableRow}>
             <NoorIcon name="payments" size={20} color={C.green} />
             <View style={s.flex}>
-              <Text style={s.body}>শিক্ষার্থীর ভাড়া</Text>
-              <Text style={s.muted}>পরিশোধিত পেমেন্ট</Text>
+              <Text style={s.body}>{t('Student fares')}</Text>
+              <Text style={s.muted}>{t('Paid payments')}</Text>
             </View>
             <Text style={[s.body, s.green]}>{money(fare)}</Text>
           </View>
@@ -768,8 +789,13 @@ export function AccountsScreen() {
             <View style={s.flex}>
               <Text style={s.body}>{item.title}</Text>
               <Text style={s.muted}>
-                {categoryLabels[item.category] || item.category} ·{' '}
-                {niceDate(item.date)}
+                {Object.prototype.hasOwnProperty.call(
+                  categoryLabels,
+                  item.category,
+                )
+                  ? t(categoryLabels[item.category])
+                  : item.category}{' '}
+                · {niceDate(item.date)}
               </Text>
               {item.note ? <Text style={s.muted}>{item.note}</Text> : null}
             </View>
@@ -779,7 +805,7 @@ export function AccountsScreen() {
           </View>
         ))}
         {!entries.length && !(tab === 'INCOME' && fare > 0) ? (
-          <EmptyState text="এই মাসে কোনো হিসাব নেই" />
+          <EmptyState text={t('No account entries this month')} />
         ) : null}
       </Box>
       <LedgerForm

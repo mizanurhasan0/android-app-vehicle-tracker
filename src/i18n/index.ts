@@ -3,14 +3,13 @@ import {
   initReactI18next,
   useTranslation as useReactTranslation,
 } from 'react-i18next';
-import en from './en.json';
-import bn from './bn.json';
+import { english, bangla } from './resources';
 
 export type Language = 'en' | 'bn';
 export const i18n = i18next.createInstance();
 // Bundled dictionaries initialize synchronously and work offline.
 i18n.use(initReactI18next).init({
-  resources: { en: { translation: en }, bn: { translation: bn } },
+  resources: { en: { translation: english }, bn: { translation: bangla } },
   lng: 'en',
   fallbackLng: 'en',
   supportedLngs: ['en', 'bn'],

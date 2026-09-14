@@ -7,10 +7,12 @@ import { Button, Empty, Notice, Page } from '../../components/ui';
 import { useData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useAction } from '../../hooks/useAction';
+import { i18n, locale, useTranslation } from '../../i18n';
 import { colors, styles } from '../../theme';
-import { money, readable } from '../../utils/format';
+import { money, numberLabel, readable } from '../../utils/format';
 import { saveReportFile } from '../../utils/photo';
 import { InfoRow } from './ParentUI';
+import { billingMonthLabel } from './parentUtils';
 
 type ReceiptBusiness = Pick<
   BusinessSettings,
@@ -27,7 +29,7 @@ const oneLine = (value: string) =>
 function paidDate(timestamp: string | null) {
   const time = timestamp ? Date.parse(timestamp) : NaN;
   return Number.isFinite(time)
-    ? new Date(time).toLocaleString('bn-BD', {
+    ? new Date(time).toLocaleString(locale(), {
         timeZone: 'Asia/Dhaka',
         year: 'numeric',
         month: 'short',
@@ -35,7 +37,7 @@ function paidDate(timestamp: string | null) {
         hour: 'numeric',
         minute: '2-digit',
       })
-    : 'তারিখ নথিভুক্ত হয়নি';
+    : i18n.t('Date not recorded');
 }
 
 /** A submission supplements the paid bill only when the approved amount matches. */
@@ -54,39 +56,51 @@ export function receiptDocument(
   payment: Payment | undefined,
   business: ReceiptBusiness,
 ) {
+  const t = i18n.t.bind(i18n);
   if (bill.status !== 'PAID')
-    throw new Error('শুধু পরিশোধিত বিলের রসিদ সংরক্ষণ করা যায়।');
+    throw new Error('Only paid bills can be saved as receipts.');
   const approved = approvedReceiptPayment(bill, payment ? [payment] : []);
   return [
     oneLine(business.businessName || fallbackBusiness.businessName),
-    'Safe Journey, Bright Future',
+    t('Safe Journey, Bright Future'),
     ...(business.address ? [oneLine(business.address)] : []),
-    ...(business.phone ? [`যোগাযোগ: ${oneLine(business.phone)}`] : []),
+    ...(business.phone
+      ? [t('Contact: {{phone}}', { phone: oneLine(business.phone) })]
+      : []),
     '',
-    'পেমেন্ট রসিদ',
-    'অবস্থা: পরিশোধিত',
+    t('Payment receipt'),
+    t('Status: {{status}}', { status: readable(bill.status) }),
     '',
-    `বিলের রেফারেন্স: ${oneLine(bill.id)}`,
-    `শিক্ষার্থী: ${oneLine(bill.studentName)}`,
-    `অভিভাবক: ${oneLine(bill.guardianName)}`,
-    `বিলের মাস: ${oneLine(bill.month)}`,
-    `পরিশোধিত টাকা: ${money(bill.amount)}`,
-    `পরিশোধের তারিখ: ${paidDate(bill.paidAt)}`,
+    t('Bill reference: {{id}}', { id: oneLine(bill.id) }),
+    t('Student: {{name}}', { name: oneLine(bill.studentName) }),
+    t('Guardian: {{name}}', { name: oneLine(bill.guardianName) }),
+    t('Billing month: {{month}}', {
+      month: oneLine(billingMonthLabel(bill.month)),
+    }),
+    t('Amount paid: {{amount}}', { amount: money(bill.amount) }),
+    t('Paid on: {{date}}', { date: paidDate(bill.paidAt) }),
     ...(approved
       ? [
           '',
-          `মাধ্যম: ${oneLine(readable(approved.method))}`,
-          `ট্রানজেকশন আইডি: ${oneLine(approved.transactionId)}`,
-          `প্রেরকের নম্বর: ${oneLine(approved.senderNumber)}`,
-          `প্রাপকের নম্বর: ${oneLine(approved.recipientNumber)}`,
+          t('Method: {{method}}', {
+            method: oneLine(readable(approved.method)),
+          }),
+          t('Transaction ID: {{id}}', { id: oneLine(approved.transactionId) }),
+          t('Sender number: {{number}}', {
+            number: oneLine(approved.senderNumber),
+          }),
+          t('Recipient number: {{number}}', {
+            number: oneLine(approved.recipientNumber),
+          }),
         ]
       : []),
     '',
-    'অ্যাপে সংরক্ষিত পরিশোধিত বিলের তথ্য থেকে তৈরি।',
+    t('Generated from the paid bill information saved in the app.'),
   ].join('\n');
 }
 
 export function ReceiptsScreen() {
+  const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
   const management = useManagement();
   const action = useAction();
@@ -125,7 +139,9 @@ export function ReceiptsScreen() {
                 <Text style={r.business}>
                   {business.businessName || fallbackBusiness.businessName}
                 </Text>
-                <Text style={r.tagline}>Safe Journey, Bright Future</Text>
+                <Text style={r.tagline}>
+                  {t('Safe Journey, Bright Future')}
+                </Text>
                 {business.phone ? (
                   <Text style={r.phone}>{business.phone}</Text>
                 ) : null}
@@ -133,23 +149,31 @@ export function ReceiptsScreen() {
             </View>
             <View style={r.rule} />
             <View style={r.titleRow}>
-              <Text style={r.title}>পেমেন্ট রসিদ</Text>
-              <NoorBadge label="পরিশোধিত" />
+              <Text style={r.title}>{t('Payment receipt')}</Text>
+              <NoorBadge label={readable(bill.status)} />
             </View>
             <View style={r.amountPanel}>
-              <Text style={r.amountLabel}>পরিশোধিত টাকা</Text>
+              <Text style={r.amountLabel}>{t('Amount paid')}</Text>
               <Text style={r.amount}>{money(bill.amount)}</Text>
             </View>
             <InfoRow
               icon="student"
-              label="শিক্ষার্থী"
+              label={t('Student')}
               value={bill.studentName}
             />
-            <InfoRow icon="user" label="অভিভাবক" value={bill.guardianName} />
-            <InfoRow icon="calendar" label="বিলের মাস" value={bill.month} />
+            <InfoRow
+              icon="user"
+              label={t('Guardian')}
+              value={bill.guardianName}
+            />
+            <InfoRow
+              icon="calendar"
+              label={t('Billing month')}
+              value={billingMonthLabel(bill.month)}
+            />
             <InfoRow
               icon="clock"
-              label="পরিশোধ"
+              label={t('Paid on')}
               value={paidDate(bill.paidAt)}
             />
             {payment ? (
@@ -157,37 +181,37 @@ export function ReceiptsScreen() {
                 <View style={r.rule} />
                 <InfoRow
                   icon="payment"
-                  label="মাধ্যম"
+                  label={t('Method')}
                   value={readable(payment.method)}
                 />
                 <InfoRow
                   icon="receipt"
-                  label="ট্রানজেকশন"
+                  label={t('Transaction')}
                   value={payment.transactionId}
                 />
                 <InfoRow
                   icon="phone"
-                  label="প্রেরক"
+                  label={t('Sender')}
                   value={payment.senderNumber}
                 />
                 <InfoRow
                   icon="phone"
-                  label="প্রাপক"
+                  label={t('Recipient')}
                   value={payment.recipientNumber}
                 />
               </>
             ) : null}
             <View style={r.rule} />
-            <Text style={r.referenceLabel}>বিলের রেফারেন্স</Text>
+            <Text style={r.referenceLabel}>{t('Bill reference')}</Text>
             <Text selectable style={r.reference}>
               {bill.id}
             </Text>
             <Text style={r.caption}>
-              অ্যাপে সংরক্ষিত পরিশোধিত বিলের তথ্য থেকে তৈরি।
+              {t('Generated from the paid bill information saved in the app.')}
             </Text>
           </NoorCard>
           <Button
-            title="PDF রসিদ সংরক্ষণ"
+            title={t('Save PDF receipt')}
             busy={action.busy}
             onPress={() =>
               action.run(async () => {
@@ -201,17 +225,13 @@ export function ReceiptsScreen() {
                   receiptDocument(bill, payment, business),
                   'application/pdf',
                 );
-                setSaved(
-                  completed
-                    ? 'রসিদ সংরক্ষণ করা হয়েছে।'
-                    : 'সংরক্ষণ বাতিল করা হয়েছে।',
-                );
+                setSaved(completed ? 'Receipt saved.' : 'Save cancelled.');
               }, '')
             }
           />
           <Button
             secondary
-            title="সব রসিদ"
+            title={t('All receipts')}
             disabled={action.busy}
             onPress={() => {
               setSelectedId(null);
@@ -221,20 +241,25 @@ export function ReceiptsScreen() {
         </>
       ) : !bills.length ? (
         <Empty
-          title="এখনও কোনো রসিদ নেই"
-          detail="পেমেন্ট যাচাই হয়ে বিল পরিশোধিত হলে রসিদ এখানে পাওয়া যাবে।"
+          title={t('No receipts yet')}
+          detail={t(
+            'Receipts will appear here after payment is verified and the bill is paid.',
+          )}
         />
       ) : (
         <>
           <View style={r.titleRow}>
-            <Text style={styles.heading}>পরিশোধিত বিলের রসিদ</Text>
-            <NoorBadge label={String(bills.length)} />
+            <Text style={styles.heading}>{t('Paid bill receipts')}</Text>
+            <NoorBadge label={numberLabel(bills.length)} />
           </View>
           {bills.map(item => (
             <Pressable
               key={item.id}
               accessibilityRole="button"
-              accessibilityLabel={`রসিদ দেখুন — ${item.studentName} — ${item.month}`}
+              accessibilityLabel={t('View receipt - {{student}} - {{month}}', {
+                student: item.studentName,
+                month: billingMonthLabel(item.month),
+              })}
               onPress={() => {
                 setSelectedId(item.id);
                 setSaved('');
@@ -247,12 +272,12 @@ export function ReceiptsScreen() {
               <View style={r.listCopy}>
                 <Text style={r.studentName}>{item.studentName}</Text>
                 <Text style={r.month}>
-                  {item.month} · {paidDate(item.paidAt)}
+                  {billingMonthLabel(item.month)} · {paidDate(item.paidAt)}
                 </Text>
               </View>
               <View style={r.listEnd}>
                 <Text style={r.listAmount}>{money(item.amount)}</Text>
-                <NoorBadge label="Paid" />
+                <NoorBadge label={readable(item.status)} />
               </View>
               <Text style={r.arrow}>›</Text>
             </Pressable>

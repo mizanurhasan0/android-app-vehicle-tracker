@@ -280,15 +280,15 @@ export function AdminPaymentDesk({
     <Page loading={loading} refresh={refresh} error={error}>
       <View style={desk.overview}>
         <View style={desk.stat}>
-          <Text style={desk.overviewLabel}>মোট বিল</Text>
+          <Text style={desk.overviewLabel}>{t('Total billed')}</Text>
           <Text style={desk.statValue}>{money(totalBilled)}</Text>
         </View>
         <View style={desk.stat}>
-          <Text style={desk.overviewLabel}>পরিশোধিত</Text>
+          <Text style={desk.overviewLabel}>{t('Paid')}</Text>
           <Text style={desk.statValue}>{money(totalPaid)}</Text>
         </View>
         <View style={desk.stat}>
-          <Text style={[desk.overviewLabel, desk.due]}>বকেয়া</Text>
+          <Text style={[desk.overviewLabel, desk.due]}>{t('Due')}</Text>
           <Text style={[desk.statValue, desk.due]}>
             {money(totalBilled - totalPaid)}
           </Text>
@@ -347,7 +347,7 @@ export function AdminPaymentDesk({
           style={desk.filterToggle}
         >
           <Text style={desk.link}>
-            {showFilters ? 'ফিল্টার বন্ধ করুন' : 'মাস ও অবস্থা অনুযায়ী ফিল্টার'}
+            {t(showFilters ? 'Close filters' : 'Filter by month and status')}
           </Text>
           <Text style={desk.link}>{showFilters ? '−' : '+'}</Text>
         </Pressable>
@@ -446,10 +446,16 @@ export function AdminPaymentDesk({
       ) : tab === 'bills' ? (
         <View style={desk.table}>
           <View style={[desk.billRow, desk.tableHead]}>
-            <Text style={[desk.columnName, desk.columnLabel]}>নাম</Text>
-            <Text style={[desk.columnMonth, desk.columnLabel]}>মাস</Text>
-            <Text style={[desk.columnAmount, desk.columnLabel]}>পরিমাণ</Text>
-            <Text style={[desk.columnStatus, desk.columnLabel]}>অবস্থা</Text>
+            <Text style={[desk.columnName, desk.columnLabel]}>{t('Name')}</Text>
+            <Text style={[desk.columnMonth, desk.columnLabel]}>
+              {t('Month')}
+            </Text>
+            <Text style={[desk.columnAmount, desk.columnLabel]}>
+              {t('Amount')}
+            </Text>
+            <Text style={[desk.columnStatus, desk.columnLabel]}>
+              {t('Status')}
+            </Text>
           </View>
           {bills.map(bill => (
             <View key={bill.id} style={desk.tableItem}>

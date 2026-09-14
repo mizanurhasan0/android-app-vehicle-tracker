@@ -64,7 +64,7 @@ export function ManagementProvider({ children }: React.PropsWithChildren) {
           setError(
             problem instanceof Error
               ? problem.message
-              : 'তথ্য লোড করা যায়নি। আবার চেষ্টা করুন।',
+              : 'Could not load data. Please try again.',
           );
       } finally {
         if (isCurrent() && request === generation.current) setLoading(false);

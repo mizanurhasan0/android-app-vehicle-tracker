@@ -1,4 +1,9 @@
+import { numberLabel } from '../../utils/format';
+
 export type ReportCell = string | number;
+
+export const reportCellLabel = (cell: ReportCell): string =>
+  typeof cell === 'number' ? numberLabel(cell) : cell;
 
 /** Preserve Unicode in Excel, escape CSV, and neutralize spreadsheet formulas. */
 export function reportCsv(rows: ReportCell[][]): string {

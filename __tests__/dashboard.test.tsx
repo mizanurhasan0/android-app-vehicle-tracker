@@ -7,6 +7,8 @@ import {
   NotificationDetailsScreen,
 } from '../src/screens/NotificationsScreen';
 import { Button } from '../src/components/ui';
+import { i18n, locale } from '../src/i18n';
+import { ProfileDrawer } from '../src/components/ProfileDrawer';
 let mockRole = 'ADMIN';
 const mockNavigate = jest.fn();
 const mockMutate = jest.fn().mockResolvedValue({});
@@ -109,7 +111,8 @@ jest.mock('@react-native-picker/picker', () => {
 });
 let screen: TestRenderer.ReactTestRenderer;
 const navigation = { navigate: mockNavigate } as never;
-beforeEach(() => {
+beforeEach(async () => {
+  await i18n.changeLanguage('en');
   mockRole = 'ADMIN';
   mockLoading = false;
   mockError = '';
@@ -119,6 +122,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await act(async () => screen?.unmount());
+  await i18n.changeLanguage('en');
   jest.restoreAllMocks();
 });
 function button(label: string) {
@@ -139,22 +143,22 @@ async function render() {
 }
 it('shows this month billed/paid separately from arrears and keeps pending proofs unpaid', async () => {
   await render();
-  expect(button('এই মাসের পাওনা, ৳5,000')).toBeDefined();
-  expect(button('বকেয়া, ৳3,500')).toBeDefined();
+  expect(button('Billed this month, ৳5,000')).toBeDefined();
+  expect(button('Outstanding dues, ৳3,500')).toBeDefined();
   expect(
     screen.root
       .findAllByType(Text)
-      .some(node => node.props.children === 'পরিশোধিত: ৳2,500'),
+      .some(node => node.props.children === 'Paid: ৳2,500'),
   ).toBe(true);
-  await act(async () => button('বকেয়া, ৳3,500').props.onPress());
+  await act(async () => button('Outstanding dues, ৳3,500').props.onPress());
   expect(mockNavigate).toHaveBeenLastCalledWith('DueList');
 });
 it('connects the four admin quick actions and unread inbox', async () => {
   await render();
   for (const [label, destination] of [
-    ['শিক্ষার্থী যোগ', 'Students'],
-    ['পেমেন্ট যোগ', 'Bills'],
-    ['নোটিশ পাঠান', 'Notices'],
+    ['Add student', 'Students'],
+    ['Add payment', 'Bills'],
+    ['Send notice', 'Notices'],
   ]) {
     const target = screen.root.findAll(
       node =>
@@ -165,9 +169,9 @@ it('connects the four admin quick actions and unread inbox', async () => {
     await act(async () => target.props.onPress());
     expect(mockNavigate).toHaveBeenLastCalledWith(destination);
   }
-  await act(async () => button('খরচ যোগ').props.onPress());
+  await act(async () => button('Add expense').props.onPress());
   expect(mockNavigate).toHaveBeenLastCalledWith('Accounts', { tab: 'EXPENSE' });
-  await act(async () => button('নোটিফিকেশন, 1 অপঠিত').props.onPress());
+  await act(async () => button('Notifications, 1 unread').props.onPress());
   expect(mockNavigate).toHaveBeenLastCalledWith('Inbox');
 });
 it.each(['loading', 'error'])(
@@ -177,20 +181,97 @@ it.each(['loading', 'error'])(
     mockLoading = state === 'loading';
     mockError = state === 'error' ? 'Connection unavailable' : '';
     await render();
-    expect(button('এই মাসের পাওনা, —')).toBeDefined();
-    expect(button('বকেয়া, —')).toBeDefined();
+    expect(button('Billed this month, —')).toBeDefined();
+    expect(button('Outstanding dues, —')).toBeDefined();
   },
 );
 it('guardian dashboard hides administration and never invents a live GPS state', async () => {
   mockRole = 'GUARDIAN';
   await render();
-  expect(button('খরচ যোগ')).toBeUndefined();
-  expect(button('নোটিশ পাঠান')).toBeUndefined();
-  expect(button('লোকেশন দেখুন, Live Tracking')).toBeDefined();
+  expect(button('Add expense')).toBeUndefined();
+  expect(button('Send notice')).toBeUndefined();
+  expect(button('View location, Live Tracking')).toBeDefined();
   expect(
     screen.root
       .findAllByType(Text)
       .some(node => node.props.children === '● Live'),
+  ).toBe(false);
+  await act(async () => button('Application, New admission').props.onPress());
+  expect(mockNavigate).toHaveBeenLastCalledWith('Admission');
+});
+it('retranslates a mounted admin dashboard with localized amounts and dates while preserving data', async () => {
+  const originalData = JSON.stringify(mockData);
+  await render();
+  expect(button('Billed this month, ৳5,000')).toBeDefined();
+  const date = () =>
+    new Date('2026-09-10T12:00:00+06:00').toLocaleDateString(locale(), {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'Asia/Dhaka',
+    });
+  const hasDate = () =>
+    screen.root
+      .findAllByType(Text)
+      .some(
+        node =>
+          Array.isArray(node.props.children) &&
+          node.props.children.includes(date()),
+      );
+  expect(hasDate()).toBe(true);
+  await act(async () => {
+    await i18n.changeLanguage('bn');
+  });
+  expect(button('এই মাসের পাওনা, ৳৫,০০০')).toBeDefined();
+  expect(button('বকেয়া, ৳৩,৫০০')).toBeDefined();
+  expect(
+    screen.root
+      .findAllByType(Text)
+      .some(node => node.props.children === 'পরিশোধিত: ৳২,৫০০'),
+  ).toBe(true);
+  expect(hasDate()).toBe(true);
+  expect(
+    screen.root
+      .findAllByType(Text)
+      .some(node => node.props.children === 'গাড়ি-০১'),
+  ).toBe(true);
+  expect(
+    screen.root
+      .findAllByType(Text)
+      .some(node => node.props.children === 'ড্রাইভার: Nur Alam'),
+  ).toBe(true);
+  await act(async () => button('খরচ যোগ').props.onPress());
+  expect(mockNavigate).toHaveBeenLastCalledWith('Accounts', { tab: 'EXPENSE' });
+  await act(async () => button('বকেয়া, ৳৩,৫০০').props.onPress());
+  expect(mockNavigate).toHaveBeenLastCalledWith('DueList');
+  await act(async () => {
+    await i18n.changeLanguage('en');
+  });
+  expect(button('Billed this month, ৳5,000')).toBeDefined();
+  expect(JSON.stringify(mockData)).toBe(originalData);
+  expect(mockMutate).not.toHaveBeenCalled();
+});
+it('keeps an open guardian profile and offline vehicle state when the mounted language changes', async () => {
+  mockRole = 'GUARDIAN';
+  await render();
+  await act(async () => button('Profile, QA User').props.onPress());
+  expect(screen.root.findByType(ProfileDrawer).props.visible).toBe(true);
+  await act(async () => {
+    await i18n.changeLanguage('bn');
+  });
+  expect(button('প্রোফাইল, QA User')).toBeDefined();
+  expect(screen.root.findByType(ProfileDrawer).props.visible).toBe(true);
+  expect(button('খরচ যোগ')).toBeUndefined();
+  expect(button('নোটিশ পাঠান')).toBeUndefined();
+  expect(
+    screen.root
+      .findAllByType(Text)
+      .some(node => node.props.children === 'অফলাইন'),
+  ).toBe(true);
+  expect(
+    screen.root
+      .findAllByType(Text)
+      .some(node => node.props.children === '● লাইভ'),
   ).toBe(false);
   await act(async () => button('আবেদন, নতুন ভর্তি').props.onPress());
   expect(mockNavigate).toHaveBeenLastCalledWith('Admission');

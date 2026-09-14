@@ -6,6 +6,7 @@ import { NoorIcon } from '../../components/Noor';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
+import { useTranslation } from '../../i18n';
 import { currentMonth, money } from '../../utils/format';
 import { saveReportFile } from '../../utils/photo';
 import {
@@ -17,29 +18,36 @@ import {
   ErrorText,
   Heading,
   Input,
+  labelStatus,
   SmallButton,
   s,
   today,
   useAction,
 } from './AdminUi';
-import { ReportCell, reportCsv, validReportMonth } from './reportUtils';
+import {
+  ReportCell,
+  reportCellLabel,
+  reportCsv,
+  validReportMonth,
+} from './reportUtils';
 import { categoryLabels } from './OperationsScreens';
 
 const reportTypes = [
-  { id: 'DAILY', label: 'দৈনিক রিপোর্ট' },
-  { id: 'MONTHLY', label: 'মাসিক রিপোর্ট' },
-  { id: 'STUDENTS', label: 'শিক্ষার্থী রিপোর্ট' },
-  { id: 'VEHICLES', label: 'গাড়ি রিপোর্ট' },
-  { id: 'DRIVERS', label: 'ড্রাইভার রিপোর্ট' },
-  { id: 'ROUTES', label: 'রুট রিপোর্ট' },
-  { id: 'PAYMENTS', label: 'পেমেন্ট রিপোর্ট' },
-  { id: 'DUE', label: 'বকেয়া রিপোর্ট' },
-  { id: 'INCOME', label: 'আয় রিপোর্ট' },
-  { id: 'EXPENSE', label: 'ব্যয় রিপোর্ট' },
-  { id: 'SALARY', label: 'বেতন রিপোর্ট' },
-  { id: 'PROFIT', label: 'লাভ/ক্ষতি রিপোর্ট' },
+  { id: 'DAILY', label: 'Daily report' },
+  { id: 'MONTHLY', label: 'Monthly report' },
+  { id: 'STUDENTS', label: 'Student report' },
+  { id: 'VEHICLES', label: 'Vehicle report' },
+  { id: 'DRIVERS', label: 'Driver report' },
+  { id: 'ROUTES', label: 'Route report' },
+  { id: 'PAYMENTS', label: 'Payment report' },
+  { id: 'DUE', label: 'Due report' },
+  { id: 'INCOME', label: 'Income report' },
+  { id: 'EXPENSE', label: 'Expense report' },
+  { id: 'SALARY', label: 'Salary report' },
+  { id: 'PROFIT', label: 'Profit/loss report' },
 ];
 export function ReportsScreen() {
+  const { t } = useTranslation();
   const {
     data,
     error: managementError,
@@ -59,7 +67,7 @@ export function ReportsScreen() {
     async (signal?: AbortSignal) => {
       if (!validReportMonth(month)) {
         setReport(null);
-        setError('মাস YYYY-MM ফরম্যাটে দিন।');
+        setError('Enter the month in YYYY-MM format.');
         setLoading(false);
         return;
       }
@@ -83,7 +91,7 @@ export function ReportsScreen() {
           setError(
             problem instanceof Error
               ? problem.message
-              : 'রিপোর্ট লোড করা যায়নি।',
+              : 'Could not load the report.',
           );
         }
       } finally {
@@ -97,12 +105,12 @@ export function ReportsScreen() {
     load(controller.signal);
     return () => controller.abort();
   }, [load]);
-  const rows = (): ReportCell[][] => {
+  const rows = (display = false): ReportCell[][] => {
     if (!report) return [];
     const header: ReportCell[][] = [
       [data?.settings.businessName || 'NOOR TRANSPORT'],
       [
-        reportTypes.find(item => item.id === selected)?.label || '',
+        t(reportTypes.find(item => item.id === selected)?.label || 'Report'),
         selected === 'DAILY' ? date : report.month,
       ],
     ];
@@ -110,7 +118,7 @@ export function ReportsScreen() {
     const ledger = report.ledger;
     if (selected === 'DAILY')
       body = [
-        ['নাম', 'ধরন', 'অবস্থা', 'তারিখ'],
+        [t('Name'), t('Type'), t('Status'), t('Date')],
         ...(data?.attendance || [])
           .filter(item => item.date === date)
           .map(item => [
@@ -121,23 +129,23 @@ export function ReportsScreen() {
                   ?.name ||
                 item.driverId ||
                 '',
-            item.studentId ? 'শিক্ষার্থী' : 'ড্রাইভার',
-            item.status,
+            item.studentId ? t('Student') : t('Driver'),
+            display ? labelStatus(item.status) : item.status,
             item.date,
           ]),
       ];
     else if (selected === 'STUDENTS')
       body = [
         [
-          'শিক্ষার্থী',
-          'আইডি',
-          'শ্রেণি',
-          'অভিভাবক',
-          'ফোন',
-          'রুট',
-          'গাড়ি',
-          'মাসিক ভাড়া (৳)',
-          'অবস্থা',
+          t('Student'),
+          t('ID'),
+          t('Class'),
+          t('Guardian'),
+          t('Phone'),
+          t('Route'),
+          t('Vehicle'),
+          t('Monthly fee (৳)'),
+          t('Status'),
         ],
         ...(data?.students || []).map(item => [
           item.studentName,
@@ -148,24 +156,31 @@ export function ReportsScreen() {
           item.routeName,
           item.vehicleName,
           item.monthlyAmount / 100,
-          item.status,
+          display ? labelStatus(item.status) : item.status,
         ]),
       ];
     else if (selected === 'DRIVERS')
       body = [
-        ['নাম', 'ফোন', 'গাড়ি', 'রুট', 'মাসিক বেতন (৳)', 'অবস্থা'],
+        [
+          t('Name'),
+          t('Phone'),
+          t('Vehicle'),
+          t('Route'),
+          t('Monthly salary (৳)'),
+          t('Status'),
+        ],
         ...(data?.drivers || []).map(item => [
           item.name,
           item.phone,
           item.vehicleName || '',
           item.routeName || '',
           item.monthlySalary / 100,
-          item.status,
+          display ? labelStatus(item.status) : item.status,
         ]),
       ];
     else if (selected === 'VEHICLES')
       body = [
-        ['গাড়ি', 'রেজিস্ট্রেশন', 'ড্রাইভার', 'ফোন'],
+        [t('Vehicle'), t('Registration'), t('Driver'), t('Phone')],
         ...transport.vehicles.map(item => [
           item.name,
           item.plate,
@@ -175,7 +190,7 @@ export function ReportsScreen() {
       ];
     else if (selected === 'ROUTES')
       body = [
-        ['রুট', 'গাড়ি', 'মাসিক ভাড়া (৳)', 'পিকআপ স্থান'],
+        [t('Route'), t('Vehicle'), t('Monthly fee (৳)'), t('Pickup stops')],
         ...transport.routes.map(item => [
           item.name,
           item.vehicleName,
@@ -185,7 +200,7 @@ export function ReportsScreen() {
       ];
     else if (selected === 'PAYMENTS' || selected === 'DUE')
       body = [
-        ['শিক্ষার্থী', 'অভিভাবক', 'মাস', 'টাকা (৳)', 'অবস্থা'],
+        [t('Student'), t('Guardian'), t('Month'), t('Amount (৳)'), t('Status')],
         ...transport.bills
           .filter(
             item =>
@@ -197,7 +212,7 @@ export function ReportsScreen() {
             item.guardianName,
             item.month,
             item.amount / 100,
-            item.status,
+            display ? labelStatus(item.status) : item.status,
           ]),
       ];
     else if (
@@ -206,12 +221,12 @@ export function ReportsScreen() {
       selected === 'SALARY'
     )
       body = [
-        ['শিরোনাম', 'খাত', 'তারিখ', 'টাকা (৳)', 'নোট'],
+        [t('Title'), t('Category'), t('Date'), t('Amount (৳)'), t('Note')],
         ...(selected === 'INCOME'
           ? [
               [
-                'শিক্ষার্থীর ভাড়া আদায়',
-                'পেমেন্ট',
+                t('Student fare collected'),
+                t('Payment'),
                 report.month,
                 report.cashflow.fareReceived / 100,
                 '',
@@ -226,7 +241,9 @@ export function ReportsScreen() {
           )
           .map(item => [
             item.title,
-            categoryLabels[item.category] || item.category,
+            categoryLabels[item.category]
+              ? t(categoryLabels[item.category])
+              : item.category,
             item.date,
             item.amount / 100,
             item.note,
@@ -234,37 +251,37 @@ export function ReportsScreen() {
       ];
     else
       body = [
-        ['বিবরণ', 'পরিমাণ'],
-        ['মোট শিক্ষার্থী', report.students.total],
-        ['সক্রিয় শিক্ষার্থী', report.students.active],
-        ['গাড়ি', report.vehicles],
-        ['ড্রাইভার', report.drivers],
-        ['এই মাসের বিল (৳)', report.billing.expected / 100],
-        ['পরিশোধিত বিল (৳)', report.billing.paid / 100],
-        ['বকেয়া (৳)', report.billing.due / 100],
-        ['আগের বকেয়া (৳)', report.billing.previousDue / 100],
-        ['ভাড়া আদায় (৳)', report.cashflow.fareReceived / 100],
-        ['অন্যান্য আয় (৳)', report.cashflow.otherIncome / 100],
-        ['মোট ব্যয় (৳)', report.cashflow.expenses / 100],
-        ['বিনিয়োগ (৳)', report.cashflow.investment / 100],
-        ['নিট লাভ/ক্ষতি (৳)', report.cashflow.net / 100],
-        ['উপস্থিতি রেকর্ড', report.attendance.present],
-        ['অনুপস্থিতির রেকর্ড', report.attendance.absent],
-        ['ছুটির রেকর্ড', report.attendance.leave],
+        [t('Item'), t('Quantity')],
+        [t('Total students'), report.students.total],
+        [t('Active students'), report.students.active],
+        [t('Vehicle'), report.vehicles],
+        [t('Driver'), report.drivers],
+        [t("This month's bills (৳)"), report.billing.expected / 100],
+        [t('Paid bills (৳)'), report.billing.paid / 100],
+        [t('Due (৳)'), report.billing.due / 100],
+        [t('Previous due (৳)'), report.billing.previousDue / 100],
+        [t('Fare collected (৳)'), report.cashflow.fareReceived / 100],
+        [t('Other income (৳)'), report.cashflow.otherIncome / 100],
+        [t('Total expenses (৳)'), report.cashflow.expenses / 100],
+        [t('Investment (৳)'), report.cashflow.investment / 100],
+        [t('Net profit/loss (৳)'), report.cashflow.net / 100],
+        [t('Present records'), report.attendance.present],
+        [t('Absent records'), report.attendance.absent],
+        [t('Leave records'), report.attendance.leave],
       ];
     return [...header, [], ...body];
   };
   const exportReport = (format: 'CSV' | 'PDF') =>
     action.run(async () => {
       if (!report || report.month !== month)
-        throw new Error('রিপোর্ট লোড হওয়া পর্যন্ত অপেক্ষা করুন।');
+        throw new Error('Wait for the report to load.');
       if (selected === 'DAILY' && !/^\d{4}-\d{2}-\d{2}$/.test(date))
-        throw new Error('তারিখ YYYY-MM-DD ফরম্যাটে দিন।');
-      const table = rows();
+        throw new Error('Enter the date in YYYY-MM-DD format.');
+      const table = rows(format === 'PDF');
       const content =
         format === 'CSV'
           ? reportCsv(table)
-          : table.map(row => row.join('  |  ')).join('\n');
+          : table.map(row => row.map(reportCellLabel).join('  |  ')).join('\n');
       const done = await saveReportFile(
         `noor-${selected.toLowerCase()}-${
           selected === 'DAILY' ? date : month
@@ -272,9 +289,9 @@ export function ReportsScreen() {
         content,
         format === 'CSV' ? 'text/csv' : 'application/pdf',
       );
-      setSaved(done ? 'রিপোর্ট সংরক্ষণ হয়েছে।' : '');
+      setSaved(done ? 'Report saved.' : '');
     });
-  const preview = rows().slice(3, 11);
+  const preview = rows(true).slice(3, 11);
   return (
     <AdminPage
       loading={loading}
@@ -284,7 +301,7 @@ export function ReportsScreen() {
       }}
     >
       <Input
-        label="রিপোর্টের মাস (YYYY-MM)"
+        label={t('Report month (YYYY-MM)')}
         value={month}
         onChangeText={value => {
           setMonth(value);
@@ -317,7 +334,7 @@ export function ReportsScreen() {
                 selected === item.id && [s.green, s.bold],
               ]}
             >
-              {item.label}
+              {t(item.label)}
             </Text>
             <Text style={selected === item.id ? s.green : s.muted}>
               {selected === item.id ? '✓' : '›'}
@@ -327,7 +344,7 @@ export function ReportsScreen() {
       </Box>
       {selected === 'DAILY' ? (
         <Input
-          label="উপস্থিতির তারিখ (YYYY-MM-DD)"
+          label={t('Attendance date (YYYY-MM-DD)')}
           value={date}
           onChangeText={setDate}
           maxLength={10}
@@ -336,27 +353,27 @@ export function ReportsScreen() {
       {report ? (
         <Box>
           <Heading
-            title={
-              reportTypes.find(item => item.id === selected)?.label || 'রিপোর্ট'
-            }
+            title={t(
+              reportTypes.find(item => item.id === selected)?.label || 'Report',
+            )}
           />
           {selected === 'MONTHLY' || selected === 'PROFIT' ? (
             <>
               <Detail
-                label="মোট আয়"
+                label={t('Total income')}
                 value={money(
                   report.cashflow.fareReceived + report.cashflow.otherIncome,
                 )}
               />
               <Detail
-                label="মোট ব্যয়"
+                label={t('Total expenses')}
                 value={money(report.cashflow.expenses)}
               />
               <Detail
-                label="নিট লাভ/ক্ষতি"
+                label={t('Net profit/loss')}
                 value={money(report.cashflow.net)}
               />
-              <Detail label="বকেয়া" value={money(report.billing.due)} />
+              <Detail label={t('Due')} value={money(report.billing.due)} />
             </>
           ) : preview.length > 1 ? (
             preview.map((row, index) => (
@@ -365,25 +382,25 @@ export function ReportsScreen() {
                 selectable
                 style={index === 0 ? s.heading : s.body}
               >
-                {row.join(' · ')}
+                {row.map(reportCellLabel).join(' · ')}
               </Text>
             ))
           ) : (
-            <EmptyState text="এই রিপোর্টে কোনো রেকর্ড নেই" />
+            <EmptyState text={t('No records in this report')} />
           )}
           <ErrorText message={action.error} />
-          {saved ? <Text style={s.note}>{saved}</Text> : null}
+          {saved ? <Text style={s.note}>{t(saved)}</Text> : null}
           <View style={s.row}>
             <View style={s.flex}>
               <SmallButton
-                title="PDF Download"
+                title={t('Download PDF')}
                 busy={action.busy}
                 onPress={() => exportReport('PDF')}
               />
             </View>
             <View style={s.flex}>
               <SmallButton
-                title="Excel (CSV)"
+                title={t('Excel (CSV)')}
                 busy={action.busy}
                 onPress={() => exportReport('CSV')}
               />

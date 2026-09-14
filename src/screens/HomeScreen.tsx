@@ -23,8 +23,9 @@ import { Notice } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useManagement } from '../context/ManagementContext';
-import { money, numberLabel } from '../utils/format';
+import { money, numberLabel, readable } from '../utils/format';
 import { dhakaDate } from '../utils/historyDates';
+import { locale, useTranslation } from '../i18n';
 import { colors } from '../theme';
 
 export const dashboardItems = [
@@ -60,6 +61,7 @@ export const dashboardItems = [
 export function HomeScreen({
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'Fleet'>) {
+  const { t } = useTranslation();
   const { session } = useAuth();
   const core = useData();
   const management = useManagement();
@@ -115,7 +117,7 @@ export function HomeScreen({
       <View style={h.header}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="মেনু"
+          accessibilityLabel={t('Menu')}
           onPress={() => go('More')}
           style={h.headerButton}
         >
@@ -125,12 +127,14 @@ export function HomeScreen({
           <NoorBrand
             compact
             light
-            subtitle={admin ? 'Admin' : 'Parent Dashboard'}
+            subtitle={admin ? t('Admin') : t('Parent Dashboard')}
           />
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`নোটিফিকেশন, ${unread} অপঠিত`}
+          accessibilityLabel={t('Notifications, {{number}} unread', {
+            number: numberLabel(unread),
+          })}
           onPress={() => go('Inbox')}
           style={h.headerButton}
         >
@@ -159,9 +163,9 @@ export function HomeScreen({
               <View style={h.dateRow}>
                 <NoorIcon name="calendar" size={18} />
                 <Text style={h.date}>
-                  আজ:{' '}
+                  {t('Today')}:{' '}
                   {new Date(`${today}T12:00:00+06:00`).toLocaleDateString(
-                    'bn-BD',
+                    locale(),
                     {
                       day: 'numeric',
                       month: 'long',
@@ -175,41 +179,47 @@ export function HomeScreen({
                 <Stat
                   color="#0087D4"
                   icon="students"
-                  title="মোট শিক্ষার্থী"
+                  title={t('Total students')}
                   value={extra ? numberLabel(students.length) : '—'}
-                  subtitle={`সক্রিয়: ${numberLabel(
-                    active,
-                  )}  |  অনুপস্থিত: ${numberLabel(absent)}`}
+                  subtitle={t('Active: {{active}}  |  Absent: {{absent}}', {
+                    active: numberLabel(active),
+                    absent: numberLabel(absent),
+                  })}
                   onPress={() => go('Students')}
                 />
                 <Stat
                   color="#06933E"
                   icon="vehicles"
-                  title="মোট গাড়ি"
+                  title={t('Total vehicles')}
                   value={
                     core.loading && !data.vehicles.length
                       ? '—'
                       : numberLabel(data.vehicles.length)
                   }
-                  subtitle={`চলমান: ${numberLabel(
-                    running,
-                  )}  |  সমস্যা: ${numberLabel(activeMaintenanceIds.size)}`}
+                  subtitle={t('Running: {{running}}  |  Issues: {{issues}}', {
+                    running: numberLabel(running),
+                    issues: numberLabel(activeMaintenanceIds.size),
+                  })}
                   onPress={() => go('Vehicles')}
                 />
                 <Stat
                   color="#F0A20A"
                   icon="payment"
-                  title="এই মাসের পাওনা"
+                  title={t('Billed this month')}
                   value={unknown ? '—' : money(expected)}
-                  subtitle={`পরিশোধিত: ${unknown ? '—' : money(paid)}`}
+                  subtitle={t('Paid: {{amount}}', {
+                    amount: unknown ? '—' : money(paid),
+                  })}
                   onPress={() => go('Bills')}
                 />
                 <Stat
                   color="#EE435B"
                   icon="due"
-                  title="বকেয়া"
+                  title={t('Outstanding dues')}
                   value={unknown ? '—' : money(due)}
-                  subtitle={`মোট: ${numberLabel(duePeople)} জন`}
+                  subtitle={t('Total: {{number}} people', {
+                    number: numberLabel(duePeople),
+                  })}
                   onPress={() => go('DueList')}
                 />
               </View>
@@ -217,13 +227,13 @@ export function HomeScreen({
                 <View style={h.urgentTitle}>
                   <View style={h.inline}>
                     <NoorIcon name="emergency" size={19} color="#EB3B55" />
-                    <Text style={h.urgentText}>জরুরি বিষয়</Text>
+                    <Text style={h.urgentText}>{t('Urgent matters')}</Text>
                   </View>
                   <Pressable
                     accessibilityRole="button"
                     onPress={() => go('Emergency')}
                   >
-                    <Text style={h.viewAll}>View All ›</Text>
+                    <Text style={h.viewAll}>{t('View all')} ›</Text>
                   </Pressable>
                 </View>
                 {maintenance.slice(0, 1).map(item => (
@@ -241,16 +251,18 @@ export function HomeScreen({
                 {due > 0 ? (
                   <AlertRow
                     color="#ECAA15"
-                    text={`${numberLabel(duePeople)} জনের পেমেন্ট বকেয়া`}
+                    text={t('Payments overdue for {{number}} people', {
+                      number: numberLabel(duePeople),
+                    })}
                     onPress={() => go('DueList')}
                   />
                 ) : null}
                 {requestCount > 0 ? (
                   <AlertRow
                     color="#168E51"
-                    text={`${numberLabel(
-                      requestCount,
-                    )}টি নতুন আবেদন / রিকোয়েস্ট`}
+                    text={t('{{number}} new applications / requests', {
+                      number: numberLabel(requestCount),
+                    })}
                     onPress={() =>
                       go(
                         data.requests.some(r => r.status === 'PENDING')
@@ -263,18 +275,18 @@ export function HomeScreen({
                 {!maintenance.length && !due && !requestCount ? (
                   <Text style={h.emptyText}>
                     {core.loading || management.loading
-                      ? 'তথ্য লোড হচ্ছে…'
-                      : 'এই মুহূর্তে কোনো জরুরি বিষয় নেই।'}
+                      ? t('Loading data…')
+                      : t('No urgent matters right now.')}
                   </Text>
                 ) : null}
               </View>
-              <NoorSection title="দ্রুত কার্যক্রম">
+              <NoorSection title={t('Quick actions')}>
                 <View style={h.quickGrid}>
                   {dashboardItems.map(item => (
                     <Pressable
                       key={item.screen}
                       accessibilityRole="button"
-                      accessibilityLabel={item.label}
+                      accessibilityLabel={t(item.label)}
                       onPress={() =>
                         item.screen === 'Accounts'
                           ? navigation.navigate('Accounts', { tab: 'EXPENSE' })
@@ -291,14 +303,14 @@ export function HomeScreen({
                           color={item.color}
                         />
                       </View>
-                      <Text style={h.quickLabel}>{item.label}</Text>
+                      <Text style={h.quickLabel}>{t(item.label)}</Text>
                     </Pressable>
                   ))}
                 </View>
               </NoorSection>
               <NoorSection
-                title="আজকের ট্রিপ"
-                action="সব দেখুন"
+                title={t("Today's trips")}
+                action={t('View all')}
                 onAction={() => go('FleetMap')}
               >
                 {data.vehicles.slice(0, 3).map(v => {
@@ -318,16 +330,18 @@ export function HomeScreen({
                         <View style={h.flex}>
                           <Text style={h.name}>{v.name}</Text>
                           <Text style={h.small}>
-                            ড্রাইভার: {v.driverName || 'নির্ধারিত হয়নি'}
+                            {t('Driver: {{name}}', {
+                              name: v.driverName || t('Not assigned'),
+                            })}
                           </Text>
                         </View>
                         <NoorBadge
                           label={
                             loc?.status === 'live'
-                              ? '● Live'
+                              ? `● ${readable('live')}`
                               : loc?.status === 'lastKnown'
-                              ? 'শেষ অবস্থান'
-                              : 'অফলাইন'
+                              ? readable('lastKnown')
+                              : readable('offline')
                           }
                           tone={loc?.status === 'live' ? 'green' : 'gray'}
                         />
@@ -337,7 +351,7 @@ export function HomeScreen({
                 })}
                 {!data.vehicles.length ? (
                   <Text style={h.emptyText}>
-                    গাড়ি যোগ করলে এখানে ট্রিপ দেখা যাবে।
+                    {t('Trips will appear here after adding a vehicle.')}
                   </Text>
                 ) : null}
               </NoorSection>
@@ -346,12 +360,12 @@ export function HomeScreen({
             <>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`প্রোফাইল, ${user.name}`}
+                accessibilityLabel={t('Profile, {{name}}', { name: user.name })}
                 onPress={() => setProfileVisible(true)}
               >
-                <Text style={h.greeting}>আসসালামু আলাইকুম</Text>
+                <Text style={h.greeting}>{t('Assalamu alaikum')}</Text>
                 <Text style={h.parentName}>{user.name}</Text>
-                <Text style={h.small}>Parent Dashboard</Text>
+                <Text style={h.small}>{t('Parent Dashboard')}</Text>
               </Pressable>
               {student ? (
                 <Pressable
@@ -368,8 +382,12 @@ export function HomeScreen({
                     <View style={h.flex}>
                       <Text style={h.name}>{student.studentName}</Text>
                       <Text style={h.small}>
-                        {student.className ? student.className : 'শিক্ষার্থী'}
-                        {student.roll ? `  |  Roll: ${student.roll}` : ''}
+                        {student.className || t('Student')}
+                        {student.roll
+                          ? `  |  ${t('Roll: {{roll}}', {
+                              roll: student.roll,
+                            })}`
+                          : ''}
                       </Text>
                     </View>
                     <Text style={h.arrow}>›</Text>
@@ -379,8 +397,8 @@ export function HomeScreen({
                 <NoorCard>
                   <Text style={h.name}>
                     {pending
-                      ? 'আপনার আবেদন পর্যালোচনায় আছে'
-                      : 'আপনার সন্তানকে পরিবহন সেবায় যুক্ত করুন'}
+                      ? t('Your application is under review')
+                      : t('Enroll your child in the transport service')}
                   </Text>
                   <Pressable
                     accessibilityRole="button"
@@ -389,7 +407,9 @@ export function HomeScreen({
                     }
                   >
                     <Text style={h.link}>
-                      {pending ? 'আবেদনের অবস্থা দেখুন' : 'অনলাইনে ভর্তি করুন'}{' '}
+                      {pending
+                        ? t('View application status')
+                        : t('Enroll online')}{' '}
                       ›
                     </Text>
                   </Pressable>
@@ -401,8 +421,8 @@ export function HomeScreen({
                   <Text style={h.vehiclePillText}>
                     {vehicle.name} ·{' '}
                     {location?.status === 'live'
-                      ? 'চলমান'
-                      : 'শেষ অবস্থান দেখুন'}
+                      ? t('Running')
+                      : t('View last location')}
                   </Text>
                 </View>
               ) : null}
@@ -410,8 +430,8 @@ export function HomeScreen({
                 <Stat
                   color="#078254"
                   icon="pin"
-                  title="লোকেশন দেখুন"
-                  value="Live Tracking"
+                  title={t('View location')}
+                  value={t('Live Tracking')}
                   small
                   onPress={() =>
                     navigation.navigate(
@@ -423,31 +443,31 @@ export function HomeScreen({
                 <Stat
                   color="#F05B66"
                   icon="due"
-                  title="পেমেন্ট"
+                  title={t('Payment')}
                   value={unknown ? '—' : money(due)}
-                  subtitle="মোট বকেয়া"
+                  subtitle={t('Total outstanding')}
                   onPress={() => go('Bills')}
                 />
                 <Stat
                   color="#F27783"
                   icon="calendar"
-                  title="নোটিশ"
-                  value={`${numberLabel(unread)}টি নতুন`}
+                  title={t('Notices')}
+                  value={t('{{number}} new', { number: numberLabel(unread) })}
                   small
                   onPress={() => go('Inbox')}
                 />
                 <Stat
                   color="#4F83F2"
                   icon="document"
-                  title="আবেদন"
-                  value="নতুন ভর্তি"
+                  title={t('Application')}
+                  value={t('New admission')}
                   small
                   onPress={() => go('Admission')}
                 />
               </View>
               <NoorSection
-                title="গাড়ির বর্তমান অবস্থা"
-                action="দেখুন"
+                title={t('Current vehicle status')}
+                action={t('View')}
                 onAction={() => go('LiveTracking')}
               >
                 {vehicle ? (
@@ -458,28 +478,36 @@ export function HomeScreen({
                     <View style={h.flex}>
                       <Text style={h.name}>{vehicle.name}</Text>
                       <Text style={h.small}>
-                        Driver: {vehicle.driverName || 'নির্ধারিত হয়নি'}
+                        {t('Driver: {{name}}', {
+                          name: vehicle.driverName || t('Not assigned'),
+                        })}
                       </Text>
                       <Text style={h.small}>
                         {location?.positionAt
-                          ? `আপডেট: ${new Date(
-                              location.positionAt,
-                            ).toLocaleTimeString('bn-BD', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              timeZone: 'Asia/Dhaka',
-                            })}`
-                          : 'অবস্থান অপেক্ষমাণ'}
+                          ? t('Updated {{time}}', {
+                              time: new Date(
+                                location.positionAt,
+                              ).toLocaleTimeString(locale(), {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                timeZone: 'Asia/Dhaka',
+                              }),
+                            })
+                          : t('Waiting for location')}
                       </Text>
                     </View>
                     <NoorBadge
-                      label={location?.status === 'live' ? '● Live' : 'অফলাইন'}
+                      label={
+                        location?.status === 'live'
+                          ? `● ${readable('live')}`
+                          : readable('offline')
+                      }
                       tone={location?.status === 'live' ? 'green' : 'gray'}
                     />
                   </NoorCard>
                 ) : (
                   <Text style={h.emptyText}>
-                    আবেদন অনুমোদনের পর নির্ধারিত গাড়ি দেখা যাবে।
+                    {t('Your assigned vehicle will appear after approval.')}
                   </Text>
                 )}
               </NoorSection>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { NoorIcon } from '../../components/Noor';
+import { useTranslation } from '../../i18n';
 import { colors, styles } from '../../theme';
 
 export function StudentAvatar({
@@ -12,6 +13,7 @@ export function StudentAvatar({
   photoUrl?: string;
   size?: number;
 }) {
+  const { t } = useTranslation();
   const [failedUrl, setFailedUrl] = useState('');
   return (
     <View
@@ -22,7 +24,7 @@ export function StudentAvatar({
     >
       {photoUrl && failedUrl !== photoUrl ? (
         <Image
-          accessibilityLabel={`${name} — ছবি`}
+          accessibilityLabel={t('Photo of {{name}}', { name })}
           source={{ uri: photoUrl }}
           style={parent.avatarImage}
           onError={() => setFailedUrl(photoUrl)}
@@ -54,32 +56,35 @@ export function InfoRow({
   );
 }
 
-export function Segment({
-  labels,
+export function Segment<T extends string>({
+  options,
   value,
   onChange,
 }: {
-  labels: string[];
-  value: string;
-  onChange: (value: string) => void;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
 }) {
   return (
     <View accessibilityRole="tablist" style={parent.segments}>
-      {labels.map(label => (
+      {options.map(option => (
         <Pressable
-          key={label}
+          key={option.value}
           accessibilityRole="tab"
-          accessibilityState={{ selected: value === label }}
-          onPress={() => onChange(label)}
-          style={[parent.segment, value === label && parent.segmentActive]}
+          accessibilityState={{ selected: value === option.value }}
+          onPress={() => onChange(option.value)}
+          style={[
+            parent.segment,
+            value === option.value && parent.segmentActive,
+          ]}
         >
           <Text
             style={[
               parent.segmentText,
-              value === label && parent.segmentTextActive,
+              value === option.value && parent.segmentTextActive,
             ]}
           >
-            {label}
+            {option.label}
           </Text>
         </Pressable>
       ))}

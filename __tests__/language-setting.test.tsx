@@ -140,3 +140,20 @@ it('defaults a fresh Noor installation to Bengali', async () => {
   await renderApp();
   expect(i18n.language).toBe('bn');
 });
+
+it('translates the sign-in heading and tagline along with the form', async () => {
+  await renderApp();
+  expect(JSON.stringify(screen.toJSON())).toContain('Parent Login');
+  expect(JSON.stringify(screen.toJSON())).toContain(
+    "Your child's safe journey",
+  );
+  await choose('বাংলা');
+  expect(JSON.stringify(screen.toJSON())).toContain('অভিভাবক লগইন');
+  expect(JSON.stringify(screen.toJSON())).toContain(
+    'আপনার সন্তানের নিরাপদ যাত্রা',
+  );
+  await choose('English');
+  expect(JSON.stringify(screen.toJSON())).toContain('Parent Login');
+  expect(JSON.stringify(screen.toJSON())).toContain('Safe education,');
+  expect(JSON.stringify(screen.toJSON())).not.toContain('অভিভাবক লগইন');
+});

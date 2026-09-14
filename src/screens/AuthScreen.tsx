@@ -90,11 +90,11 @@ export function AuthScreen({
           <View style={[local.brand, variant === 'admin' && local.adminBrand]}>
             <NoorBrand />
             <Text style={local.panelLabel}>
-              {variant === 'admin' ? 'Admin Panel' : 'Parent Login'}
+              {t(variant === 'admin' ? 'Admin Panel' : 'Parent Login')}
             </Text>
             {variant === 'parent' ? (
               <Text style={local.parentSubtitle}>
-                আপনার সন্তানের নিরাপদ যাত্রা
+                {t("Your child's safe journey")}
               </Text>
             ) : null}
           </View>
@@ -312,7 +312,7 @@ export function AuthScreen({
             <Text
               style={[local.tagline, variant === 'admin' && local.lightTagline]}
             >
-              শিক্ষা হোক নিরাপদ,{'\n'}আমাদের দায়িত্ব
+              {t('Safe education,\nour responsibility')}
             </Text>
           </View>
         </ScrollView>

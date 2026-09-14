@@ -1,10 +1,27 @@
 import {
   monthInDhaka,
+  reportCellLabel,
   reportCsv,
   validReportMonth,
 } from '../src/screens/admin/reportUtils';
+import { i18n } from '../src/i18n';
+
+afterEach(async () => {
+  await i18n.changeLanguage('en');
+});
 
 describe('Noor report export', () => {
+  it('localizes display numbers while preserving CSV numbers, enums and user text', async () => {
+    const rows = [['Name', '01712345678', '2026-09', 'ACTIVE', 2500.5]];
+    await i18n.changeLanguage('en');
+    const csv = reportCsv(rows);
+    expect(reportCellLabel(2500.5)).toBe('2,500.5');
+    await i18n.changeLanguage('bn');
+    expect(reportCellLabel(2500.5)).toBe('২,৫০০.৫');
+    for (const cell of ['Name', '01712345678', '2026-09', 'ACTIVE'])
+      expect(reportCellLabel(cell)).toBe(cell);
+    expect(reportCsv(rows)).toBe(csv);
+  });
   it('attributes payments around midnight to the same Dhaka month as the API', () => {
     expect(monthInDhaka('2026-08-31T18:00:00Z')).toBe('2026-09');
     expect(monthInDhaka('2026-08-31T17:59:59Z')).toBe('2026-08');
