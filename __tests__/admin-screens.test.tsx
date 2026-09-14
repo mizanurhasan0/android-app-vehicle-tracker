@@ -847,3 +847,147 @@ it('keeps an existing agreed journey fee when editing a profile after route pric
   );
   expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('monthlyAmount');
 });
+
+it('keeps attendance separate per shift and excludes unscheduled services', async () => {
+  mockManagement.settings.operatingDays = [0, 1, 2, 3, 4, 6];
+  mockManagement.students = [
+    {
+      ...student('morning'),
+      studentId: 'child',
+      shiftId: 'MORNING',
+      operatingDays: [1],
+    },
+    {
+      ...student('day'),
+      studentId: 'child',
+      shiftId: 'DAY',
+      operatingDays: [1],
+    },
+    {
+      ...student('off-day', 'Not travelling'),
+      shiftId: 'MORNING',
+      operatingDays: [2],
+    },
+  ];
+  await render(AttendanceScreen);
+  await setInput('Date (YYYY-MM-DD)', '2026-09-14');
+  await select('Transport shift', 'DAY');
+  expect(textContent()).not.toContain('Not travelling');
+  await openForm(); // Mark all present only for the selected shift.
+  await pressButton('Save');
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/attendance',
+    {
+      entries: [{ studentId: 'day', date: '2026-09-14', status: 'PRESENT' }],
+    },
+    'PUT',
+  );
+  await select('Transport shift', 'MORNING');
+  expect(
+    screen.root
+      .findAllByType(SmallButton)
+      .find(item => item.props.title === 'Save')!.props.disabled,
+  ).toBe(true);
+});
+
+it('offers no student attendance on institution closed days even when the service includes that day', async () => {
+  mockManagement.settings.operatingDays = [0, 1, 2, 3, 4, 6];
+  mockManagement.students = [{ ...student('friday'), operatingDays: [5] }];
+  await render(AttendanceScreen);
+  await setInput('Date (YYYY-MM-DD)', '2026-09-18');
+  expect(textContent()).toContain(
+    'No students scheduled for this date and shift.',
+  );
+  await openForm();
+  expect(
+    screen.root
+      .findAllByType(SmallButton)
+      .find(item => item.props.title === 'Save')!.props.disabled,
+  ).toBe(true);
+  expect(mockMutate).not.toHaveBeenCalled();
+});
+
+it('saves institution weekdays and configurable shift times as structured settings', async () => {
+  await render(SettingsScreen);
+  await act(async () =>
+    screen.root
+      .findAll(
+        node =>
+          node.props.accessibilityRole === 'button' &&
+          typeof node.props.onPress === 'function' &&
+          node
+            .findAllByType(Text)
+            .some(
+              text => text.props.children === 'Transport shifts and weekdays',
+            ),
+        { deep: false },
+      )[0]
+      .props.onPress(),
+  );
+  await pressAccessible('checkbox', 'Friday');
+  await pressButton('+ Add shift');
+  const inputs = screen.root.findAllByType(Input);
+  await act(async () => {
+    inputs
+      .filter(item => item.props.label === 'Shift name')
+      .slice(-1)[0]
+      .props.onChangeText('Late class');
+    inputs
+      .filter(item => item.props.label === 'Start time (HH:mm)')
+      .slice(-1)[0]
+      .props.onChangeText('19:00');
+    inputs
+      .filter(item => item.props.label === 'Return time (HH:mm)')
+      .slice(-1)[0]
+      .props.onChangeText('21:00');
+  });
+  await save();
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/settings',
+    {
+      operatingDays: [0, 1, 2, 3, 4, 5, 6],
+      transportShifts: expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.stringMatching(/^SHIFT_/),
+          name: 'Late class',
+          startTime: '19:00',
+          endTime: '21:00',
+        }),
+      ]),
+    },
+    'PATCH',
+  );
+});
+
+it('updates a canonical enrollment without sending the create-only studentId field', async () => {
+  mockManagement.students[0].studentId = 'canonical-child';
+  mockParams = { id: mockManagement.students[0].id };
+  await render(StudentProfileScreen);
+  await pressButton('Edit');
+  await setInput('Roll number', '24');
+  await save();
+  expect(mockMutate).toHaveBeenCalledWith(
+    `/admin/students/${mockManagement.students[0].id}`,
+    expect.objectContaining({ roll: '24' }),
+    'PATCH',
+  );
+  expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('studentId');
+});
+
+it('starts an active new service when reusing a stopped student profile', async () => {
+  mockManagement.students[0].studentId = 'canonical-child';
+  mockManagement.students[0].status = 'STOPPED';
+  mockParams = { id: mockManagement.students[0].id };
+  await render(StudentProfileScreen);
+  await pressButton('Add service in another shift');
+  await save();
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/students',
+    expect.objectContaining({
+      studentId: 'canonical-child',
+      status: 'ACTIVE',
+      operatingDays: [0, 1, 2, 3, 4, 6],
+    }),
+    'POST',
+  );
+});

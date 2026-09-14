@@ -24,6 +24,7 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useManagement } from '../context/ManagementContext';
 import { money, numberLabel, readable } from '../utils/format';
+import { isServiceScheduled, uniqueStudents } from '../utils/transport';
 import { dhakaDate } from '../utils/historyDates';
 import { locale, useTranslation } from '../i18n';
 import { colors } from '../theme';
@@ -88,10 +89,20 @@ export function HomeScreen({
   const student =
     extra?.students.find(s => s.status === 'ACTIVE') || extra?.students[0];
   const students = extra?.students || [];
-  const active = students.filter(s => s.status === 'ACTIVE').length;
+  const scheduled = students.filter(
+    s =>
+      s.status === 'ACTIVE' &&
+      isServiceScheduled(s, today, extra?.settings.operatingDays),
+  );
+  const active = scheduled.length;
+  const scheduledIds = new Set(scheduled.map(s => s.id));
   const absent =
     extra?.attendance.filter(
-      a => a.studentId && a.date === today && a.status === 'ABSENT',
+      a =>
+        a.studentId &&
+        scheduledIds.has(a.studentId) &&
+        a.date === today &&
+        a.status === 'ABSENT',
     ).length || 0;
   const maintenance =
     extra?.maintenance.filter(m => m.status === 'IN_PROGRESS') || [];
@@ -180,11 +191,16 @@ export function HomeScreen({
                   color="#0087D4"
                   icon="students"
                   title={t('Total students')}
-                  value={extra ? numberLabel(students.length) : '—'}
-                  subtitle={t('Active: {{active}}  |  Absent: {{absent}}', {
-                    active: numberLabel(active),
-                    absent: numberLabel(absent),
-                  })}
+                  value={
+                    extra ? numberLabel(uniqueStudents(students).length) : '—'
+                  }
+                  subtitle={t(
+                    'Scheduled today: {{active}}  |  Absent: {{absent}}',
+                    {
+                      active: numberLabel(active),
+                      absent: numberLabel(absent),
+                    },
+                  )}
                   onPress={() => go('Students')}
                 />
                 <Stat

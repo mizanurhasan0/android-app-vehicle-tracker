@@ -1,0 +1,23 @@
+{
+  "Transport shifts and weekdays": "Transport shifts and weekdays",
+  "Institution closed days are excluded from every student service.": "Institution closed days are excluded from every student service.",
+  "Shift name": "Shift name",
+  "Start time (HH:mm)": "Start time (HH:mm)",
+  "Return time (HH:mm)": "Return time (HH:mm)",
+  "Select at least one operating day.": "Select at least one operating day.",
+  "Each shift needs a name and valid start and return times.": "Each shift needs a name and valid start and return times.",
+  "No students scheduled for this date and shift.": "No students scheduled for this date and shift.",
+  "Scheduled today: {{active}}  |  Absent: {{absent}}": "Scheduled today: {{active}}  |  Absent: {{absent}}",
+  "Today's passengers": "Today's passengers",
+  "All shifts": "All shifts",
+  "Student and shift": "Student and shift",
+  "Not scheduled today": "Not scheduled today",
+  "No transport is scheduled for this service today. This is not an absence.": "No transport is scheduled for this service today. This is not an absence.",
+  "Outbound": "Outbound",
+  "Return": "Return",
+  "+ Add shift": "+ Add shift",
+  "Remove shift": "Remove shift",
+  "Shift departure": "Shift departure",
+  "Shift return": "Shift return",
+  "Shift times are not individual stop arrival times.": "Shift times are not individual stop arrival times."
+}

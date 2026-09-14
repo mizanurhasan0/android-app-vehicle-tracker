@@ -1,5 +1,25 @@
+import {
+  isServiceScheduled as journeyServiceScheduled,
+  serviceShift as journeyServiceShift,
+  transportShifts as journeyShifts,
+} from '../../utils/transport';
+import { TransportScheduleSummary as JourneyScheduleSummary } from '../../components/TransportSchedule';
+
+import {
+  TransportSchedule,
+  TransportScheduleSummary,
+} from '../../components/TransportSchedule';
+import {
+  defaultOperatingDays,
+  enrollmentConflicts,
+  scheduleValidation,
+  serviceShift,
+  studentIdentity,
+  transportShifts,
+  uniqueStudents,
+} from '../../utils/transport';
 import { journeyFare, journeyDestinations } from '../../utils/routeFares';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Keyboard,
   Linking,
@@ -58,13 +78,35 @@ const admissionSteps = [
   'Submit',
 ];
 
-export function AdmissionScreen({ navigation }: Props<'Admission'>) {
+export function AdmissionScreen({
+  navigation,
+  route: screenRoute,
+}: Props<'Admission'>) {
   const { t } = useTranslation();
   const { session } = useAuth();
   const { data, loading, error, refresh, mutate } = useData();
   const management = useManagement();
   const action = useAction();
   const [step, setStep] = useState(0);
+  const [selectedStudentId, setSelectedStudentId] = useState(
+    screenRoute.params?.studentId || '',
+  );
+  const [shiftId, setShiftId] = useState('');
+  const [operatingDays, setOperatingDays] = useState<number[]>([]);
+  const [scheduleInitialized, setScheduleInitialized] = useState(false);
+  const shifts = transportShifts(management.data?.settings);
+  const existingStudents = uniqueStudents(
+    [...data.requests, ...(management.data?.students || [])].filter(
+      item => item.studentId,
+    ),
+  );
+  useEffect(() => {
+    if (management.data && !scheduleInitialized) {
+      setShiftId(shifts[0].id);
+      setOperatingDays(defaultOperatingDays(management.data.settings));
+      setScheduleInitialized(true);
+    }
+  }, [management.data, scheduleInitialized, shifts]);
   const [studentName, setStudentName] = useState('');
   const [className, setClassName] = useState('');
   const [roll, setRoll] = useState('');
@@ -76,6 +118,38 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
   const [stopId, setStopId] = useState('');
   const [dropoffStopId, setDropoffStopId] = useState('');
   const [routeSearch, setRouteSearch] = useState('');
+  const prefilledStudent = useRef('');
+  useEffect(() => {
+    if (!selectedStudentId) {
+      prefilledStudent.current = '';
+      return;
+    }
+    if (prefilledStudent.current === selectedStudentId) return;
+    const selected =
+      management.data?.students.find(
+        item => item.studentId === selectedStudentId,
+      ) || data.requests.find(item => item.studentId === selectedStudentId);
+    if (!selected) return;
+    prefilledStudent.current = selectedStudentId;
+    setStudentName(selected.studentName);
+    setClassName(selected.className || '');
+    setRoll(selected.roll || '');
+    setPhotoUrl(selected.photoUrl || '');
+    setEmergencyContact(selected.emergencyContact || '');
+    setPickupAddress(selected.pickupAddress || '');
+    setDropAddress(selected.dropAddress || '');
+  }, [selectedStudentId, management.data?.students, data.requests]);
+  const conflicts = enrollmentConflicts(
+    [...(management.data?.students || []), ...data.requests],
+    {
+      studentId: selectedStudentId || undefined,
+      studentName,
+      shiftId,
+      operatingDays,
+    },
+    shifts,
+  );
+
   const route = data.routes.find(item => item.id === routeId);
   const stop = route?.stops.find(item => item.id === stopId);
   const destination = route?.stops.find(item => item.id === dropoffStopId);
@@ -94,7 +168,8 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
       if (studentName.trim().length < 2)
         fields.studentName =
           'Enter at least 2 characters for the student name.';
-      if (!className.trim()) fields.className = 'Enter the class.';
+      if (!selectedStudentId && !className.trim())
+        fields.className = 'Enter the class.';
     }
     if (page === 1) {
       if (!pickupAddress.trim())
@@ -106,6 +181,10 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
         fields.emergencyContact = 'Enter a valid emergency contact number.';
     }
     if (page === 2) {
+      Object.assign(
+        fields,
+        scheduleValidation(shiftId, operatingDays, shifts, conflicts.duplicate),
+      );
       if (!route) fields.routeId = 'Select a route.';
       if (!stop) fields.stopId = 'Select a pickup stop.';
       if (hasJourneyFares && (!destination || monthlyFare === undefined))
@@ -118,7 +197,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
     const groups = [
       ['studentName', 'className', 'roll', 'photoUrl'],
       ['pickupAddress', 'dropAddress', 'emergencyContact'],
-      ['routeId', 'stopId', 'dropoffStopId'],
+      ['routeId', 'stopId', 'dropoffStopId', 'shiftId', 'operatingDays'],
     ];
     const invalidStep = groups.findIndex(fields =>
       fields.some(field => action.fieldErrors[field]),
@@ -186,8 +265,35 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
       {step === 0 ? (
         <NoorCard>
           <Text style={styles.heading}>{t('Student information')}</Text>
+          {existingStudents.length ? (
+            <Select
+              label={t('Student profile')}
+              value={selectedStudentId}
+              options={[
+                { value: '', label: t('New student') },
+                ...existingStudents.map(item => ({
+                  value: studentIdentity(item),
+                  label: item.studentName,
+                })),
+              ]}
+              onChange={value => {
+                setSelectedStudentId(value);
+                action.clearFeedback();
+                if (!value) {
+                  setStudentName('');
+                  setClassName('');
+                  setRoll('');
+                  setPhotoUrl('');
+                  setEmergencyContact('');
+                  setPickupAddress('');
+                  setDropAddress('');
+                }
+              }}
+            />
+          ) : null}
           <Field
             label={t('Student name *')}
+            editable={!selectedStudentId}
             value={studentName}
             error={action.fieldErrors.studentName}
             onChangeText={value => {
@@ -199,6 +305,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           />
           <Field
             label={t('Class *')}
+            editable={!selectedStudentId}
             value={className}
             error={action.fieldErrors.className}
             onChangeText={value => {
@@ -210,6 +317,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           />
           <Field
             label={t('Roll number')}
+            editable={!selectedStudentId}
             value={roll}
             error={action.fieldErrors.roll}
             onChangeText={value => {
@@ -224,8 +332,11 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('Select a student photo')}
-              accessibilityState={{ busy: action.busy, disabled: action.busy }}
-              disabled={action.busy}
+              accessibilityState={{
+                busy: action.busy,
+                disabled: action.busy || !!selectedStudentId,
+              }}
+              disabled={action.busy || !!selectedStudentId}
               onPress={() =>
                 action.run(async () => {
                   const photo = await pickStudentPhoto();
@@ -248,7 +359,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
               secondary
               title={t('Remove photo')}
               onPress={() => setPhotoUrl('')}
-              disabled={action.busy}
+              disabled={action.busy || !!selectedStudentId}
             />
           ) : null}
         </NoorCard>
@@ -268,6 +379,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           <View style={parent.divider} />
           <Field
             label={t('Emergency contact number')}
+            editable={!selectedStudentId}
             value={emergencyContact}
             error={action.fieldErrors.emergencyContact}
             onChangeText={value => {
@@ -304,6 +416,23 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
         </NoorCard>
       ) : step === 2 ? (
         <>
+          <NoorCard>
+            <TransportSchedule
+              shiftId={shiftId}
+              operatingDays={operatingDays}
+              shifts={shifts}
+              onShiftChange={value => {
+                setShiftId(value);
+                action.clearFieldError('shiftId');
+              }}
+              onDaysChange={value => {
+                setOperatingDays(value);
+                action.clearFieldError('operatingDays');
+              }}
+              errors={action.fieldErrors}
+              overlap={conflicts.overlap}
+            />
+          </NoorCard>
           <NoorCard>
             <Field
               label={t('Select a route in your area')}
@@ -434,6 +563,10 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
         <>
           <NoorCard>
             <Text style={styles.heading}>{t('Review application')}</Text>
+            <TransportScheduleSummary
+              service={{ shiftId, operatingDays }}
+              shifts={shifts}
+            />
             <View style={parent.identity}>
               <StudentAvatar name={studentName} photoUrl={photoUrl} />
               <View style={parent.grow}>
@@ -510,6 +643,9 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
               const result = await mutate<{ id: string }>(
                 '/requests/guardian/new',
                 {
+                  studentId: selectedStudentId || undefined,
+                  shiftId,
+                  operatingDays,
                   studentName: studentName.trim(),
                   routeId,
                   stopId,
@@ -556,6 +692,8 @@ export function ApplicationStatusScreen({
   route,
 }: Props<'ApplicationStatus'>) {
   const { t } = useTranslation();
+  const management = useManagement();
+  const shifts = transportShifts(management.data?.settings);
   const { data, loading, error, refresh } = useData();
   const [selectedId, setSelectedId] = useState(route.params?.id || '');
   const requests: Application[] = data.requests;
@@ -573,7 +711,10 @@ export function ApplicationStatusScreen({
           onChange={setSelectedId}
           options={requests.map(item => ({
             value: item.id,
-            label: item.studentName,
+            label: `${item.studentName} · ${t(
+              shifts.find(shift => shift.id === serviceShift(item))?.name ||
+                serviceShift(item),
+            )}`,
           }))}
         />
       ) : null}
@@ -623,6 +764,7 @@ export function ApplicationStatusScreen({
               />
               <View style={parent.grow}>
                 <Text style={styles.heading}>{request.studentName}</Text>
+                <TransportScheduleSummary service={request} shifts={shifts} />
                 <Text style={styles.muted}>
                   {request.routeName} · {request.vehicleName}
                 </Text>
@@ -705,19 +847,29 @@ export function ParentStudentScreen({
   const action = useAction();
   const [selectedId, setSelectedId] = useState(route.params?.id || '');
   const students = data?.students || [];
+  const profiles = uniqueStudents(students);
   const student =
     students.find(item => item.id === selectedId) ||
     (!selectedId ? students[0] : undefined);
+  const services = student
+    ? students.filter(
+        item => studentIdentity(item) === studentIdentity(student),
+      )
+    : [];
   return (
     <Page loading={loading} refresh={refresh} error={error}>
       <Notice text={action.error} kind="error" />
-      {students.length > 1 ? (
+      {profiles.length > 1 ? (
         <Select
           label={t('My child')}
-          value={student?.id || ''}
-          onChange={setSelectedId}
-          options={students.map(item => ({
-            value: item.id,
+          value={student ? studentIdentity(student) : ''}
+          onChange={value =>
+            setSelectedId(
+              students.find(item => studentIdentity(item) === value)?.id || '',
+            )
+          }
+          options={profiles.map(item => ({
+            value: studentIdentity(item),
             label: item.studentName,
           }))}
         />
@@ -737,6 +889,39 @@ export function ParentStudentScreen({
         </>
       ) : (
         <>
+          <NoorCard>
+            <Text style={styles.heading}>{t('Transport services')}</Text>
+            {services.length > 1 ? (
+              <Select
+                label={t('Transport service')}
+                value={student.id}
+                onChange={setSelectedId}
+                options={services.map(item => ({
+                  value: item.id,
+                  label: `${t(
+                    transportShifts(data?.settings).find(
+                      shift => shift.id === serviceShift(item),
+                    )?.name || serviceShift(item),
+                  )} · ${item.routeName} · ${readable(item.status)}`,
+                }))}
+              />
+            ) : null}
+            <TransportScheduleSummary
+              service={student}
+              shifts={transportShifts(data?.settings)}
+            />
+            {student.studentId ? (
+              <Button
+                secondary
+                title={t('Add service in another shift')}
+                onPress={() =>
+                  navigation.navigate('Admission', {
+                    studentId: student.studentId,
+                  })
+                }
+              />
+            ) : null}
+          </NoorCard>
           <NoorCard>
             <View style={parent.identity}>
               <StudentAvatar
@@ -894,11 +1079,28 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
   const { data, loading, error, refresh } = useManagement();
   const [selectedId, setSelectedId] = useState('');
   const [period, setPeriod] = useState<RouteSchedule['period']>('MORNING');
-  const students = data?.students || [];
-  const student = students.find(item => item.id === selectedId) || students[0];
-  const entries = student
-    ? studentSchedule(data?.schedules || [], student, period)
-    : [];
+  const students = (data?.students || []).filter(
+    item => item.status === 'ACTIVE',
+  );
+  const shifts = journeyShifts(data?.settings);
+  const student =
+    students.find(item => item.id === selectedId) ||
+    students.find(item =>
+      journeyServiceScheduled(item, dhakaDate(), data?.settings.operatingDays),
+    ) ||
+    students[0];
+  const selectedShift = student
+    ? shifts.find(shift => shift.id === journeyServiceShift(student))
+    : undefined;
+  const hasLegacyTimetable =
+    !!student && journeyServiceShift(student) === 'MORNING';
+  const scheduledToday =
+    !!student &&
+    journeyServiceScheduled(student, dhakaDate(), data?.settings.operatingDays);
+  const entries =
+    student && scheduledToday && hasLegacyTimetable
+      ? studentSchedule(data?.schedules || [], student, period)
+      : [];
   const attendance = student
     ? data?.attendance.find(
         item => item.studentId === student.id && item.date === dhakaDate(),
@@ -908,19 +1110,22 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
     <Page loading={loading} refresh={refresh} error={error}>
       {students.length > 1 ? (
         <Select
-          label={t('Student')}
+          label={t('Student and shift')}
           value={student?.id || ''}
           onChange={setSelectedId}
           options={students.map(item => ({
             value: item.id,
-            label: item.studentName,
+            label: `${item.studentName} · ${t(
+              shifts.find(shift => shift.id === journeyServiceShift(item))
+                ?.name || journeyServiceShift(item),
+            )}`,
           }))}
         />
       ) : null}
       <Segment<RouteSchedule['period']>
         options={[
-          { value: 'MORNING', label: t('Morning') },
-          { value: 'AFTERNOON', label: t('Afternoon') },
+          { value: 'MORNING', label: t('Outbound') },
+          { value: 'AFTERNOON', label: t('Return') },
         ]}
         value={period}
         onChange={setPeriod}
@@ -942,12 +1147,15 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
             <Text style={styles.muted}>
               {student.routeName} · {student.vehicleName}
             </Text>
+            <JourneyScheduleSummary service={student} shifts={shifts} />
             <View style={parent.divider} />
             <View style={styles.between}>
               <Text style={styles.body}>{t("Today's attendance")}</Text>
               <NoorBadge
                 label={
-                  attendance
+                  !scheduledToday
+                    ? t('Not scheduled today')
+                    : attendance
                     ? {
                         PRESENT: t('Present'),
                         ABSENT: t('Absent'),
@@ -956,7 +1164,7 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
                     : t('Not recorded yet')
                 }
                 tone={
-                  !attendance
+                  !scheduledToday || !attendance
                     ? 'gray'
                     : attendance.status === 'PRESENT'
                     ? 'green'
@@ -970,51 +1178,80 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
               <Text style={styles.muted}>{attendance.note}</Text>
             ) : null}
           </NoorCard>
-          <NoorCard>
-            <Text style={styles.heading}>{t('Scheduled journey')}</Text>
-            {entries.length ? (
-              entries.map((entry, index) => (
+          {scheduledToday ? (
+            <NoorCard>
+              <Text style={styles.heading}>{t('Scheduled journey')}</Text>
+              {!hasLegacyTimetable && selectedShift ? (
                 <TimelineItem
-                  key={entry.id}
-                  icon={
-                    index === 0
-                      ? 'pin'
-                      : index === entries.length - 1
-                      ? 'school'
-                      : 'clock'
-                  }
-                  title={entry.label}
-                  detail={scheduleTimeLabel(entry.time)}
-                  last={index === entries.length - 1}
+                  icon="clock"
+                  title={t(
+                    period === 'MORNING' ? 'Shift departure' : 'Shift return',
+                  )}
+                  detail={scheduleTimeLabel(
+                    period === 'MORNING'
+                      ? selectedShift.startTime
+                      : selectedShift.endTime,
+                  )}
+                  last
                 >
-                  <NoorBadge label={t('Scheduled time')} tone="gray" />
+                  <Text style={styles.muted}>
+                    {t('Shift times are not individual stop arrival times.')}
+                  </Text>
                 </TimelineItem>
-              ))
-            ) : (
-              <Text style={styles.muted}>
-                {period === 'MORNING'
-                  ? t(
-                      'The admin has not added a morning schedule for this route.',
-                    )
-                  : t(
-                      'The admin has not added an afternoon schedule for this route.',
-                    )}
-              </Text>
-            )}
-            <Text style={styles.muted}>
-              {t(
-                "These are scheduled times. View the vehicle's current position in live tracking.",
+              ) : entries.length ? (
+                entries.map((entry, index) => (
+                  <TimelineItem
+                    key={entry.id}
+                    icon={
+                      index === 0
+                        ? 'pin'
+                        : index === entries.length - 1
+                        ? 'school'
+                        : 'clock'
+                    }
+                    title={entry.label}
+                    detail={scheduleTimeLabel(entry.time)}
+                    last={index === entries.length - 1}
+                  >
+                    <NoorBadge label={t('Scheduled time')} tone="gray" />
+                  </TimelineItem>
+                ))
+              ) : (
+                <Text style={styles.muted}>
+                  {period === 'MORNING'
+                    ? t(
+                        'The admin has not added a morning schedule for this route.',
+                      )
+                    : t(
+                        'The admin has not added an afternoon schedule for this route.',
+                      )}
+                </Text>
               )}
-            </Text>
-          </NoorCard>
-          <Button
-            title={t('View live location')}
-            onPress={() =>
-              navigation.navigate('LiveTracking', {
-                vehicleId: student.vehicleId,
-              })
-            }
-          />
+              <Text style={styles.muted}>
+                {t(
+                  "These are scheduled times. View the vehicle's current position in live tracking.",
+                )}
+              </Text>
+            </NoorCard>
+          ) : (
+            <NoorCard>
+              <Text style={styles.body}>
+                {t(
+                  'No transport is scheduled for this service today. This is not an absence.',
+                )}
+              </Text>
+            </NoorCard>
+          )}
+          {scheduledToday && student.vehicleId ? (
+            <Button
+              title={t('View live location')}
+              onPress={() =>
+                navigation.navigate('LiveTracking', {
+                  vehicleId: student.vehicleId,
+                })
+              }
+            />
+          ) : null}
           <NoorCard>
             <Text style={styles.heading}>{t('Attendance history')}</Text>
             {(data?.attendance || [])

@@ -1,3 +1,17 @@
+import {
+  TransportSchedule,
+  TransportScheduleSummary,
+} from '../../components/TransportSchedule';
+import {
+  defaultOperatingDays,
+  enrollmentConflicts,
+  scheduleValidation,
+  serviceDays,
+  serviceShift,
+  studentIdentity,
+  transportShifts,
+  uniqueStudents,
+} from '../../utils/transport';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, Pressable, Text, View } from 'react-native';
 import {
@@ -50,6 +64,9 @@ function validatedAmount(value: string, field: string) {
 }
 
 type StudentFormValue = {
+  studentId?: string;
+  shiftId: string;
+  operatingDays: number[];
   studentName: string;
   studentCode: string;
   className: string;
@@ -67,6 +84,9 @@ type StudentFormValue = {
   status: Student['status'];
 };
 const blankStudent = (): StudentFormValue => ({
+  studentId: undefined,
+  shiftId: 'MORNING',
+  operatingDays: defaultOperatingDays(),
   studentName: '',
   studentCode: '',
   className: '',
@@ -103,43 +123,71 @@ function StudentPhoto({
 function StudentForm({
   visible,
   student,
+  existingStudent,
   onClose,
 }: {
   visible: boolean;
   student?: Student;
+  existingStudent?: Student;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const { data: transport } = useData();
-  const { mutate } = useManagement();
+  const { mutate, data: management } = useManagement();
+  const shifts = transportShifts(management?.settings);
+  const profiles = uniqueStudents(
+    [...transport.requests, ...(management?.students || [])].filter(
+      item => item.studentId,
+    ),
+  );
   const action = useAction();
   const [form, setForm] = useState(blankStudent);
   useEffect(() => {
     if (visible) {
       action.clearFeedback();
+      const source = student || existingStudent;
       setForm(
-        student
+        source
           ? {
-              studentName: student.studentName,
-              studentCode: student.studentCode,
-              className: student.className,
-              roll: student.roll,
-              guardianName: student.guardianName,
-              guardianPhone: student.guardianPhone,
-              pickupAddress: student.pickupAddress,
-              dropAddress: student.dropAddress,
-              emergencyContact: student.emergencyContact,
-              routeId: student.routeId,
-              stopId: student.stopId,
-              dropoffStopId: student.dropoffStopId || '',
-              amount: String(student.monthlyAmount / 100),
-              photoUrl: student.photoUrl,
-              status: student.status,
+              studentId: source.studentId,
+              shiftId: student
+                ? serviceShift(source)
+                : shifts.find(
+                    shift =>
+                      !(management?.students || []).some(
+                        item =>
+                          studentIdentity(item) === studentIdentity(source) &&
+                          item.status === 'ACTIVE' &&
+                          serviceShift(item) === shift.id,
+                      ),
+                  )?.id || shifts[0].id,
+              operatingDays: student
+                ? serviceDays(source)
+                : defaultOperatingDays(management?.settings),
+              studentName: source.studentName,
+              studentCode: source.studentCode,
+              className: source.className,
+              roll: source.roll,
+              guardianName: source.guardianName,
+              guardianPhone: source.guardianPhone,
+              pickupAddress: source.pickupAddress,
+              dropAddress: source.dropAddress,
+              emergencyContact: source.emergencyContact,
+              routeId: source.routeId,
+              stopId: source.stopId,
+              dropoffStopId: source.dropoffStopId || '',
+              amount: String(source.monthlyAmount / 100),
+              photoUrl: source.photoUrl,
+              status: student ? source.status : 'ACTIVE',
             }
-          : blankStudent(),
+          : {
+              ...blankStudent(),
+              shiftId: shifts[0].id,
+              operatingDays: defaultOperatingDays(management?.settings),
+            },
       );
     }
-  }, [visible, student?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, student?.id, existingStudent?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = <K extends keyof StudentFormValue>(
     key: K,
     value: StudentFormValue[K],
@@ -148,6 +196,11 @@ function StudentForm({
     if (key === 'amount') action.clearFieldError('monthlyAmount');
     setForm(current => ({ ...current, [key]: value }));
   };
+  const conflicts = enrollmentConflicts(
+    [...(management?.students || []), ...transport.requests],
+    { ...form, excludeId: student?.id },
+    shifts,
+  );
   const selectedRoute = transport.routes.find(item => item.id === form.routeId);
   const sameJourney =
     !!student &&
@@ -194,6 +247,14 @@ function StudentForm({
           dropoffStopId:
             'No fare is configured for this journey. Select another destination.',
         });
+      const scheduleErrors = scheduleValidation(
+        form.shiftId,
+        form.operatingDays,
+        shifts,
+        conflicts.duplicate,
+      );
+      if (Object.keys(scheduleErrors).length)
+        throw new ValidationError(scheduleErrors);
       const { amount, dropoffStopId, guardianName, ...rest } = form;
       const input: StudentInput = {
         ...rest,
@@ -208,6 +269,7 @@ function StudentForm({
           : {}),
       };
       if (student) {
+        delete input.studentId;
         await mutate<Student>(`/admin/students/${student.id}`, input, 'PATCH');
       } else {
         const result = await mutate<StudentCreateResult>(
@@ -236,6 +298,45 @@ function StudentForm({
       error={action.error}
       onSave={save}
     >
+      {!student && !existingStudent ? (
+        <Choice
+          label={t('Student profile')}
+          value={form.studentId || ''}
+          optional={false}
+          options={[
+            { value: '', label: t('New student') },
+            ...profiles.map(item => ({
+              value: studentIdentity(item),
+              label: `${item.studentName} · ${item.guardianPhone}`,
+            })),
+          ]}
+          onChange={value => {
+            const selected = profiles.find(item => item.studentId === value);
+            if (!selected)
+              setForm({
+                ...blankStudent(),
+                shiftId: shifts[0].id,
+                operatingDays: defaultOperatingDays(management?.settings),
+              });
+            else
+              setForm(current => ({
+                ...current,
+                studentId: selected.studentId,
+                studentName: selected.studentName,
+                studentCode: selected.studentCode || '',
+                className: selected.className || '',
+                roll: selected.roll || '',
+                photoUrl: selected.photoUrl || '',
+                guardianName: selected.guardianName,
+                guardianPhone: selected.guardianPhone,
+                emergencyContact: selected.emergencyContact || '',
+                pickupAddress: selected.pickupAddress || '',
+                dropAddress: selected.dropAddress || '',
+              }));
+            action.clearFeedback();
+          }}
+        />
+      ) : null}
       <Heading title={t('Student details')} />
       <Input
         label={t('Student name *')}
@@ -341,6 +442,15 @@ function StudentForm({
         error={action.fieldErrors.dropAddress}
         onChangeText={v => set('dropAddress', v)}
         maxLength={400}
+      />
+      <TransportSchedule
+        shiftId={form.shiftId}
+        operatingDays={form.operatingDays}
+        shifts={shifts}
+        onShiftChange={value => set('shiftId', value)}
+        onDaysChange={value => set('operatingDays', value)}
+        errors={action.fieldErrors}
+        overlap={conflicts.overlap}
       />
       <Heading title={t('Route and fare')} />
       <Choice
@@ -482,17 +592,27 @@ export function StudentsScreen() {
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState('ALL');
   const [adding, setAdding] = useState(false);
-  const students = data?.students || [];
+  const enrollments = data?.students || [];
+  const students = uniqueStudents(enrollments).map(profile => {
+    const services = enrollments.filter(
+      item => studentIdentity(item) === studentIdentity(profile),
+    );
+    return services.find(item => item.status === 'ACTIVE') || profile;
+  });
+  const canonicalId = (id: string | null) => {
+    const service = enrollments.find(item => item.id === id);
+    return service ? studentIdentity(service) : id;
+  };
   const records = data?.attendance.filter(item => item.date === today()) || [];
   const absent = new Set(
     records
       .filter(item => item.studentId && item.status === 'ABSENT')
-      .map(item => item.studentId),
+      .map(item => canonicalId(item.studentId)),
   );
   const leave = new Set(
     records
       .filter(item => item.studentId && item.status === 'LEAVE')
-      .map(item => item.studentId),
+      .map(item => canonicalId(item.studentId)),
   );
   const matches = students.filter(
     item =>
@@ -501,8 +621,8 @@ export function StudentsScreen() {
         .includes(query.trim().toLowerCase()) &&
       (tab === 'ALL' ||
         (tab === 'ACTIVE' && item.status === 'ACTIVE') ||
-        (tab === 'ABSENT' && absent.has(item.id)) ||
-        (tab === 'LEAVE' && leave.has(item.id))),
+        (tab === 'ABSENT' && absent.has(studentIdentity(item))) ||
+        (tab === 'LEAVE' && leave.has(studentIdentity(item)))),
   );
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
@@ -580,9 +700,9 @@ export function StudentsScreen() {
             <Text style={s.cell}>{student.vehicleName}</Text>
             <Pill
               value={
-                leave.has(student.id)
+                leave.has(studentIdentity(student))
                   ? 'LEAVE'
-                  : absent.has(student.id)
+                  : absent.has(studentIdentity(student))
                   ? 'ABSENT'
                   : student.status
               }
@@ -612,8 +732,17 @@ export function StudentProfileScreen() {
   const { data, loading, error, refresh } = useManagement();
   const { data: transport } = useData();
   const [edit, setEdit] = useState(false);
+  const [addingService, setAddingService] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>();
   const [tab, setTab] = useState('PAYMENTS');
-  const student = data?.students.find(item => item.id === id);
+  const profile = data?.students.find(item => item.id === id);
+  const services = profile
+    ? (data?.students || []).filter(
+        item => studentIdentity(item) === studentIdentity(profile),
+      )
+    : [];
+  const student =
+    services.find(item => item.id === selectedServiceId) || profile;
   if (!student)
     return (
       <AdminPage loading={loading} error={error} refresh={refresh}>
@@ -648,6 +777,30 @@ export function StudentProfileScreen() {
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
       <Box>
+        <Heading title={t('Transport services')} />
+        <Choice
+          label={t('Transport service')}
+          value={student.id}
+          onChange={setSelectedServiceId}
+          options={services.map(item => ({
+            value: item.id,
+            label: `${t(
+              transportShifts(data?.settings).find(
+                shift => shift.id === serviceShift(item),
+              )?.name || serviceShift(item),
+            )} · ${item.routeName} · ${t(item.status)}`,
+          }))}
+        />
+        <TransportScheduleSummary
+          service={student}
+          shifts={transportShifts(data?.settings)}
+        />
+        {student.studentId ? (
+          <SmallButton
+            title={t('Add service in another shift')}
+            onPress={() => setAddingService(true)}
+          />
+        ) : null}
         <View style={s.row}>
           <StudentPhoto student={student} />
           <View style={s.flex}>
@@ -773,6 +926,11 @@ export function StudentProfileScreen() {
           <EmptyState text={t('No notices')} />
         )}
       </Box>
+      <StudentForm
+        visible={addingService}
+        existingStudent={student}
+        onClose={() => setAddingService(false)}
+      />
       <StudentForm
         visible={edit}
         student={student}

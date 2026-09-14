@@ -15,6 +15,9 @@ let mockData: DashboardData;
 jest.mock('../src/context/AuthContext', () => ({
   useAuth: () => ({ session: { user: mockUser } }),
 }));
+jest.mock('../src/context/ManagementContext', () => ({
+  useManagement: () => ({ data: null }),
+}));
 jest.mock('../src/context/DataContext', () => ({
   useData: () => ({
     data: mockData,
@@ -782,5 +785,31 @@ it('focuses the notified bill and can restore all bills', async () => {
       .findAllByType(Text)
       .some(node => node.props.children === 'Student One'),
   ).toBe(true);
+  await act(async () => screen.unmount());
+});
+
+it('shows each shift when choosing bills for the same student', async () => {
+  mockData.bills[0].shiftId = 'MORNING';
+  mockData.bills.push({ ...mockData.bills[0], id: 'day-bill', shiftId: 'DAY' });
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(<PaymentsScreen />);
+  });
+  await act(async () => pressTab(screen, 'Payment form'));
+  const picker = screen.root
+    .findAllByType(Select)
+    .find(item => item.props.label === 'Select a bill')!;
+  expect(picker.props.options).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        value: 'bill-1',
+        label: expect.stringContaining('Morning'),
+      }),
+      expect.objectContaining({
+        value: 'day-bill',
+        label: expect.stringContaining('Day'),
+      }),
+    ]),
+  );
   await act(async () => screen.unmount());
 });

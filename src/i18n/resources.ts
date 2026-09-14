@@ -10,6 +10,12 @@ import enParent from './en.parent.json';
 import bnParent from './bn.parent.json';
 import enFleet from './en.fleet.json';
 import bnFleet from './bn.fleet.json';
+import enOperationsSchedule from './en.operations-schedule.json';
+import bnOperationsSchedule from './bn.operations-schedule.json';
+import enTransport from './en.transport.json';
+import bnTransport from './bn.transport.json';
+import enTransportApi from './en.transport-api.json';
+import bnTransportApi from './bn.transport-api.json';
 
 export const catalogs = {
   feedback: { en: enFeedback, bn: bnFeedback },
@@ -18,6 +24,9 @@ export const catalogs = {
   office: { en: enOffice, bn: bnOffice },
   parent: { en: enParent, bn: bnParent },
   fleet: { en: enFleet, bn: bnFleet },
+  operationsSchedule: { en: enOperationsSchedule, bn: bnOperationsSchedule },
+  transport: { en: enTransport, bn: bnTransport },
+  transportApi: { en: enTransportApi, bn: bnTransportApi },
 };
 
 export const english: Record<string, string> = Object.assign(

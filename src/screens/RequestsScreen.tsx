@@ -1,6 +1,20 @@
+import { useManagement } from '../context/ManagementContext';
+import {
+  TransportSchedule,
+  TransportScheduleSummary,
+} from '../components/TransportSchedule';
+import {
+  defaultOperatingDays,
+  enrollmentConflicts,
+  scheduleValidation,
+  serviceShift,
+  studentIdentity,
+  transportShifts,
+  uniqueStudents,
+} from '../utils/transport';
 import { journeyFare, journeyDestinations } from '../utils/routeFares';
 import { useTranslation } from '../i18n';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Keyboard,
   Linking,
@@ -168,6 +182,24 @@ export function RequestsScreen({
   const [tab, setTab] = useState<RequestTab>(
     section || (admin ? 'Applications' : 'Form'),
   );
+  const management = useManagement();
+  const shifts = transportShifts(management.data?.settings);
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [shiftId, setShiftId] = useState('');
+  const [operatingDays, setOperatingDays] = useState<number[]>([]);
+  const [scheduleInitialized, setScheduleInitialized] = useState(false);
+  const profiles = uniqueStudents(
+    [...data.requests, ...(management.data?.students || [])].filter(
+      item => item.studentId,
+    ),
+  );
+  useEffect(() => {
+    if (management.data && !scheduleInitialized) {
+      setShiftId(shifts[0].id);
+      setOperatingDays(defaultOperatingDays(management.data.settings));
+      setScheduleInitialized(true);
+    }
+  }, [management.data, scheduleInitialized, shifts]);
   const [studentName, setStudentName] = useState('');
   const [routeId, setRouteId] = useState('');
   const [stopId, setStopId] = useState('');
@@ -177,6 +209,16 @@ export function RequestsScreen({
   const [description, setDescription] = useState('');
   const [reason, setReason] = useState('');
   const action = useAction();
+  const conflicts = enrollmentConflicts(
+    [...(management.data?.students || []), ...data.requests],
+    {
+      studentId: selectedStudentId || undefined,
+      studentName,
+      shiftId,
+      operatingDays,
+    },
+    shifts,
+  );
   const route = data.routes.find(item => item.id === routeId);
   const selectedFare = journeyFare(route, stopId, dropoffStopId);
   const availableDestinations = journeyDestinations(route, stopId);
@@ -254,8 +296,45 @@ export function RequestsScreen({
             <Text style={styles.heading}>
               {t('Request a transport service')}
             </Text>
+            {profiles.length ? (
+              <Select
+                label={t('Student profile')}
+                value={selectedStudentId}
+                options={[
+                  { value: '', label: t('New student') },
+                  ...profiles.map(item => ({
+                    value: studentIdentity(item),
+                    label: item.studentName,
+                  })),
+                ]}
+                onChange={value => {
+                  setSelectedStudentId(value);
+                  setStudentName(
+                    profiles.find(item => item.studentId === value)
+                      ?.studentName || '',
+                  );
+                  action.clearFeedback();
+                }}
+              />
+            ) : null}
+            <TransportSchedule
+              shiftId={shiftId}
+              operatingDays={operatingDays}
+              shifts={shifts}
+              onShiftChange={value => {
+                setShiftId(value);
+                action.clearFieldError('shiftId');
+              }}
+              onDaysChange={value => {
+                setOperatingDays(value);
+                action.clearFieldError('operatingDays');
+              }}
+              errors={action.fieldErrors}
+              overlap={conflicts.overlap}
+            />
             <Field
               label={t('Student name')}
+              editable={!selectedStudentId}
               value={studentName}
               error={action.fieldErrors.studentName}
               onChangeText={value => {
@@ -373,12 +452,24 @@ export function RequestsScreen({
                       dropoffStopId:
                         'Select a destination with a configured fare.',
                     });
+                  const scheduleErrors = scheduleValidation(
+                    shiftId,
+                    operatingDays,
+                    shifts,
+                    conflicts.duplicate,
+                  );
+                  if (Object.keys(scheduleErrors).length)
+                    throw new ValidationError(scheduleErrors);
                   await mutate('/requests/guardian/new', {
+                    studentId: selectedStudentId || undefined,
+                    shiftId,
+                    operatingDays,
                     studentName: studentName.trim(),
                     routeId,
                     stopId,
                     ...(dropoffStopId ? { dropoffStopId } : {}),
                   });
+                  setSelectedStudentId('');
                   setStudentName('');
                   setRouteId('');
                   setStopId('');
@@ -402,7 +493,10 @@ export function RequestsScreen({
                 }}
                 options={active.map(item => ({
                   value: item.id,
-                  label: `${item.studentName} · ${item.routeName}`,
+                  label: `${item.studentName} · ${t(
+                    shifts.find(shift => shift.id === serviceShift(item))
+                      ?.name || serviceShift(item),
+                  )} · ${item.routeName}`,
                 }))}
               />
               <Select
@@ -539,6 +633,7 @@ export function RequestsScreen({
                 <Text style={admin ? local.cardTitle : styles.heading}>
                   {request.studentName}
                 </Text>
+                <TransportScheduleSummary service={request} shifts={shifts} />
                 <Badge status={request.status} />
               </View>
               <Text style={admin ? local.body : styles.body}>

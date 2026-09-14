@@ -16,6 +16,13 @@ import { RouteFareManager } from '../components/RouteFareManager';
 import { RouteForm } from '../components/setup/SetupForms';
 import { money, numberLabel } from '../utils/format';
 import { colors, styles } from '../theme';
+import {
+  isServiceScheduled,
+  serviceShift,
+  transportShifts,
+  uniqueStudents,
+} from '../utils/transport';
+import { dhakaDate } from '../utils/historyDates';
 import { locale, useTranslation } from '../i18n';
 
 function fleetDate(value?: string | null) {
@@ -209,7 +216,9 @@ export function VehicleDetailsScreen({
         <Detail
           icon="students"
           label={t('Student count')}
-          value={management.data ? numberLabel(students.length) : '—'}
+          value={
+            management.data ? numberLabel(uniqueStudents(students).length) : '—'
+          }
         />
         <Detail icon="vehicle" label={t('Model')} value={vehicle.model} />
         <Detail
@@ -511,6 +520,7 @@ export function RouteDetailsScreen({
   const management = useManagement();
   const [editing, setEditing] = useState(false);
   const [period, setPeriod] = useState<'MORNING' | 'AFTERNOON'>('MORNING');
+  const [shiftId, setShiftId] = useState('');
   const selected = data.routes.find(r => r.id === route.params.id);
   if (!selected)
     return (
@@ -528,12 +538,58 @@ export function RouteDetailsScreen({
   const students = (management.data?.students || []).filter(
     s => s.routeId === selected.id && s.status === 'ACTIVE',
   );
+  const shifts = transportShifts(management.data?.settings);
+  const scheduled = students.filter(
+    student =>
+      isServiceScheduled(
+        student,
+        dhakaDate(),
+        management.data?.settings.operatingDays,
+      ) &&
+      (!shiftId || serviceShift(student) === shiftId),
+  );
   return (
     <Page
       loading={management.loading}
       error={management.error}
       refresh={management.refresh}
     >
+      <NoorCard>
+        <Text style={f.title}>{t("Today's passengers")}</Text>
+        <Select
+          label={t('Transport shift')}
+          value={shiftId}
+          onChange={setShiftId}
+          options={[
+            { value: '', label: t('All shifts') },
+            ...shifts.map(shift => ({ value: shift.id, label: t(shift.name) })),
+          ]}
+        />
+        {scheduled.map(student => (
+          <View key={student.id} style={f.tableRow}>
+            <View style={f.flex}>
+              <Text style={f.title}>{student.studentName}</Text>
+              <Text style={f.sub}>
+                {student.stopName} →{' '}
+                {student.dropoffStopName ||
+                  student.dropAddress ||
+                  t('Destination')}
+              </Text>
+            </View>
+            <Text style={f.sub}>
+              {t(
+                shifts.find(shift => shift.id === serviceShift(student))
+                  ?.name || serviceShift(student),
+              )}
+            </Text>
+          </View>
+        ))}
+        {!scheduled.length ? (
+          <Text style={f.sub}>
+            {t('No students scheduled for this date and shift.')}
+          </Text>
+        ) : null}
+      </NoorCard>
       <RouteFareManager
         route={selected}
         editable={session?.user.role === 'ADMIN'}
@@ -550,7 +606,7 @@ export function RouteDetailsScreen({
             </Text>
             <Text style={f.sub}>
               {t('Students: {{number}}', {
-                number: numberLabel(students.length),
+                number: numberLabel(uniqueStudents(students).length),
               })}{' '}
               · {money(selected.monthlyAmount)}
             </Text>

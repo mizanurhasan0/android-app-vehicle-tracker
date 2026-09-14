@@ -1,0 +1,16 @@
+{
+  "Select one or more unique weekdays (0=Sunday through 6=Saturday)": "সপ্তাহের অন্তত একটি দিন নির্বাচন করুন; একই দিন একাধিকবার দেওয়া যাবে না।",
+  "Select a configured transport shift": "নির্ধারিত পরিবহন শিফট নির্বাচন করুন।",
+  "Select at least one day when the institute operates": "প্রতিষ্ঠান চালু থাকে এমন অন্তত একটি দিন নির্বাচন করুন।",
+  "This student does not belong to this guardian": "এই শিক্ষার্থী এই অভিভাবকের অধীনে নেই।",
+  "This student already exists. Select the existing student to add a different shift": "এই শিক্ষার্থীর প্রোফাইল আগে থেকেই আছে। অন্য শিফট যোগ করতে বিদ্যমান শিক্ষার্থীটি নির্বাচন করুন।",
+  "This student already has an active service in this shift": "এই শিফটে শিক্ষার্থীর একটি সক্রিয় সেবা আছে।",
+  "This student already has an active transport service in this shift": "এই শিফটে শিক্ষার্থীর একটি সক্রিয় পরিবহন সেবা আছে।",
+  "This student already has a pending request in this shift": "এই শিফটে শিক্ষার্থীর একটি আবেদন অনুমোদনের অপেক্ষায় আছে।",
+  "This student has no scheduled transport on the selected day": "নির্বাচিত দিনে এই শিক্ষার্থীর যাতায়াত নির্ধারিত নেই।",
+  "This service has billing history. Stop it and add a new enrollment to change shifts": "এই সেবার বিলের ইতিহাস আছে। শিফট পরিবর্তন করতে সেবাটি বন্ধ করে নতুন সেবা যোগ করুন।",
+  "Configure at least one shift with unique IDs": "অন্তত একটি শিফট নির্ধারণ করুন; প্রতিটি শিফটের পরিচিতি আলাদা হতে হবে।",
+  "A shift must finish after it starts on the same day": "শিফটের ফেরার সময় একই দিনে শুরুর সময়ের পরে হতে হবে।",
+  "A shift referenced by a student or request cannot be removed": "শিক্ষার্থী বা আবেদনে ব্যবহৃত শিফট মুছে ফেলা যাবে না।",
+  "Settings values cannot be null": "সেটিংসের মান খালি রাখা যাবে না।"
+}

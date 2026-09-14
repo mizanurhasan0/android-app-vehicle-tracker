@@ -30,7 +30,7 @@ export type HomeStackParams = {
   Reports: undefined;
   Settings: undefined;
   ParentProfile: { id?: string } | undefined;
-  Admission: undefined;
+  Admission: { studentId?: string } | undefined;
   ApplicationStatus: { id?: string } | undefined;
   TodayJourney: undefined;
   Contact: undefined;

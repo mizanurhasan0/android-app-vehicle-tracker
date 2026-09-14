@@ -2,6 +2,9 @@ import { ValidationError } from '../utils/validation';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Payment } from '../api/types';
+import { TransportShift } from '../api/management';
+import { DEFAULT_SHIFTS } from '../utils/transport';
+import { paymentShiftLabel } from '../utils/paymentShift';
 import { ReviewActions } from '../components/ReviewActions';
 import {
   Badge,
@@ -69,10 +72,12 @@ function Detail({ label, value }: { label: string; value: string }) {
 
 function SubmissionCard({
   payment,
+  shifts,
   expanded,
   onToggle,
 }: {
   payment: Payment;
+  shifts: TransportShift[];
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -86,6 +91,9 @@ function SubmissionCard({
       </View>
       <View>
         <Text style={styles.heading}>{payment.studentName}</Text>
+        {payment.shiftId ? (
+          <Text style={styles.muted}>{paymentShiftLabel(payment, shifts)}</Text>
+        ) : null}
         <Text style={styles.muted}>
           {payment.guardianName} · {payment.month}
         </Text>
@@ -209,11 +217,13 @@ function BillGenerator() {
 }
 
 export function AdminPaymentDesk({
+  shifts = DEFAULT_SHIFTS,
   initialTab = 'review',
   dueOnly = false,
   billId,
   paymentId,
 }: {
+  shifts?: TransportShift[];
   initialTab?: DeskTab;
   dueOnly?: boolean;
   billId?: string;
@@ -499,6 +509,11 @@ export function AdminPaymentDesk({
               <View style={desk.billRow}>
                 <View style={desk.columnName}>
                   <Text style={desk.studentName}>{bill.studentName}</Text>
+                  {bill.shiftId ? (
+                    <Text style={desk.guardianName}>
+                      {paymentShiftLabel(bill, shifts)}
+                    </Text>
+                  ) : null}
                   <Text style={desk.guardianName}>{bill.guardianName}</Text>
                 </View>
                 <Text style={[desk.columnMonth, desk.tableText]}>
@@ -554,6 +569,7 @@ export function AdminPaymentDesk({
           <SubmissionCard
             key={payment.id}
             payment={payment}
+            shifts={shifts}
             expanded={expandedId === payment.id}
             onToggle={() =>
               setExpandedId(expandedId === payment.id ? null : payment.id)

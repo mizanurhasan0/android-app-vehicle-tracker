@@ -337,3 +337,36 @@ it('shows save feedback in the current language when switching while an export i
   await language('en');
   expect(text()).toContain('Receipt saved.');
 });
+
+it('identifies the shift in exported receipts for the same student', () => {
+  const settings = {
+    ...business,
+    transportShifts: [
+      {
+        id: 'MORNING',
+        name: 'Early school',
+        startTime: '07:00',
+        endTime: '11:00',
+      },
+      {
+        id: 'DAY',
+        name: 'Afternoon school',
+        startTime: '11:00',
+        endTime: '15:00',
+      },
+    ],
+  };
+  const morning = receiptDocument(
+    { ...paidBill, shiftId: 'MORNING' },
+    approvedPayment,
+    settings,
+  );
+  const day = receiptDocument(
+    { ...paidBill, shiftId: 'DAY' },
+    approvedPayment,
+    settings,
+  );
+  expect(morning).toContain('Early school');
+  expect(day).toContain('Afternoon school');
+  expect(day).not.toContain('Early school');
+});

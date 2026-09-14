@@ -3,6 +3,10 @@ import { translateMessage, useTranslation } from '../i18n';
 import React, { useEffect, useState } from 'react';
 import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Bill, PaymentAccount } from '../api/types';
+import { TransportShift } from '../api/management';
+import { useManagement } from '../context/ManagementContext';
+import { transportShifts } from '../utils/transport';
+import { paymentShiftLabel } from '../utils/paymentShift';
 import {
   Badge,
   Button,
@@ -22,10 +26,12 @@ import { dateLabel, money, readable } from '../utils/format';
 import { NoorIcon } from '../components/Noor';
 function PaymentForm({
   bill,
+  shifts,
   cancel,
   onBusyChange,
 }: {
   bill: Bill;
+  shifts: TransportShift[];
   cancel: () => void;
   onBusyChange: (busy: boolean) => void;
 }) {
@@ -47,6 +53,9 @@ function PaymentForm({
       <Text style={styles.body}>
         {bill.studentName} · {bill.month} · {money(bill.amount)}
       </Text>
+      {bill.shiftId ? (
+        <Text style={styles.muted}>{paymentShiftLabel(bill, shifts)}</Text>
+      ) : null}
       <Select
         label={t('Payment method')}
         value={method}
@@ -175,8 +184,11 @@ export function PaymentsScreen({
   paymentId?: string;
 } = {}) {
   const { session } = useAuth();
+  const management = useManagement();
+  const shifts = transportShifts(management.data?.settings);
   return session?.user.role === 'ADMIN' ? (
     <AdminPaymentDesk
+      shifts={shifts}
       initialTab={initialTab}
       dueOnly={dueOnly}
       billId={billId}
@@ -184,6 +196,7 @@ export function PaymentsScreen({
     />
   ) : (
     <GuardianPaymentsScreen
+      shifts={shifts}
       dueOnly={dueOnly}
       billId={billId}
       paymentId={paymentId}
@@ -192,10 +205,12 @@ export function PaymentsScreen({
 }
 
 function GuardianPaymentsScreen({
+  shifts,
   dueOnly,
   billId,
   paymentId,
 }: {
+  shifts: TransportShift[];
   dueOnly: boolean;
   billId?: string;
   paymentId?: string;
@@ -350,6 +365,11 @@ function GuardianPaymentsScreen({
                 />
               </View>
               <Text style={styles.body}>{bill.studentName}</Text>
+              {bill.shiftId ? (
+                <Text style={styles.muted}>
+                  {paymentShiftLabel(bill, shifts)}
+                </Text>
+              ) : null}
               {bill.paidAt ? (
                 <Text style={styles.muted}>
                   {t('Paid on {{date}}', { date: dateLabel(bill.paidAt) })}
@@ -411,6 +431,11 @@ function GuardianPaymentsScreen({
                 <Badge status={payment.status} />
               </View>
               <Text style={styles.body}>{payment.studentName}</Text>
+              {payment.shiftId ? (
+                <Text style={styles.muted}>
+                  {paymentShiftLabel(payment, shifts)}
+                </Text>
+              ) : null}
               <Text selectable style={styles.body}>
                 {readable(payment.method)} · {payment.transactionId}
               </Text>
@@ -471,6 +496,7 @@ function GuardianPaymentsScreen({
               <PaymentForm
                 key={selected.id}
                 bill={selected}
+                shifts={shifts}
                 onBusyChange={setSubmitting}
                 cancel={() => {
                   setSelectedBill(null);
@@ -485,9 +511,11 @@ function GuardianPaymentsScreen({
                   onChange={value => setSelectedBill(value || null)}
                   options={payableBills.map(bill => ({
                     value: bill.id,
-                    label: `${bill.studentName} · ${bill.month} · ${money(
-                      bill.amount,
-                    )}`,
+                    label: `${bill.studentName}${
+                      bill.shiftId
+                        ? ` · ${paymentShiftLabel(bill, shifts)}`
+                        : ''
+                    } · ${bill.month} · ${money(bill.amount)}`,
                   }))}
                 />
               </Card>

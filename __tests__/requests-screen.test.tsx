@@ -16,6 +16,9 @@ jest.mock('../src/components/LanguageSwitcher', () => ({
 jest.mock('../src/context/AuthContext', () => ({
   useAuth: () => ({ session: { user: { role: mockRole } } }),
 }));
+jest.mock('../src/context/ManagementContext', () => ({
+  useManagement: () => ({ data: { students: [], settings: {} } }),
+}));
 jest.mock('../src/context/DataContext', () => ({
   useData: () => ({
     data: mockData,
@@ -369,6 +372,7 @@ it('keeps all three guardian submission flows available from the Form tab', asyn
   await act(async () => guardianSelect('Pickup stop').props.onChange('stop-1'));
   await pressGuardianButton('Send service request');
   expect(mockMutate).toHaveBeenLastCalledWith('/requests/guardian/new', {
+    studentId: undefined, shiftId: 'MORNING', operatingDays: [0, 1, 2, 3, 4, 6],
     studentName: 'Student Two',
     routeId: 'route-1',
     stopId: 'stop-1',

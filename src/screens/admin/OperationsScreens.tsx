@@ -15,6 +15,11 @@ import { useData } from '../../context/DataContext';
 import { useTranslation } from '../../i18n';
 import { currentMonth, money, numberLabel, toPoisha } from '../../utils/format';
 import { ValidationError, isValidDate } from '../../utils/validation';
+import {
+  isServiceScheduled,
+  serviceShift,
+  transportShifts,
+} from '../../utils/transport';
 import { monthInDhaka } from './reportUtils';
 import {
   AdminPage,
@@ -46,25 +51,32 @@ export function AttendanceScreen() {
   const [tab, setTab] = useState('STUDENT');
   const [date, setDate] = useState(today);
   const [vehicleId, setVehicleId] = useState('');
+  const [shiftId, setShiftId] = useState('');
+  const shifts = transportShifts(data?.settings);
   const [draft, setDraft] = useState<Record<string, Attendance['status']>>({});
   const [saved, setSaved] = useState(false);
   useEffect(() => {
     setDraft({});
     setSaved(false);
     action.clearFeedback();
-  }, [tab, date, vehicleId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tab, date, vehicleId, shiftId]); // eslint-disable-line react-hooks/exhaustive-deps
   const people =
     tab === 'STUDENT'
       ? (data?.students || [])
           .filter(
             item =>
               item.status === 'ACTIVE' &&
+              isServiceScheduled(item, date, data?.settings.operatingDays) &&
+              (!shiftId || serviceShift(item) === shiftId) &&
               (!vehicleId || item.vehicleId === vehicleId),
           )
           .map(item => ({
             id: item.id,
             name: item.studentName,
-            vehicle: item.vehicleName,
+            vehicle: `${item.vehicleName} · ${t(
+              shifts.find(shift => shift.id === serviceShift(item))?.name ||
+                serviceShift(item),
+            )}`,
           }))
       : (data?.drivers || [])
           .filter(
@@ -121,6 +133,17 @@ export function AttendanceScreen() {
           />
         </View>
       </View>
+      {tab === 'STUDENT' ? (
+        <Choice
+          label={t('Transport shift')}
+          value={shiftId}
+          onChange={setShiftId}
+          options={shifts.map(shift => ({
+            value: shift.id,
+            label: t(shift.name),
+          }))}
+        />
+      ) : null}
       <Box>
         <View style={s.row}>
           {[
@@ -212,7 +235,13 @@ export function AttendanceScreen() {
           </View>
         ))}
         {!people.length ? (
-          <EmptyState text={t('No records for this vehicle')} />
+          <EmptyState
+            text={t(
+              tab === 'STUDENT'
+                ? 'No students scheduled for this date and shift.'
+                : 'No records for this vehicle',
+            )}
+          />
         ) : null}
         <Text style={s.muted}>
           {t('Not selected: {{number}}', {

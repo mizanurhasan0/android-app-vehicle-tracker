@@ -20,6 +20,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParams } from '../../navigation/types';
 import { ValidationError, isValidDate } from '../../utils/validation';
 import { numberLabel } from '../../utils/format';
+import { transportShifts, defaultOperatingDays } from '../../utils/transport';
+import { WeekdaySelector } from '../../components/TransportSchedule';
 import {
   AdminPage,
   Box,
@@ -522,7 +524,11 @@ export function RequestsScreen({
     </AdminPage>
   );
 }
-const templateLabels: { key: keyof BusinessSettings; title: string }[] = [
+type TextSettingKey = Exclude<
+  keyof BusinessSettings,
+  'operatingDays' | 'transportShifts'
+>;
+const templateLabels: { key: TextSettingKey; title: string }[] = [
   { key: 'paymentReminder', title: 'Payment reminder' },
   { key: 'absenceMessage', title: 'Absence message' },
   { key: 'delayMessage', title: 'Vehicle delay' },
@@ -730,6 +736,7 @@ export function CommunicationScreen() {
 }
 type SettingSection =
   | 'BUSINESS'
+  | 'TRANSPORT'
   | 'PROFILE'
   | 'SMS'
   | 'WHATSAPP'
@@ -743,12 +750,20 @@ export function SettingsScreen() {
   const action = useAction();
   const [section, setSection] = useState<SettingSection>();
   const [name, setName] = useState('');
+  const [existingShiftIds, setExistingShiftIds] = useState<string[]>([]);
   const [form, setForm] = useState<Partial<BusinessSettings>>({});
   const isAdmin = session?.user.role === 'ADMIN';
   const open = (next: SettingSection) => {
     if (!isAdmin && !['PROFILE', 'SECURITY'].includes(next)) return;
     action.clearFeedback();
-    setForm({ ...data?.settings });
+    setForm({
+      ...data?.settings,
+      operatingDays: defaultOperatingDays(data?.settings),
+      transportShifts: transportShifts(data?.settings).map(shift => ({
+        ...shift,
+      })),
+    });
+    setExistingShiftIds(transportShifts(data?.settings).map(shift => shift.id));
     setName(session?.user.name || '');
     setSection(next);
   };
@@ -763,6 +778,12 @@ export function SettingsScreen() {
       title: 'Business information',
       icon: 'business',
       onPress: () => open('BUSINESS'),
+    },
+    {
+      id: 'TRANSPORT',
+      title: 'Transport shifts and weekdays',
+      icon: 'calendar',
+      onPress: () => open('TRANSPORT'),
     },
     {
       id: 'PROFILE',
@@ -801,11 +822,7 @@ export function SettingsScreen() {
       onPress: () => open('SECURITY'),
     },
   ];
-  const input = (
-    key: keyof BusinessSettings,
-    label: string,
-    multiline = false,
-  ) => (
+  const input = (key: TextSettingKey, label: string, multiline = false) => (
     <Input
       key={key}
       label={t(label)}
@@ -886,12 +903,47 @@ export function SettingsScreen() {
                   name: 'Enter a name of at least 2 characters.',
                 });
               await updateProfile({ name: name.trim() });
+            } else if (section === 'TRANSPORT') {
+              if (!isAdmin)
+                throw new Error(
+                  'You do not have permission to change these settings.',
+                );
+              const errors: Record<string, string> = {};
+              if (!form.operatingDays?.length)
+                errors.operatingDays = 'Select at least one operating day.';
+              const shifts = form.transportShifts || [];
+              if (
+                !shifts.length ||
+                shifts.some(
+                  shift =>
+                    !shift.id ||
+                    !shift.name.trim() ||
+                    !/^([01]\d|2[0-3]):[0-5]\d$/.test(shift.startTime) ||
+                    !/^([01]\d|2[0-3]):[0-5]\d$/.test(shift.endTime) ||
+                    shift.startTime >= shift.endTime,
+                ) ||
+                new Set(shifts.map(shift => shift.id)).size !== shifts.length
+              )
+                errors.transportShifts =
+                  'Each shift needs a name and valid start and return times.';
+              if (Object.keys(errors).length) throw new ValidationError(errors);
+              await mutate(
+                '/admin/settings',
+                {
+                  operatingDays: form.operatingDays,
+                  transportShifts: shifts.map(shift => ({
+                    ...shift,
+                    name: shift.name.trim(),
+                  })),
+                },
+                'PATCH',
+              );
             } else {
               if (!isAdmin)
                 throw new Error(
                   'You do not have permission to change these settings.',
                 );
-              const keys: (keyof BusinessSettings)[] =
+              const keys: TextSettingKey[] =
                 section === 'BUSINESS'
                   ? ['businessName', 'phone', 'address']
                   : section === 'SMS'
@@ -933,6 +985,104 @@ export function SettingsScreen() {
             {input('businessName', 'Business name')}
             {input('phone', 'Office phone number')}
             {input('address', 'Address', true)}
+          </>
+        ) : section === 'TRANSPORT' ? (
+          <>
+            <WeekdaySelector
+              value={form.operatingDays || defaultOperatingDays(data?.settings)}
+              onChange={operatingDays => {
+                action.clearFieldError('operatingDays');
+                setForm(current => ({ ...current, operatingDays }));
+              }}
+              error={action.fieldErrors.operatingDays}
+            />
+            <Text style={s.note}>
+              {t(
+                'Institution closed days are excluded from every student service.',
+              )}
+            </Text>
+            {(form.transportShifts || []).map((shift, index) => (
+              <Box key={shift.id}>
+                <Input
+                  label={t('Shift name')}
+                  value={shift.name}
+                  maxLength={60}
+                  onChangeText={shiftName =>
+                    setForm(current => ({
+                      ...current,
+                      transportShifts: current.transportShifts?.map((item, i) =>
+                        i === index ? { ...item, name: shiftName } : item,
+                      ),
+                    }))
+                  }
+                />
+                <Input
+                  label={t('Start time (HH:mm)')}
+                  value={shift.startTime}
+                  maxLength={5}
+                  onChangeText={startTime =>
+                    setForm(current => ({
+                      ...current,
+                      transportShifts: current.transportShifts?.map((item, i) =>
+                        i === index ? { ...item, startTime } : item,
+                      ),
+                    }))
+                  }
+                />
+                <Input
+                  label={t('Return time (HH:mm)')}
+                  value={shift.endTime}
+                  maxLength={5}
+                  onChangeText={endTime =>
+                    setForm(current => ({
+                      ...current,
+                      transportShifts: current.transportShifts?.map((item, i) =>
+                        i === index ? { ...item, endTime } : item,
+                      ),
+                    }))
+                  }
+                />
+                {!existingShiftIds.includes(shift.id) ? (
+                  <SmallButton
+                    title={t('Remove shift')}
+                    danger
+                    onPress={() =>
+                      setForm(current => ({
+                        ...current,
+                        transportShifts: current.transportShifts?.filter(
+                          item => item.id !== shift.id,
+                        ),
+                      }))
+                    }
+                  />
+                ) : null}
+              </Box>
+            ))}
+            <SmallButton
+              title={t('+ Add shift')}
+              disabled={(form.transportShifts?.length || 0) >= 20}
+              onPress={() =>
+                setForm(current => ({
+                  ...current,
+                  transportShifts: [
+                    ...(current.transportShifts || []),
+                    {
+                      id: `SHIFT_${Date.now()}_${
+                        current.transportShifts?.length || 0
+                      }`,
+                      name: '',
+                      startTime: '',
+                      endTime: '',
+                    },
+                  ],
+                }))
+              }
+            />
+            {action.fieldErrors.transportShifts ? (
+              <Text style={s.note}>
+                {t(action.fieldErrors.transportShifts)}
+              </Text>
+            ) : null}
           </>
         ) : section === 'PROFILE' ? (
           <>

@@ -13,11 +13,14 @@ import { money, numberLabel, readable } from '../../utils/format';
 import { saveReportFile } from '../../utils/photo';
 import { InfoRow } from './ParentUI';
 import { billingMonthLabel } from './parentUtils';
+import { transportShifts } from '../../utils/transport';
+import { paymentShiftLabel } from '../../utils/paymentShift';
 
 type ReceiptBusiness = Pick<
   BusinessSettings,
   'businessName' | 'phone' | 'address'
->;
+> &
+  Pick<BusinessSettings, 'transportShifts'>;
 const fallbackBusiness: ReceiptBusiness = {
   businessName: 'NOOR TRANSPORT',
   phone: '',
@@ -73,6 +76,13 @@ export function receiptDocument(
     '',
     t('Bill reference: {{id}}', { id: oneLine(bill.id) }),
     t('Student: {{name}}', { name: oneLine(bill.studentName) }),
+    ...(bill.shiftId
+      ? [
+          `${t('Transport shift')}: ${oneLine(
+            paymentShiftLabel(bill, transportShifts(business)),
+          )}`,
+        ]
+      : []),
     t('Guardian: {{name}}', { name: oneLine(bill.guardianName) }),
     t('Billing month: {{month}}', {
       month: oneLine(billingMonthLabel(bill.month)),
@@ -161,6 +171,13 @@ export function ReceiptsScreen() {
               label={t('Student')}
               value={bill.studentName}
             />
+            {bill.shiftId ? (
+              <InfoRow
+                icon="clock"
+                label={t('Transport shift')}
+                value={paymentShiftLabel(bill, transportShifts(business))}
+              />
+            ) : null}
             <InfoRow
               icon="user"
               label={t('Guardian')}
@@ -271,6 +288,11 @@ export function ReceiptsScreen() {
               </View>
               <View style={r.listCopy}>
                 <Text style={r.studentName}>{item.studentName}</Text>
+                {item.shiftId ? (
+                  <Text style={r.month}>
+                    {paymentShiftLabel(item, transportShifts(business))}
+                  </Text>
+                ) : null}
                 <Text style={r.month}>
                   {billingMonthLabel(item.month)} · {paidDate(item.paidAt)}
                 </Text>

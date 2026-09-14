@@ -230,13 +230,23 @@ it('validates and submits the reviewed admission fields, using the authenticated
   await button('Next');
   await selectRoute(0);
   await act(async () =>
-    screen.root.findByType(Select).props.onChange('stop-1'),
+    screen.root
+      .findAllByType(Select)
+      .find(item => item.props.label === i18n.t('Pickup stop *'))!
+      .props.onChange('stop-1'),
   );
   await language('bn');
-  expect(screen.root.findByType(Select).props.value).toBe('stop-1');
-  expect(screen.root.findByType(Select).props.options).toEqual([
-    { value: 'stop-1', label: 'Main gate' },
-  ]);
+  expect(
+    screen.root
+      .findAllByType(Select)
+      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props.value,
+  ).toBe('stop-1');
+  expect(
+    screen.root
+      .findAllByType(Select)
+      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props
+      .options,
+  ).toEqual([{ value: 'stop-1', label: 'Main gate' }]);
   await button('Next');
   expect(text()).toContain('আবেদন পর্যালোচনা');
   expect(text()).toContain('Student One');
@@ -245,6 +255,9 @@ it('validates and submits the reviewed admission fields, using the authenticated
   expect(mockMutate).not.toHaveBeenCalled();
   await button('Submit application');
   expect(mockMutate).toHaveBeenCalledWith('/requests/guardian/new', {
+    studentId: undefined,
+    shiftId: 'MORNING',
+    operatingDays: [0, 1, 2, 3, 4, 6],
     studentName: 'Student One',
     routeId: 'route-1',
     stopId: 'stop-1',
@@ -276,16 +289,30 @@ it('clears the old pickup stop when changing route and preserves earlier student
   await button('Next');
   await selectRoute(0);
   await act(async () =>
-    screen.root.findByType(Select).props.onChange('stop-1'),
+    screen.root
+      .findAllByType(Select)
+      .find(item => item.props.label === i18n.t('Pickup stop *'))!
+      .props.onChange('stop-1'),
   );
   await selectRoute(1);
-  expect(screen.root.findByType(Select).props.value).toBe('');
-  expect(screen.root.findByType(Select).props.options).toEqual([
-    { value: 'stop-2', label: 'North gate' },
-  ]);
+  expect(
+    screen.root
+      .findAllByType(Select)
+      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props.value,
+  ).toBe('');
+  expect(
+    screen.root
+      .findAllByType(Select)
+      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props
+      .options,
+  ).toEqual([{ value: 'stop-2', label: 'North gate' }]);
   await button('Next');
   expect(mockMutate).not.toHaveBeenCalled();
-  expect(screen.root.findByType(Select).props.label).toBe('Pickup stop *');
+  expect(
+    screen.root
+      .findAllByType(Select)
+      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props.label,
+  ).toBe('Pickup stop *');
   await button('Previous step');
   await button('Previous step');
   expect(
@@ -323,6 +350,7 @@ it('does not show approval for a pending admission or invent a review timestamp'
 
 const student = {
   id: 'student',
+  status: 'ACTIVE',
   routeId: 'route-1',
   stopId: 'stop-1',
   studentName: 'Student One',
@@ -512,8 +540,8 @@ it('keeps the child and afternoon tab selected while translating attendance and 
   expect(screen.root.findByType(Select).props.value).toBe('second');
   expect(screen.root.findByType(Segment).props.value).toBe('AFTERNOON');
   expect(screen.root.findByType(Segment).props.options).toEqual([
-    { value: 'MORNING', label: 'সকাল' },
-    { value: 'AFTERNOON', label: 'বিকাল' },
+    { value: 'MORNING', label: 'যাওয়া' },
+    { value: 'AFTERNOON', label: 'ফেরা' },
   ]);
   expect(text()).toContain('Student Two');
   expect(text()).toContain('Afternoon pickup');
@@ -735,4 +763,147 @@ it('requires a configured destination and previews its own fare before submittin
     expect.objectContaining({ stopId: 'stop-1', dropoffStopId: 'mirpur' }),
   );
   expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('monthlyAmount');
+});
+
+it('shows an off-day without absence or a tracking shortcut for the selected service', async () => {
+  mockManagement.students = [{ ...student, operatingDays: [] }];
+  mockManagement.attendance = [
+    {
+      id: 'old',
+      studentId: student.id,
+      driverId: null,
+      date: dhakaDate(),
+      status: 'ABSENT',
+      note: '',
+      updatedAt: '',
+    },
+  ];
+  await act(async () => {
+    screen = TestRenderer.create(
+      <ParentJourneyScreen {...props('TodayJourney')} />,
+    );
+  });
+  expect(text()).toContain('Not scheduled today');
+  expect(text()).toContain(
+    'No transport is scheduled for this service today. This is not an absence.',
+  );
+  expect(
+    screen.root
+      .findAllByType(Button)
+      .some(item => item.props.title === 'View live location'),
+  ).toBe(false);
+});
+
+it('reuses a pending student profile in another shift with independently selected days', async () => {
+  mockManagement.settings.operatingDays = [0, 1, 2, 3, 4, 6];
+  mockData.requests = [
+    {
+      id: 'morning-request',
+      studentId: 'canonical-child',
+      studentName: 'Student One',
+      className: 'Class 6',
+      roll: '21',
+      pickupAddress: 'Home',
+      guardianName: 'Guardian',
+      guardianPhone: '01700000001',
+      routeName: 'South road',
+      stopName: 'Main gate',
+      vehicleName: 'Bus 1',
+      status: 'PENDING',
+      note: '',
+      shiftId: 'MORNING',
+      operatingDays: [1, 3],
+    },
+  ];
+  await act(async () => {
+    screen = TestRenderer.create(
+      <AdmissionScreen
+        {...props('Admission', { studentId: 'canonical-child' })}
+      />,
+    );
+  });
+  expect(
+    screen.root
+      .findAllByType(Field)
+      .find(item => item.props.label === 'Student name *')!.props.value,
+  ).toBe('Student One');
+  await button('Next');
+  await button('Next');
+  await selectRoute(0);
+  await act(async () =>
+    screen.root
+      .findAllByType(Select)
+      .find(item => item.props.label === 'Pickup stop *')!
+      .props.onChange('stop-1'),
+  );
+  await button('Next');
+  expect(mockMutate).not.toHaveBeenCalled();
+  expect(
+    screen.root
+      .findAllByType(Select)
+      .find(item => item.props.label === 'Transport shift')!.props.error,
+  ).toContain('already has');
+  await act(async () =>
+    screen.root
+      .findAllByType(Select)
+      .find(item => item.props.label === 'Transport shift')!
+      .props.onChange('DAY'),
+  );
+  const day = screen.root.findAll(
+    node =>
+      node.props.accessibilityRole === 'checkbox' &&
+      node.props.accessibilityLabel === 'Sunday' &&
+      typeof node.props.onPress === 'function',
+    { deep: false },
+  )[0];
+  await act(async () => day.props.onPress());
+  await button('Next');
+  await button('Submit application');
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/requests/guardian/new',
+    expect.objectContaining({
+      studentId: 'canonical-child',
+      shiftId: 'DAY',
+      operatingDays: [1, 2, 3, 4, 6],
+    }),
+  );
+});
+
+it('defaults to a scheduled service and does not reuse morning stop times for the day shift', async () => {
+  mockManagement.students = [
+    { ...student, id: 'off-morning', shiftId: 'MORNING', operatingDays: [] },
+    {
+      ...student,
+      id: 'day-service',
+      shiftId: 'DAY',
+      operatingDays: [0, 1, 2, 3, 4, 5, 6],
+    },
+  ];
+  mockManagement.schedules = [
+    {
+      id: 'legacy',
+      routeId: student.routeId,
+      stopId: student.stopId,
+      studentId: null,
+      period: 'MORNING',
+      label: 'Legacy morning stop',
+      time: '08:17',
+      position: 1,
+    },
+  ];
+  await act(async () => {
+    screen = TestRenderer.create(
+      <ParentJourneyScreen {...props('TodayJourney')} />,
+    );
+  });
+  expect(screen.root.findByType(Select).props.value).toBe('day-service');
+  expect(text()).toContain('Shift departure');
+  expect(text()).toContain('11:00');
+  expect(text()).not.toContain('08:17');
+  expect(text()).not.toContain('Legacy morning stop');
+  await act(async () =>
+    screen.root.findByType(Segment).props.onChange('AFTERNOON'),
+  );
+  expect(text()).toContain('Shift return');
+  expect(text()).toContain('15:00');
 });

@@ -57,6 +57,9 @@ export interface Route {
   fares?: RouteFare[];
 }
 export interface Subscription {
+  studentId?: string;
+  shiftId?: string;
+  operatingDays?: number[];
   id: string;
   studentName: string;
   routeName: string;
@@ -68,6 +71,8 @@ export interface Subscription {
   status: Status;
 }
 export interface Bill {
+  studentId?: string;
+  shiftId?: string;
   id: string;
   subscriptionId?: string;
   studentName: string;
@@ -84,6 +89,8 @@ export interface PaymentAccount {
   instructions: string;
 }
 export interface Payment {
+  studentId?: string;
+  shiftId?: string;
   id: string;
   billId: string;
   guardianName: string;
@@ -100,6 +107,17 @@ export interface Payment {
   createdAt: string;
 }
 export interface ServiceRequest {
+  studentCode?: string;
+  className?: string;
+  roll?: string;
+  photoUrl?: string;
+  emergencyContact?: string;
+  pickupAddress?: string;
+  dropAddress?: string;
+  studentId?: string;
+  guardianId?: string;
+  shiftId?: string;
+  operatingDays?: number[];
   monthlyAmount?: number;
   id: string;
   studentName: string;

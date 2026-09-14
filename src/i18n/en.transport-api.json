@@ -1,0 +1,16 @@
+{
+  "Select one or more unique weekdays (0=Sunday through 6=Saturday)": "Select one or more unique weekdays (0=Sunday through 6=Saturday)",
+  "Select a configured transport shift": "Select a configured transport shift",
+  "Select at least one day when the institute operates": "Select at least one day when the institute operates",
+  "This student does not belong to this guardian": "This student does not belong to this guardian",
+  "This student already exists. Select the existing student to add a different shift": "This student already exists. Select the existing student to add a different shift",
+  "This student already has an active service in this shift": "This student already has an active service in this shift",
+  "This student already has an active transport service in this shift": "This student already has an active transport service in this shift",
+  "This student already has a pending request in this shift": "This student already has a pending request in this shift",
+  "This student has no scheduled transport on the selected day": "This student has no scheduled transport on the selected day",
+  "This service has billing history. Stop it and add a new enrollment to change shifts": "This service has billing history. Stop it and add a new enrollment to change shifts",
+  "Configure at least one shift with unique IDs": "Configure at least one shift with unique IDs",
+  "A shift must finish after it starts on the same day": "A shift must finish after it starts on the same day",
+  "A shift referenced by a student or request cannot be removed": "A shift referenced by a student or request cannot be removed",
+  "Settings values cannot be null": "Settings values cannot be null"
+}

@@ -1,0 +1,23 @@
+{
+  "Transport shifts and weekdays": "পরিবহনের শিফট ও সাপ্তাহিক দিন",
+  "Institution closed days are excluded from every student service.": "প্রতিষ্ঠানের বন্ধের দিনগুলো প্রতিটি শিক্ষার্থীর সেবা থেকে বাদ থাকবে।",
+  "Shift name": "শিফটের নাম",
+  "Start time (HH:mm)": "শুরুর সময় (HH:mm)",
+  "Return time (HH:mm)": "ফেরার সময় (HH:mm)",
+  "Select at least one operating day.": "অন্তত একটি চালু দিন নির্বাচন করুন।",
+  "Each shift needs a name and valid start and return times.": "প্রতিটি শিফটের নাম ও সঠিক শুরু এবং ফেরার সময় দিন।",
+  "No students scheduled for this date and shift.": "এই তারিখ ও শিফটে কোনো শিক্ষার্থীর যাতায়াত নির্ধারিত নেই।",
+  "Scheduled today: {{active}}  |  Absent: {{absent}}": "আজ নির্ধারিত: {{active}}  |  অনুপস্থিত: {{absent}}",
+  "Today's passengers": "আজকের যাত্রীরা",
+  "All shifts": "সব শিফট",
+  "Student and shift": "শিক্ষার্থী ও শিফট",
+  "Not scheduled today": "আজ যাতায়াত নেই",
+  "No transport is scheduled for this service today. This is not an absence.": "এই সেবায় আজ যাতায়াত নির্ধারিত নেই। এটি অনুপস্থিতি নয়।",
+  "Outbound": "যাওয়া",
+  "Return": "ফেরা",
+  "+ Add shift": "+ শিফট যোগ করুন",
+  "Remove shift": "শিফট সরান",
+  "Shift departure": "শিফটে যাওয়ার সময়",
+  "Shift return": "শিফটে ফেরার সময়",
+  "Shift times are not individual stop arrival times.": "শিফটের সময় প্রতিটি স্টপে পৌঁছানোর সময় নয়।"
+}
