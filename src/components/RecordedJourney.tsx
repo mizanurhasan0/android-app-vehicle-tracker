@@ -1,3 +1,4 @@
+import { showToast } from './Toast';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -145,7 +146,11 @@ export function RecordedJourney({
                   <Field
                     label={t('Date (YYYY-MM-DD)')}
                     value={input}
-                    onChangeText={setInput}
+                    error={dateError}
+                    onChangeText={value => {
+                      setDateError('');
+                      setInput(value);
+                    }}
                     keyboardType="numbers-and-punctuation"
                   />
                   <Notice text={dateError} kind="error" />
@@ -162,6 +167,7 @@ export function RecordedJourney({
                         setDateOpen(false);
                       } catch (error) {
                         setDateError((error as Error).message);
+                        showToast((error as Error).message);
                       }
                     }}
                   />
@@ -180,7 +186,7 @@ export function RecordedJourney({
                 <>
                   {!history.route.freshness.complete ? (
                     <Notice
-                      kind="error"
+                      kind="warning"
                       text={t(
                         '{{number}} positions are waiting to sync. This history is incomplete; refresh shortly.',
                         {

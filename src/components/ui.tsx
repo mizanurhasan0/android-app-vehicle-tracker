@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, styles } from '../theme';
 import { normalizeDigits, readable } from '../utils/format';
 import { translateMessage, useTranslation } from '../i18n';
+import { ToastKind, ToastMessage } from './Toast';
 export function Page({
   title,
   subtitle,
@@ -125,9 +126,11 @@ export function Button({
 export function Field({
   label,
   hint,
+  error,
   ...props
-}: TextInputProps & { label: string; hint?: string }) {
+}: TextInputProps & { label: string; hint?: string; error?: string }) {
   const [focused, setFocused] = useState(false);
+  useTranslation();
   return (
     <View style={ui.field}>
       <Text style={ui.fieldLabel}>{label}</Text>
@@ -147,17 +150,32 @@ export function Field({
           )
         }
         accessibilityLabel={label}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        accessibilityHint={
+          error ? translateMessage(error) : props.accessibilityHint
+        }
+        aria-invalid={!!error}
+        onFocus={event => {
+          setFocused(true);
+          props.onFocus?.(event);
+        }}
+        onBlur={event => {
+          setFocused(false);
+          props.onBlur?.(event);
+        }}
         placeholderTextColor="#7E8D85"
         style={[
           ui.input,
           props.multiline && ui.multiline,
           focused && ui.focused,
           props.style,
+          !!error && ui.invalid,
         ]}
       />
-      {hint ? <Text style={styles.muted}>{hint}</Text> : null}
+      {error ? (
+        <Text style={ui.errorText}>{translateMessage(error)}</Text>
+      ) : hint ? (
+        <Text style={styles.muted}>{hint}</Text>
+      ) : null}
     </View>
   );
 }
@@ -167,20 +185,24 @@ export function Select({
   options,
   onChange,
   disabled = false,
+  error,
 }: {
   label: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  error?: string;
 }) {
   const { t } = useTranslation();
   return (
     <View style={ui.field}>
       <Text style={ui.fieldLabel}>{label}</Text>
-      <View style={ui.select}>
+      <View style={[ui.select, !!error && ui.invalid]}>
         <Picker
           accessibilityLabel={label}
+          accessibilityHint={error ? translateMessage(error) : undefined}
+          aria-invalid={!!error}
           selectedValue={value}
           enabled={!disabled}
           accessibilityState={{ disabled }}
@@ -197,6 +219,9 @@ export function Select({
           ))}
         </Picker>
       </View>
+      {error ? (
+        <Text style={ui.errorText}>{translateMessage(error)}</Text>
+      ) : null}
     </View>
   );
 }
@@ -205,20 +230,9 @@ export function Notice({
   kind = 'success',
 }: {
   text?: string;
-  kind?: 'success' | 'error';
+  kind?: ToastKind;
 }) {
-  useTranslation();
-  if (!text) return null;
-  return (
-    <View style={[ui.notice, kind === 'error' && ui.error]}>
-      <Text
-        accessibilityLiveRegion="polite"
-        style={[styles.body, kind === 'error' && ui.errorText]}
-      >
-        {translateMessage(text)}
-      </Text>
-    </View>
-  );
+  return <ToastMessage message={text} kind={kind} />;
 }
 export function Badge({ status }: { status: string }) {
   const { t } = useTranslation();
@@ -326,6 +340,7 @@ const ui = StyleSheet.create({
   },
   multiline: { minHeight: 104, textAlignVertical: 'top' },
   focused: { borderColor: colors.primary },
+  invalid: { borderColor: colors.danger, borderWidth: 2 },
   select: {
     borderWidth: 1,
     borderColor: colors.line,

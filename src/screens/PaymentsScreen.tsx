@@ -1,3 +1,4 @@
+import { ValidationError } from '../utils/validation';
 import { translateMessage, useTranslation } from '../i18n';
 import React, { useEffect, useState } from 'react';
 import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -49,7 +50,10 @@ function PaymentForm({
       <Select
         label={t('Payment method')}
         value={method}
+        error={action.fieldErrors.method}
         onChange={value => {
+          action.clearFieldError('method');
+          action.clearFieldError('recipientNumber');
           setMethod(value);
           const selected = data.accounts.find(item => item.method === value);
           setAccount(selected);
@@ -82,7 +86,11 @@ function PaymentForm({
       <Field
         label={t('Number you sent money to')}
         value={recipientNumber}
-        onChangeText={setRecipient}
+        error={action.fieldErrors.recipientNumber}
+        onChangeText={value => {
+          action.clearFieldError('recipientNumber');
+          setRecipient(value);
+        }}
         keyboardType="phone-pad"
         maxLength={12}
         hint={t(
@@ -92,7 +100,11 @@ function PaymentForm({
       <Field
         label={t('Number you sent money from')}
         value={senderNumber}
-        onChangeText={setSender}
+        error={action.fieldErrors.senderNumber}
+        onChangeText={value => {
+          action.clearFieldError('senderNumber');
+          setSender(value);
+        }}
         keyboardType="phone-pad"
         maxLength={12}
         placeholder="01XXXXXXXXX"
@@ -100,7 +112,11 @@ function PaymentForm({
       <Field
         label={t('Transaction ID')}
         value={transactionId}
-        onChangeText={setTransaction}
+        error={action.fieldErrors.transactionId}
+        onChangeText={value => {
+          action.clearFieldError('transactionId');
+          setTransaction(value);
+        }}
         autoCapitalize="characters"
         autoCorrect={false}
         maxLength={40}
@@ -113,12 +129,19 @@ function PaymentForm({
         disabled={!account}
         onPress={() => {
           action.run(async () => {
-            if (!/^01[3-9]\d{8,9}$/.test(senderNumber))
-              throw new Error('Enter the sender’s valid mobile wallet number.');
+            const errors: Record<string, string> = {};
+            const walletNumber =
+              method === 'BKASH' ? /^01[3-9]\d{8}$/ : /^01[3-9]\d{8,9}$/;
+            if (!walletNumber.test(senderNumber))
+              errors.senderNumber =
+                'Enter the sender’s valid mobile wallet number.';
+            if (!walletNumber.test(recipientNumber))
+              errors.recipientNumber =
+                'Enter the receiving account’s valid mobile wallet number.';
             if (!/^[A-Z0-9]{6,40}$/.test(transactionId.trim().toUpperCase()))
-              throw new Error(
-                'Enter a valid transaction ID (6–40 letters or digits).',
-              );
+              errors.transactionId =
+                'Enter a valid transaction ID (6–40 letters or digits).';
+            if (Object.keys(errors).length) throw new ValidationError(errors);
             await mutate('/payments/submissions', {
               billId: bill.id,
               method,
@@ -353,10 +376,14 @@ function GuardianPaymentsScreen({ dueOnly }: { dueOnly: boolean }) {
               </Text>
               <Text style={styles.muted}>{dateLabel(payment.createdAt)}</Text>
               {payment.note ? (
-                <Notice
-                  text={t('Admin note: {{note}}', { note: payment.note })}
-                  kind={payment.status === 'REJECTED' ? 'error' : 'success'}
-                />
+                <Text
+                  style={[
+                    styles.body,
+                    payment.status === 'REJECTED' && { color: colors.danger },
+                  ]}
+                >
+                  {t('Admin note: {{note}}', { note: payment.note })}
+                </Text>
               ) : null}
             </Card>
           ))

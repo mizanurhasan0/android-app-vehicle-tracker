@@ -1,4 +1,6 @@
 import React from 'react';
+import { ToastHost } from '../src/components/Toast';
+import { View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { VehicleHistoryScreen } from '../src/screens/VehicleHistoryScreen';
 import { Button, Select } from '../src/components/ui';
@@ -31,13 +33,15 @@ jest.mock('../src/hooks/useVehicleHistory', () => ({
 jest.mock('../src/components/HistoryMap', () => ({ HistoryMap: 'HistoryMap' }));
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
-  Picker.Item = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const Picker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
+  Picker.Item = (props: object) => ReactModule.createElement(NativeView, props);
   return { Picker };
 });
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 const props = {
   route: { params: { imei: '123', name: 'School bus' } },
@@ -47,7 +51,12 @@ it('shows delayed empty history and drills from month into a selected day', asyn
   mockRole = 'ADMIN';
   let screen!: TestRenderer.ReactTestRenderer;
   await act(async () => {
-    screen = TestRenderer.create(<VehicleHistoryScreen {...props} />);
+    screen = TestRenderer.create(
+      <View>
+        <VehicleHistoryScreen {...props} />
+        <ToastHost />
+      </View>,
+    );
   });
   expect(JSON.stringify(screen.toJSON())).toContain('3 positions are waiting');
   expect(JSON.stringify(screen.toJSON())).toContain('No recorded positions');
@@ -66,7 +75,12 @@ it('guards the history screen from a guardian session', async () => {
   mockRole = 'GUARDIAN';
   let screen!: TestRenderer.ReactTestRenderer;
   await act(async () => {
-    screen = TestRenderer.create(<VehicleHistoryScreen {...props} />);
+    screen = TestRenderer.create(
+      <View>
+        <VehicleHistoryScreen {...props} />
+        <ToastHost />
+      </View>,
+    );
   });
   expect(screen.root.findAllByType(Select)).toHaveLength(0);
   expect(JSON.stringify(screen.toJSON())).toContain('administrators only');

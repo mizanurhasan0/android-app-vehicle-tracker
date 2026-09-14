@@ -1,6 +1,7 @@
 import React from 'react';
+import { ToastHost } from '../src/components/Toast';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Linking, Text } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 import { api } from '../src/api/client';
 import {
   ManagementOverview,
@@ -67,13 +68,15 @@ jest.mock('../src/components/LanguageSwitcher', () => ({
 jest.mock('../src/utils/photo', () => ({ saveReportFile: jest.fn() }));
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const Picker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
   Picker.Item = Picker;
   return { Picker };
 });
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 beforeEach(async () => {
@@ -235,7 +238,12 @@ const choice = (label: string) =>
   screen.root.findAllByType(Choice).find(node => node.props.label === label)!;
 const render = async (Component: React.ComponentType) => {
   await act(async () => {
-    screen = TestRenderer.create(<Component />);
+    screen = TestRenderer.create(
+      <View>
+        <Component />
+        <ToastHost />
+      </View>,
+    );
   });
 };
 const switchLanguage = async (language: 'en' | 'bn') => {

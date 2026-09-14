@@ -1,3 +1,5 @@
+import enFeedback from './en.feedback.json';
+import bnFeedback from './bn.feedback.json';
 import en from './en.json';
 import bn from './bn.json';
 import enAdmin from './en.admin.json';
@@ -10,6 +12,7 @@ import enFleet from './en.fleet.json';
 import bnFleet from './bn.fleet.json';
 
 export const catalogs = {
+  feedback: { en: enFeedback, bn: bnFeedback },
   common: { en, bn },
   admin: { en: enAdmin, bn: bnAdmin },
   office: { en: enOffice, bn: bnOffice },

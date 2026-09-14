@@ -1,4 +1,6 @@
 import React from 'react';
+import { ToastHost } from '../src/components/Toast';
+import { View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { Text } from 'react-native';
 import { i18n } from '../src/i18n';
@@ -67,12 +69,14 @@ jest.mock('../src/utils/photo', () => ({
 }));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
-  Picker.Item = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const Picker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
+  Picker.Item = (props: object) => ReactModule.createElement(NativeView, props);
   return { Picker };
 });
 let screen: TestRenderer.ReactTestRenderer;
@@ -111,7 +115,12 @@ afterEach(async () => {
 });
 async function render() {
   await act(async () => {
-    screen = TestRenderer.create(<ReceiptsScreen />);
+    screen = TestRenderer.create(
+      <View>
+        <ReceiptsScreen />
+        <ToastHost />
+      </View>,
+    );
   });
 }
 async function selectReceipt() {
@@ -157,7 +166,14 @@ it('lists only paid bills and never offers a receipt for an unpaid pending submi
   expect(text()).not.toContain('Unpaid Student');
   expect(screen.root.findAllByType(Button)).toHaveLength(0);
   mockData = { ...mockData, bills: [mockData.bills[1]] };
-  await act(async () => screen.update(<ReceiptsScreen />));
+  await act(async () =>
+    screen.update(
+      <View>
+        <ReceiptsScreen />
+        <ToastHost />
+      </View>,
+    ),
+  );
   expect(screen.root.findByType(Empty).props.title).toBe('No receipts yet');
   expect(mockSave).not.toHaveBeenCalled();
 });
@@ -210,7 +226,14 @@ it('removes export actions if the selected record stops being paid after refresh
   await render();
   await selectReceipt();
   mockData = { ...mockData, bills: [{ ...paidBill, status: 'UNPAID' }] };
-  await act(async () => screen.update(<ReceiptsScreen />));
+  await act(async () =>
+    screen.update(
+      <View>
+        <ReceiptsScreen />
+        <ToastHost />
+      </View>,
+    ),
+  );
   expect(screen.root.findAllByType(Button)).toHaveLength(0);
   expect(mockSave).not.toHaveBeenCalled();
 });

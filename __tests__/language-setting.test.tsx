@@ -1,4 +1,6 @@
 import React from 'react';
+import { ToastHost } from '../src/components/Toast';
+import { View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { TextInput, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,13 +25,15 @@ jest.mock('../src/context/AuthContext', () => ({
 }));
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const Picker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
   Picker.Item = Picker;
   return { Picker };
 });
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 let screen: TestRenderer.ReactTestRenderer;
@@ -51,7 +55,10 @@ async function renderApp() {
   await act(async () => {
     screen = TestRenderer.create(
       <LanguageProvider>
-        <AuthScreen />
+        <View>
+          <AuthScreen />
+          <ToastHost />
+        </View>
       </LanguageProvider>,
     );
   });

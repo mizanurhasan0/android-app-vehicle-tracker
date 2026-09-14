@@ -17,10 +17,15 @@ export function CopyrightFooter() {
         accessibilityState={{ disabled: action.busy }}
         disabled={action.busy}
         onPress={() => {
-          action.run(
-            () => Linking.openURL('https://www.linkedin.com/in/mizanur-hasan'),
-            '',
-          );
+          action.run(async () => {
+            try {
+              await Linking.openURL(
+                'https://www.linkedin.com/in/mizanur-hasan',
+              );
+            } catch {
+              throw new Error('Could not open LinkedIn. Please try again.');
+            }
+          }, '');
         }}
         style={({ pressed }) => [local.link, pressed && local.pressed]}
       >
@@ -28,11 +33,6 @@ export function CopyrightFooter() {
           © {year} <Text style={local.name}>Eng. Mizanur Hasan</Text>
         </Text>
       </Pressable>
-      {action.error ? (
-        <Text accessibilityLiveRegion="polite" style={local.error}>
-          {t('Could not open LinkedIn. Please try again.')}
-        </Text>
-      ) : null}
     </View>
   );
 }

@@ -73,6 +73,7 @@ import {
 import { ReceiptsScreen } from './src/screens/parent/ReceiptsScreen';
 import { NoorBrand, NoorIcon } from './src/components/Noor';
 import { colors } from './src/theme';
+import { ToastHost } from './src/components/Toast';
 import { LanguageProvider } from './src/i18n/LanguageProvider';
 import { useTranslation } from './src/i18n';
 
@@ -426,7 +427,10 @@ export default function App() {
       <StatusBar barStyle="light-content" backgroundColor="#005C3E" />
       <LanguageProvider>
         <AuthProvider>
-          <Root />
+          <View style={local.root}>
+            <Root />
+            <ToastHost />
+          </View>
         </AuthProvider>
       </LanguageProvider>
     </SafeAreaProvider>

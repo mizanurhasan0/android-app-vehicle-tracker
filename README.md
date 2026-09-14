@@ -56,6 +56,21 @@ numbers are included.
 
 ## Behaviour and boundaries
 
+### Error feedback
+
+Action errors and warnings appear as dismissible toasts, including over open
+dialogs. Toasts support Bangla/English and Android accessibility timeout settings.
+Invalid inputs receive a red outline and field-specific help; editing an input
+clears its error while preserving the rest of the form. Connection failures keep
+entered values available for retry. Saved payment notes remain visible in history.
+
+For new forms, use `useAction` and throw `ValidationError({ fieldName: message })`
+for validation failures. Bind `action.fieldErrors.fieldName` to the control's
+`error` prop and call `action.clearFieldError('fieldName')` when it changes.
+API validation errors are mapped to field keys by the API client. Use
+`showToast(message, 'warning')` for action warnings. Custom native modals need a
+`ToastHost modal` mounted only while visible; `FormModal` includes one already.
+
 ### Monthly fares by journey
 
 In admin **Routes**, create a route with the boarding and destination stops in

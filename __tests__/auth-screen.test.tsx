@@ -1,6 +1,9 @@
 import React from 'react';
+import { ToastHost } from '../src/components/Toast';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Text, TextInput } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { ApiError } from '../src/api/client';
+import { colors } from '../src/theme';
 import { AuthScreen } from '../src/screens/AuthScreen';
 
 const mockSignIn = jest.fn();
@@ -20,20 +23,27 @@ jest.mock('../src/components/LanguageSwitcher', () => ({
 }));
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const Picker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
   Picker.Item = Picker;
   return { Picker };
 });
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 beforeEach(async () => {
   mockSignIn.mockReset().mockResolvedValue(undefined);
   mockSetServer.mockReset().mockResolvedValue(undefined);
   await act(async () => {
-    screen = TestRenderer.create(<AuthScreen />);
+    screen = TestRenderer.create(
+      <View>
+        <AuthScreen />
+        <ToastHost />
+      </View>,
+    );
   });
 });
 afterEach(async () => {
@@ -108,13 +118,18 @@ it('validates credentials and keeps a failed sign-in editable for retry', async 
   expect(mockSignIn).not.toHaveBeenCalled();
   await fill({ 'Phone number': '01712345678', Password: 'test-password' });
   mockSignIn.mockRejectedValueOnce(
-    new Error('Phone number or password is incorrect'),
+    new ApiError('Phone number or password is incorrect', 401, {
+      phone: 'Phone number or password is incorrect',
+      password: 'Phone number or password is incorrect',
+    }),
   );
   await press('Sign in');
   expect(JSON.stringify(screen.toJSON())).toContain(
     'Phone number or password is incorrect',
   );
   expect(input('Password').props.value).toBe('test-password');
+  expect(input('Password').props['aria-invalid']).toBe(true);
+  expect(input('Phone number').props['aria-invalid']).toBe(true);
   expect(input('Password').props.editable).toBe(true);
   await press('Sign in');
   expect(mockSignIn).toHaveBeenCalledTimes(2);
@@ -136,4 +151,34 @@ it('disables editing and navigation while a sign-in request is pending', async (
   expect(button('New guardian? Create account').props.disabled).toBe(true);
   await act(async () => finish());
   expect(input('Password').props.editable).toBe(true);
+});
+
+it('highlights each invalid credential and clears only the corrected field', async () => {
+  await press('Sign in');
+  expect(mockSignIn).not.toHaveBeenCalled();
+  const redOutline = (label: string) =>
+    screen.root
+      .findAllByType(View)
+      .some(
+        node =>
+          StyleSheet.flatten(node.props.style)?.borderColor === colors.danger &&
+          node
+            .findAllByType(TextInput)
+            .some(control => control.props.accessibilityLabel === label),
+      );
+  expect(redOutline('Phone number')).toBe(true);
+  expect(redOutline('Password')).toBe(true);
+  expect(
+    screen.root
+      .findAllByType(View)
+      .some(node => node.props.testID === 'feedback-toast'),
+  ).toBe(true);
+  await fill({ 'Phone number': '01712345678' });
+  expect(redOutline('Phone number')).toBe(false);
+  expect(input('Phone number').props.accessibilityHint).toBeUndefined();
+  expect(redOutline('Password')).toBe(true);
+  await fill({ Password: 'valid-password' });
+  expect(redOutline('Password')).toBe(false);
+  await press('Sign in');
+  expect(mockSignIn).toHaveBeenCalledTimes(1);
 });

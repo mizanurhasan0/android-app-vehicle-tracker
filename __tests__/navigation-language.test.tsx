@@ -32,6 +32,7 @@ jest.mock('@react-navigation/native-stack', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: require('react-native').View,
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('../src/context/AuthContext', () => ({
   useAuth: () => ({ session: { user: { role: mockRole } } }),

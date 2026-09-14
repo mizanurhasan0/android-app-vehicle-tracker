@@ -1,5 +1,5 @@
 import { journeyFare, journeyDestinations } from '../../utils/routeFares';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Keyboard,
   Linking,
@@ -26,7 +26,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useAction } from '../../hooks/useAction';
-import { useTranslation, translateMessage } from '../../i18n';
+import { ValidationError } from '../../utils/validation';
+import { useTranslation } from '../../i18n';
 import { HomeStackParams } from '../../navigation/types';
 import { colors, styles } from '../../theme';
 import { dateLabel, money, numberLabel, readable } from '../../utils/format';
@@ -75,7 +76,6 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
   const [stopId, setStopId] = useState('');
   const [dropoffStopId, setDropoffStopId] = useState('');
   const [routeSearch, setRouteSearch] = useState('');
-  const [validation, setValidation] = useState('');
   const route = data.routes.find(item => item.id === routeId);
   const stop = route?.stops.find(item => item.id === stopId);
   const destination = route?.stops.find(item => item.id === dropoffStopId);
@@ -89,30 +89,50 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
   );
 
   const validate = (page: number) => {
-    if (page === 0 && (studentName.trim().length < 2 || !className.trim()))
-      return 'Enter the student name and class.';
-    if (page === 1 && !pickupAddress.trim()) return 'Enter the pickup address.';
-    if (
-      page === 1 &&
-      emergencyContact.trim() &&
-      !/^(?:\+?88)?01[3-9]\d{8}$/.test(emergencyContact.trim())
-    )
-      return 'Enter a valid emergency contact number.';
-    if (page === 2 && (!route || !stop))
-      return 'Select a route and pickup stop.';
-    if (
-      page === 2 &&
-      hasJourneyFares &&
-      (!destination || monthlyFare === undefined)
-    )
-      return 'Select a destination with a configured fare.';
-    return '';
+    const fields: Record<string, string> = {};
+    if (page === 0) {
+      if (studentName.trim().length < 2)
+        fields.studentName =
+          'Enter at least 2 characters for the student name.';
+      if (!className.trim()) fields.className = 'Enter the class.';
+    }
+    if (page === 1) {
+      if (!pickupAddress.trim())
+        fields.pickupAddress = 'Enter the pickup address.';
+      if (
+        emergencyContact.trim() &&
+        !/^(?:\+?88)?01[3-9]\d{8}$/.test(emergencyContact.trim())
+      )
+        fields.emergencyContact = 'Enter a valid emergency contact number.';
+    }
+    if (page === 2) {
+      if (!route) fields.routeId = 'Select a route.';
+      if (!stop) fields.stopId = 'Select a pickup stop.';
+      if (hasJourneyFares && (!destination || monthlyFare === undefined))
+        fields.dropoffStopId = 'Select a destination with a configured fare.';
+    }
+    return Object.keys(fields).length ? new ValidationError(fields) : undefined;
   };
+  useEffect(() => {
+    if (step !== 3) return;
+    const groups = [
+      ['studentName', 'className', 'roll', 'photoUrl'],
+      ['pickupAddress', 'dropAddress', 'emergencyContact'],
+      ['routeId', 'stopId', 'dropoffStopId'],
+    ];
+    const invalidStep = groups.findIndex(fields =>
+      fields.some(field => action.fieldErrors[field]),
+    );
+    if (invalidStep >= 0) setStep(invalidStep);
+  }, [action.fieldErrors, step]);
   const next = () => {
     Keyboard.dismiss();
     const problem = validate(step);
-    setValidation(problem);
-    if (!problem) setStep(value => Math.min(3, value + 1));
+    if (problem) action.reportError(problem);
+    else {
+      action.clearFeedback();
+      setStep(value => Math.min(3, value + 1));
+    }
   };
   return (
     <Page loading={loading} refresh={refresh} error={error}>
@@ -162,31 +182,40 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           </View>
         ))}
       </View>
-      <Notice
-        text={translateMessage(validation || action.error)}
-        kind="error"
-      />
+      <Notice text={action.error} kind="error" />
       {step === 0 ? (
         <NoorCard>
           <Text style={styles.heading}>{t('Student information')}</Text>
           <Field
             label={t('Student name *')}
             value={studentName}
-            onChangeText={setStudentName}
+            error={action.fieldErrors.studentName}
+            onChangeText={value => {
+              action.clearFieldError('studentName');
+              setStudentName(value);
+            }}
             maxLength={100}
             placeholder={t('Student full name')}
           />
           <Field
             label={t('Class *')}
             value={className}
-            onChangeText={setClassName}
+            error={action.fieldErrors.className}
+            onChangeText={value => {
+              action.clearFieldError('className');
+              setClassName(value);
+            }}
             maxLength={40}
             placeholder={t('e.g. Class 6')}
           />
           <Field
             label={t('Roll number')}
             value={roll}
-            onChangeText={setRoll}
+            error={action.fieldErrors.roll}
+            onChangeText={value => {
+              action.clearFieldError('roll');
+              setRoll(value);
+            }}
             maxLength={20}
             keyboardType="number-pad"
           />
@@ -240,7 +269,11 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           <Field
             label={t('Emergency contact number')}
             value={emergencyContact}
-            onChangeText={setEmergencyContact}
+            error={action.fieldErrors.emergencyContact}
+            onChangeText={value => {
+              action.clearFieldError('emergencyContact');
+              setEmergencyContact(value);
+            }}
             keyboardType="phone-pad"
             maxLength={14}
             placeholder="01XXXXXXXXX"
@@ -248,7 +281,11 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           <Field
             label={t('Pickup address *')}
             value={pickupAddress}
-            onChangeText={setPickupAddress}
+            error={action.fieldErrors.pickupAddress}
+            onChangeText={value => {
+              action.clearFieldError('pickupAddress');
+              setPickupAddress(value);
+            }}
             maxLength={500}
             multiline
             placeholder={t('House, road and area')}
@@ -256,7 +293,11 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           <Field
             label={t('Drop-off address')}
             value={dropAddress}
-            onChangeText={setDropAddress}
+            error={action.fieldErrors.dropAddress}
+            onChangeText={value => {
+              action.clearFieldError('dropAddress');
+              setDropAddress(value);
+            }}
             maxLength={500}
             placeholder={t('School name and address')}
           />
@@ -273,6 +314,14 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
             />
           </NoorCard>
           <Text style={styles.heading}>{t('Available routes')}</Text>
+          {action.fieldErrors.routeId ? (
+            <Text
+              style={{ color: colors.danger }}
+              accessibilityLiveRegion="polite"
+            >
+              {t(action.fieldErrors.routeId)}
+            </Text>
+          ) : null}
           {!routes.length ? (
             <Empty
               title={t('No routes found')}
@@ -289,6 +338,9 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
                 accessibilityRole="radio"
                 accessibilityState={{ selected: routeId === item.id }}
                 onPress={() => {
+                  ['routeId', 'stopId', 'dropoffStopId'].forEach(
+                    action.clearFieldError,
+                  );
                   setRouteId(item.id);
                   setStopId('');
                   setDropoffStopId('');
@@ -296,6 +348,9 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
                 style={[
                   local.routeCard,
                   item.id === routeId && local.routeSelected,
+                  !!action.fieldErrors.routeId && {
+                    borderColor: colors.danger,
+                  },
                 ]}
               >
                 <View
@@ -323,7 +378,10 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
               <Select
                 label={t('Pickup stop *')}
                 value={stopId}
+                error={action.fieldErrors.stopId}
                 onChange={value => {
+                  action.clearFieldError('stopId');
+                  action.clearFieldError('dropoffStopId');
                   setStopId(value);
                   setDropoffStopId('');
                 }}
@@ -337,7 +395,11 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
                   <Select
                     label={t('Destination stop *')}
                     value={dropoffStopId}
-                    onChange={setDropoffStopId}
+                    error={action.fieldErrors.dropoffStopId}
+                    onChange={value => {
+                      action.clearFieldError('dropoffStopId');
+                      setDropoffStopId(value);
+                    }}
                     options={availableDestinations.map(item => ({
                       value: item.id,
                       label: item.name,
@@ -438,8 +500,13 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           busy={action.busy}
           onPress={() =>
             action.run(async () => {
-              const problem = [0, 1, 2].map(validate).find(Boolean);
-              if (problem) throw new Error(problem);
+              for (const page of [0, 1, 2]) {
+                const problem = validate(page);
+                if (problem) {
+                  setStep(page);
+                  throw problem;
+                }
+              }
               const result = await mutate<{ id: string }>(
                 '/requests/guardian/new',
                 {
@@ -468,7 +535,7 @@ export function AdmissionScreen({ navigation }: Props<'Admission'>) {
           disabled={action.busy}
           onPress={() => {
             Keyboard.dismiss();
-            setValidation('');
+            action.clearFeedback();
             setStep(value => value - 1);
           }}
         />

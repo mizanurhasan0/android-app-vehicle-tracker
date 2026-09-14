@@ -133,5 +133,7 @@
   "The existing assigned fee is kept unless the journey changes.": "The existing assigned fee is kept unless the journey changes.",
   "Select a destination with a configured fare.": "Select a destination with a configured fare.",
   "Fare by destination": "Fare by destination",
-  "No fares are configured from this boarding stop. Choose another stop or contact the admin.": "No fares are configured from this boarding stop. Choose another stop or contact the admin."
+  "No fares are configured from this boarding stop. Choose another stop or contact the admin.": "No fares are configured from this boarding stop. Choose another stop or contact the admin.",
+  "Enter the stop name.": "Enter the stop name.",
+  "Enter a valid time as HH:mm.": "Enter a valid time as HH:mm."
 }

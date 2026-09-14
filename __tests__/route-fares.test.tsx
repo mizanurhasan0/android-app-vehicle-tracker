@@ -1,6 +1,6 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { Route } from '../src/api/types';
 import { RouteFareManager } from '../src/components/RouteFareManager';
 import { Button, Field, Select } from '../src/components/ui';
@@ -13,13 +13,15 @@ jest.mock('../src/context/DataContext', () => ({
 }));
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
-  Picker.Item = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const Picker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
+  Picker.Item = (props: object) => ReactModule.createElement(NativeView, props);
   return { Picker };
 });
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 const route: Route = {
@@ -140,7 +142,18 @@ it('validates edited fees and preserves the draft after a failed save', async ()
   await save();
   expect(mockMutate).not.toHaveBeenCalled();
   expect(screen.root.findByType(FormModal).props.visible).toBe(true);
+  const amountField = () =>
+    screen.root
+      .findAllByType(Field)
+      .find(node => node.props.label === 'Uttara → Khilkhet (৳)')!;
+  expect(amountField().props.error).toBeTruthy();
+  expect(
+    screen.root
+      .findAllByType(View)
+      .some(node => node.props.testID === 'feedback-toast'),
+  ).toBe(true);
   await field('Uttara → Khilkhet (৳)', '1100');
+  expect(amountField().props.error).toBeUndefined();
   mockMutate.mockRejectedValueOnce(new Error('Connection unavailable'));
   await save();
   expect(screen.root.findByType(FormModal).props.error).toBe(

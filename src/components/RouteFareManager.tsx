@@ -7,6 +7,15 @@ import { money, toPoisha } from '../utils/format';
 import { Button, Card, Field, Select } from './ui';
 import { FormModal, useAction } from '../screens/admin/AdminUi';
 import { styles } from '../theme';
+import { ValidationError } from '../utils/validation';
+
+function fareAmount(value: string, field: string) {
+  try {
+    return toPoisha(value);
+  } catch (problem) {
+    throw new ValidationError({ [field]: (problem as Error).message });
+  }
+}
 
 type FareDraft = Omit<RouteFare, 'monthlyAmount'> & { amount: string };
 
@@ -37,7 +46,7 @@ export function RouteFareManager({
     setBoardingStopId('');
     setDropoffStopId('');
     setAmount('');
-    action.setError('');
+    action.clearFeedback();
     setVisible(true);
   };
   return (
@@ -76,15 +85,35 @@ export function RouteFareManager({
             onSave={() =>
               action.run(async () => {
                 if (boardingStopId || dropoffStopId || amount.trim())
-                  throw new Error(
-                    'Add the entered fare before saving, or clear its fields.',
-                  );
+                  throw new ValidationError({
+                    ...(boardingStopId
+                      ? {
+                          boardingStopId:
+                            'Add the entered fare before saving, or clear its fields.',
+                        }
+                      : {}),
+                    ...(dropoffStopId
+                      ? {
+                          dropoffStopId:
+                            'Add the entered fare before saving, or clear its fields.',
+                        }
+                      : {}),
+                    ...(amount.trim()
+                      ? {
+                          amount:
+                            'Add the entered fare before saving, or clear its fields.',
+                        }
+                      : {}),
+                  });
                 await mutate(
                   `/admin/routes/${route.id}/fares`,
                   {
-                    fares: fares.map(({ amount: value, ...fare }) => ({
+                    fares: fares.map(({ amount: value, ...fare }, index) => ({
                       ...fare,
-                      monthlyAmount: toPoisha(value),
+                      monthlyAmount: fareAmount(
+                        value,
+                        `fares.${index}.monthlyAmount`,
+                      ),
                     })),
                   },
                   'PUT',
@@ -114,23 +143,26 @@ export function RouteFareManager({
                     fare.dropoffStopId,
                   )} (৳)`}
                   value={fare.amount}
+                  error={action.fieldErrors[`fares.${index}.monthlyAmount`]}
                   keyboardType="decimal-pad"
                   editable={!action.busy}
-                  onChangeText={value =>
+                  onChangeText={value => {
+                    action.clearFieldError(`fares.${index}.monthlyAmount`);
                     setFares(current =>
                       current.map((item, i) =>
                         i === index ? { ...item, amount: value } : item,
                       ),
-                    )
-                  }
+                    );
+                  }}
                 />
                 <Button
                   title={t('Remove fare')}
                   secondary
                   disabled={action.busy}
-                  onPress={() =>
-                    setFares(current => current.filter((_, i) => i !== index))
-                  }
+                  onPress={() => {
+                    action.clearFeedback();
+                    setFares(current => current.filter((_, i) => i !== index));
+                  }}
                 />
               </View>
             ))}
@@ -144,8 +176,11 @@ export function RouteFareManager({
             <Select
               label={t('Boarding stop')}
               value={boardingStopId}
+              error={action.fieldErrors.boardingStopId}
               disabled={action.busy}
               onChange={value => {
+                action.clearFieldError('boardingStopId');
+                action.clearFieldError('dropoffStopId');
                 setBoardingStopId(value);
                 setDropoffStopId('');
               }}
@@ -157,8 +192,12 @@ export function RouteFareManager({
             <Select
               label={t('Destination stop')}
               value={dropoffStopId}
+              error={action.fieldErrors.dropoffStopId}
               disabled={action.busy}
-              onChange={setDropoffStopId}
+              onChange={value => {
+                action.clearFieldError('dropoffStopId');
+                setDropoffStopId(value);
+              }}
               options={route.stops
                 .filter(stop => stop.id !== boardingStopId)
                 .map(stop => ({ value: stop.id, label: stop.name }))}
@@ -166,7 +205,11 @@ export function RouteFareManager({
             <Field
               label={t('Journey monthly fee (৳)')}
               value={amount}
-              onChangeText={setAmount}
+              error={action.fieldErrors.amount}
+              onChangeText={value => {
+                action.clearFieldError('amount');
+                setAmount(value);
+              }}
               keyboardType="decimal-pad"
               editable={!action.busy}
             />
@@ -180,10 +223,18 @@ export function RouteFareManager({
                     !dropoffStopId ||
                     boardingStopId === dropoffStopId
                   )
-                    throw new Error(
-                      'Select different boarding and destination stops.',
-                    );
-                  toPoisha(amount);
+                    throw new ValidationError({
+                      ...(!boardingStopId
+                        ? { boardingStopId: 'Select a boarding stop.' }
+                        : {}),
+                      ...(!dropoffStopId || boardingStopId === dropoffStopId
+                        ? {
+                            dropoffStopId:
+                              'Select a different destination stop.',
+                          }
+                        : {}),
+                    });
+                  fareAmount(amount, 'amount');
                   if (
                     fares.some(
                       fare =>
@@ -191,9 +242,10 @@ export function RouteFareManager({
                         fare.dropoffStopId === dropoffStopId,
                     )
                   )
-                    throw new Error(
-                      'This journey already has a fare. Edit its amount above.',
-                    );
+                    throw new ValidationError({
+                      dropoffStopId:
+                        'This journey already has a fare. Edit its amount above.',
+                    });
                   setFares(current => [
                     ...current,
                     { boardingStopId, dropoffStopId, amount },

@@ -15,7 +15,7 @@ jest.mock('../src/components/HistoryMap', () => ({ HistoryMap: 'HistoryMap' }));
 // slots here so interactions exercise the actual journey header and rows.
 jest.mock('react-native/Libraries/Lists/FlatList', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
+  const { View: NativeView } = require('react-native');
   const FlatList = ({
     data,
     renderItem,
@@ -33,13 +33,13 @@ jest.mock('react-native/Libraries/Lists/FlatList', () => {
     ListFooterComponent: React.ReactNode;
   }) =>
     ReactModule.createElement(
-      View,
+      NativeView,
       null,
       ListHeaderComponent,
       data.length
         ? data.map((item, index) =>
             ReactModule.createElement(
-              View,
+              NativeView,
               { key: item.id },
               renderItem({ item, index }),
             ),
@@ -51,13 +51,15 @@ jest.mock('react-native/Libraries/Lists/FlatList', () => {
 });
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
-  Picker.Item = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const Picker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
+  Picker.Item = (props: object) => ReactModule.createElement(NativeView, props);
   return { Picker };
 });
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 const point = {

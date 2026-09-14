@@ -1,7 +1,9 @@
+import { ValidationError } from '../utils/validation';
+import { normalizeServerUrl } from '../api/server';
+import { showToast } from '../components/Toast';
 import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -49,12 +51,14 @@ export function AuthScreen({
   function submit() {
     Keyboard.dismiss();
     action.run(async () => {
+      const errors: Record<string, string> = {};
       if (!/^01[3-9]\d{8}$/.test(phone.trim()))
-        throw new Error('Enter a valid 11-digit Bangladesh phone number.');
+        errors.phone = 'Enter a valid 11-digit Bangladesh phone number.';
       if (password.length < 8)
-        throw new Error('Your password needs at least 8 characters.');
+        errors.password = 'Your password needs at least 8 characters.';
       if (register && name.trim().length < 2)
-        throw new Error('Please enter your name.');
+        errors.name = 'Please enter your name.';
+      if (Object.keys(errors).length) throw new ValidationError(errors);
       await signIn(phone, password, register ? name : undefined);
     });
   }
@@ -112,7 +116,11 @@ export function AuthScreen({
                 <Field
                   label={t('Server address')}
                   value={url}
-                  onChangeText={setUrl}
+                  error={action.fieldErrors.url}
+                  onChangeText={value => {
+                    action.clearFieldError('url');
+                    setUrl(value);
+                  }}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="url"
@@ -126,6 +134,13 @@ export function AuthScreen({
                   onPress={() => {
                     Keyboard.dismiss();
                     action.run(async () => {
+                      try {
+                        normalizeServerUrl(url);
+                      } catch {
+                        throw new ValidationError({
+                          url: 'Enter the server origin, for example https://tracker.example.com',
+                        });
+                      }
                       await setServer(url);
                       setSettings(false);
                     }, 'Server saved. You can now sign in.');
@@ -140,14 +155,28 @@ export function AuthScreen({
                   </Text>
                 ) : null}
                 {register ? (
-                  <View style={local.inputRow}>
+                  <View
+                    style={[
+                      local.inputRow,
+                      !!action.fieldErrors.name && local.invalidInput,
+                    ]}
+                  >
                     <AppIcon kind="students" size={20} color={colors.muted} />
                     <TextInput
                       accessibilityLabel={t('Your name')}
+                      aria-invalid={!!action.fieldErrors.name}
                       placeholder={t('Your name')}
                       placeholderTextColor={colors.muted}
                       value={name}
-                      onChangeText={setName}
+                      accessibilityHint={
+                        action.fieldErrors.name
+                          ? t(action.fieldErrors.name)
+                          : undefined
+                      }
+                      onChangeText={value => {
+                        action.clearFieldError('name');
+                        setName(value);
+                      }}
                       autoComplete="name"
                       autoCapitalize="words"
                       maxLength={80}
@@ -156,14 +185,28 @@ export function AuthScreen({
                     />
                   </View>
                 ) : null}
-                <View style={local.inputRow}>
+                <View
+                  style={[
+                    local.inputRow,
+                    !!action.fieldErrors.phone && local.invalidInput,
+                  ]}
+                >
                   <AppIcon kind="user" size={20} color={colors.muted} />
                   <TextInput
                     accessibilityLabel={t('Phone number')}
+                    aria-invalid={!!action.fieldErrors.phone}
                     placeholder={t('Phone number')}
                     placeholderTextColor={colors.muted}
                     value={phone}
-                    onChangeText={value => setPhone(normalizeDigits(value))}
+                    accessibilityHint={
+                      action.fieldErrors.phone
+                        ? t(action.fieldErrors.phone)
+                        : undefined
+                    }
+                    onChangeText={value => {
+                      action.clearFieldError('phone');
+                      setPhone(normalizeDigits(value));
+                    }}
                     keyboardType="phone-pad"
                     autoComplete="tel"
                     maxLength={11}
@@ -178,16 +221,26 @@ export function AuthScreen({
                     style={[
                       local.inputRow,
                       passwordFocused && local.focusedInput,
+                      !!action.fieldErrors.password && local.invalidInput,
                     ]}
                   >
                     <AppIcon kind="lock" size={20} color={colors.muted} />
                     <TextInput
                       ref={passwordInput}
                       accessibilityLabel={t('Password')}
+                      aria-invalid={!!action.fieldErrors.password}
                       placeholder={t('Password')}
                       placeholderTextColor={colors.muted}
                       value={password}
-                      onChangeText={setPassword}
+                      accessibilityHint={
+                        action.fieldErrors.password
+                          ? t(action.fieldErrors.password)
+                          : undefined
+                      }
+                      onChangeText={value => {
+                        action.clearFieldError('password');
+                        setPassword(value);
+                      }}
                       secureTextEntry={!showPassword}
                       autoCapitalize="none"
                       autoCorrect={false}
@@ -230,11 +283,11 @@ export function AuthScreen({
                       accessibilityRole="button"
                       disabled={action.busy}
                       onPress={() =>
-                        Alert.alert(
-                          t('Forgot password?'),
+                        showToast(
                           t(
                             'Contact your school administrator to reset your account password.',
                           ),
+                          'info',
                         )
                       }
                       style={local.forgotButton}
@@ -271,6 +324,7 @@ export function AuthScreen({
                   accessibilityState={{ disabled: action.busy }}
                   disabled={action.busy}
                   onPress={() => {
+                    action.clearFeedback();
                     setRegister(!register);
                     setShowPassword(false);
                   }}
@@ -295,6 +349,7 @@ export function AuthScreen({
               disabled={action.busy}
               onPress={() => {
                 Keyboard.dismiss();
+                action.clearFeedback();
                 setSettings(!settings);
                 setShowPassword(false);
               }}
@@ -321,6 +376,7 @@ export function AuthScreen({
   );
 }
 const local = StyleSheet.create({
+  invalidInput: { borderColor: colors.danger, borderWidth: 1.5 },
   safe: { flex: 1, backgroundColor: colors.surface },
   parentSafe: { backgroundColor: '#005C3E' },
   scroll: {

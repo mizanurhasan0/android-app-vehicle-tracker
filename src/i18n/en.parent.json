@@ -140,5 +140,19 @@
   "Method: {{method}}": "Method: {{method}}",
   "Transaction ID: {{id}}": "Transaction ID: {{id}}",
   "Sender number: {{number}}": "Sender number: {{number}}",
-  "Recipient number: {{number}}": "Recipient number: {{number}}"
+  "Recipient number: {{number}}": "Recipient number: {{number}}",
+  "Enter the student name.": "Enter the student name.",
+  "Enter at least 2 characters for the student name.": "Enter at least 2 characters for the student name.",
+  "Enter the class.": "Enter the class.",
+  "Enter the guardian mobile number.": "Enter the guardian mobile number.",
+  "Select a route.": "Select a route.",
+  "Select a pickup stop.": "Select a pickup stop.",
+  "Select a boarding stop.": "Select a boarding stop.",
+  "Select a different destination stop.": "Select a different destination stop.",
+  "Enter the driver name.": "Enter the driver name.",
+  "Enter the mobile number.": "Enter the mobile number.",
+  "Select an active service.": "Select an active service.",
+  "Select a complaint category.": "Select a complaint category.",
+  "Add at least 10 characters of detail.": "Add at least 10 characters of detail.",
+  "Add a reason with at least 5 characters.": "Add a reason with at least 5 characters."
 }

@@ -133,5 +133,7 @@
   "The existing assigned fee is kept unless the journey changes.": "যাত্রা পরিবর্তন না করলে আগের নির্ধারিত ভাড়া বহাল থাকবে।",
   "Select a destination with a configured fare.": "ভাড়া নির্ধারণ করা আছে এমন গন্তব্য নির্বাচন করুন।",
   "Fare by destination": "গন্তব্য অনুযায়ী ভাড়া",
-  "No fares are configured from this boarding stop. Choose another stop or contact the admin.": "এই ওঠার স্টপ থেকে কোনো ভাড়া নির্ধারণ করা নেই। অন্য স্টপ নির্বাচন করুন অথবা প্রশাসকের সঙ্গে যোগাযোগ করুন।"
+  "No fares are configured from this boarding stop. Choose another stop or contact the admin.": "এই ওঠার স্টপ থেকে কোনো ভাড়া নির্ধারণ করা নেই। অন্য স্টপ নির্বাচন করুন অথবা প্রশাসকের সঙ্গে যোগাযোগ করুন।",
+  "Enter the stop name.": "স্টপের নাম লিখুন।",
+  "Enter a valid time as HH:mm.": "HH:mm ফরম্যাটে সঠিক সময় লিখুন।"
 }

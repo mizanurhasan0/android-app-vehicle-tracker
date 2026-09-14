@@ -23,6 +23,7 @@ import { ReviewActions } from '../components/ReviewActions';
 import { RequestIconKind, RequestTabIcon } from '../components/RequestTabIcon';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { ValidationError } from '../utils/validation';
 import { useAction } from '../hooks/useAction';
 import { colors, styles } from '../theme';
 import { money, readable } from '../utils/format';
@@ -128,7 +129,11 @@ function CallGuardian({ id, phone }: { id: string; phone: string }) {
       <Field
         label={t('Call note')}
         value={note}
-        onChangeText={setNote}
+        error={action.fieldErrors.note}
+        onChangeText={value => {
+          action.clearFieldError('note');
+          setNote(value);
+        }}
         maxLength={500}
       />
       <Button
@@ -137,7 +142,8 @@ function CallGuardian({ id, phone }: { id: string; phone: string }) {
         busy={action.busy}
         onPress={() => {
           action.run(async () => {
-            if (!note.trim()) throw new Error('Add a call note first.');
+            if (!note.trim())
+              throw new ValidationError({ note: 'Add a call note first.' });
             await mutate(`/admin/requests/${id}/call-notes`, {
               note,
             });
@@ -199,6 +205,7 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
             accessibilityState={{ selected: tab === label }}
             onPress={() => {
               Keyboard.dismiss();
+              action.clearFeedback();
               setTab(label);
             }}
             style={({ pressed }) => [
@@ -231,13 +238,21 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
             <Field
               label={t('Student name')}
               value={studentName}
-              onChangeText={setStudentName}
+              error={action.fieldErrors.studentName}
+              onChangeText={value => {
+                action.clearFieldError('studentName');
+                setStudentName(value);
+              }}
               maxLength={100}
             />
             <Select
               label={t('Route / road')}
               value={routeId}
+              error={action.fieldErrors.routeId}
               onChange={value => {
+                action.clearFieldError('routeId');
+                action.clearFieldError('stopId');
+                action.clearFieldError('dropoffStopId');
                 setRouteId(value);
                 setStopId('');
                 setDropoffStopId('');
@@ -255,7 +270,10 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
             <Select
               label={t('Pickup stop')}
               value={stopId}
+              error={action.fieldErrors.stopId}
               onChange={value => {
+                action.clearFieldError('stopId');
+                action.clearFieldError('dropoffStopId');
                 setStopId(value);
                 setDropoffStopId('');
               }}
@@ -269,7 +287,11 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
                 <Select
                   label={t('Destination stop *')}
                   value={dropoffStopId}
-                  onChange={setDropoffStopId}
+                  error={action.fieldErrors.dropoffStopId}
+                  onChange={value => {
+                    action.clearFieldError('dropoffStopId');
+                    setDropoffStopId(value);
+                  }}
                   options={availableDestinations.map(item => ({
                     value: item.id,
                     label: item.name,
@@ -314,16 +336,24 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
               onPress={() => {
                 action.run(async () => {
                   if (studentName.trim().length < 2 || !routeId || !stopId)
-                    throw new Error(
-                      'Enter the student’s name and select a route and pickup stop.',
-                    );
+                    throw new ValidationError({
+                      ...(studentName.trim().length < 2
+                        ? {
+                            studentName:
+                              'Enter at least 2 characters for the student name.',
+                          }
+                        : {}),
+                      ...(!routeId ? { routeId: 'Select a route.' } : {}),
+                      ...(!stopId ? { stopId: 'Select a pickup stop.' } : {}),
+                    });
                   if (
                     route?.fares?.length &&
                     (!dropoffStopId || selectedFare === undefined)
                   )
-                    throw new Error(
-                      'Select a destination with a configured fare.',
-                    );
+                    throw new ValidationError({
+                      dropoffStopId:
+                        'Select a destination with a configured fare.',
+                    });
                   await mutate('/requests/guardian/new', {
                     studentName: studentName.trim(),
                     routeId,
@@ -346,7 +376,11 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
               <Select
                 label={t('Active service')}
                 value={subscriptionId}
-                onChange={setSubscriptionId}
+                error={action.fieldErrors.subscriptionId}
+                onChange={value => {
+                  action.clearFieldError('subscriptionId');
+                  setSubscriptionId(value);
+                }}
                 options={active.map(item => ({
                   value: item.id,
                   label: `${item.studentName} · ${item.routeName}`,
@@ -355,7 +389,11 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
               <Select
                 label={t('Complaint category')}
                 value={category}
-                onChange={setCategory}
+                error={action.fieldErrors.category}
+                onChange={value => {
+                  action.clearFieldError('category');
+                  setCategory(value);
+                }}
                 options={[
                   'LATE_PICKUP',
                   'DRIVER_BEHAVIOUR',
@@ -370,7 +408,11 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
               <Field
                 label={t('Tell us what happened')}
                 value={description}
-                onChangeText={setDescription}
+                error={action.fieldErrors.description}
+                onChangeText={value => {
+                  action.clearFieldError('description');
+                  setDescription(value);
+                }}
                 multiline
                 maxLength={2000}
               />
@@ -386,9 +428,20 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
                       !category ||
                       description.trim().length < 10
                     )
-                      throw new Error(
-                        'Select a service, category and add at least 10 characters of detail.',
-                      );
+                      throw new ValidationError({
+                        ...(!subscriptionId
+                          ? { subscriptionId: 'Select an active service.' }
+                          : {}),
+                        ...(!category
+                          ? { category: 'Select a complaint category.' }
+                          : {}),
+                        ...(description.trim().length < 10
+                          ? {
+                              description:
+                                'Add at least 10 characters of detail.',
+                            }
+                          : {}),
+                      });
                     await mutate('/complaints', {
                       subscriptionId,
                       category,
@@ -401,7 +454,11 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
               <Field
                 label={t('Reason for stopping service')}
                 value={reason}
-                onChangeText={setReason}
+                error={action.fieldErrors.reason}
+                onChangeText={value => {
+                  action.clearFieldError('reason');
+                  setReason(value);
+                }}
                 multiline
                 maxLength={500}
               />
@@ -419,9 +476,17 @@ export function RequestsScreen({ section }: { section?: RequestTab } = {}) {
                 onPress={() => {
                   action.run(async () => {
                     if (!subscriptionId || reason.trim().length < 5)
-                      throw new Error(
-                        'Select a service and add a reason (at least 5 characters).',
-                      );
+                      throw new ValidationError({
+                        ...(!subscriptionId
+                          ? { subscriptionId: 'Select an active service.' }
+                          : {}),
+                        ...(reason.trim().length < 5
+                          ? {
+                              reason:
+                                'Add a reason with at least 5 characters.',
+                            }
+                          : {}),
+                      });
                     await mutate('/stop-requests', {
                       subscriptionId,
                       reason,

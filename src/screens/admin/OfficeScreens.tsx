@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useTranslation } from '../../i18n';
+import { ValidationError, isValidDate } from '../../utils/validation';
 import { numberLabel } from '../../utils/format';
 import {
   AdminPage,
@@ -72,7 +73,7 @@ export function NoticesScreen() {
       : transport.vehicles.map(item => ({ value: item.id, label: item.name }));
   const open = () => {
     setForm(blank());
-    action.setError('');
+    action.clearFeedback();
     setAdding(true);
   };
   return (
@@ -129,10 +130,14 @@ export function NoticesScreen() {
         saveTitle={t('Send notice')}
         onSave={() =>
           action.run(async () => {
-            if (!form.title.trim() || !form.body.trim())
-              throw new Error('Enter a notice title and message.');
+            const errors: Record<string, string> = {};
+            if (form.title.trim().length < 2)
+              errors.title = 'Enter a title of at least 2 characters.';
+            if (form.body.trim().length < 2)
+              errors.body = 'Enter a message of at least 2 characters.';
             if (form.audience !== 'ALL' && !form.targetId)
-              throw new Error('Select who should receive the notice.');
+              errors.targetId = 'Select who should receive the notice.';
+            if (Object.keys(errors).length) throw new ValidationError(errors);
             await mutate('/admin/notices', {
               title: form.title.trim(),
               body: form.body.trim(),
@@ -147,29 +152,42 @@ export function NoticesScreen() {
         <Choice
           label={t('Notice category')}
           value={form.category}
+          error={action.fieldErrors.category}
           optional={false}
           options={noticeCategories.map(item => ({
             ...item,
             label: t(item.label),
           }))}
-          onChange={category => setForm(current => ({ ...current, category }))}
+          onChange={category => {
+            action.clearFieldError('category');
+            setForm(current => ({ ...current, category }));
+          }}
         />
         <Input
           label={t('Title *')}
           value={form.title}
-          onChangeText={title => setForm(current => ({ ...current, title }))}
+          error={action.fieldErrors.title}
+          onChangeText={title => {
+            action.clearFieldError('title');
+            setForm(current => ({ ...current, title }));
+          }}
           maxLength={160}
         />
         <Input
           label={t('Message *')}
           value={form.body}
-          onChangeText={body => setForm(current => ({ ...current, body }))}
+          error={action.fieldErrors.body}
+          onChangeText={body => {
+            action.clearFieldError('body');
+            setForm(current => ({ ...current, body }));
+          }}
           multiline
           maxLength={2000}
         />
         <Choice
           label={t('Send to')}
           value={form.audience}
+          error={action.fieldErrors.audience}
           optional={false}
           options={[
             { value: 'ALL', label: t('All guardians') },
@@ -177,22 +195,26 @@ export function NoticesScreen() {
             { value: 'VEHICLE', label: t('Selected vehicle') },
             { value: 'STUDENT', label: t('Selected student') },
           ]}
-          onChange={audience =>
+          onChange={audience => {
+            action.clearFieldError('audience');
+            action.clearFieldError('targetId');
             setForm(current => ({
               ...current,
               audience: audience as NoticeInput['audience'],
               targetId: '',
-            }))
-          }
+            }));
+          }}
         />
         {form.audience !== 'ALL' ? (
           <Choice
             label={t('Select recipient')}
             value={form.targetId}
+            error={action.fieldErrors.targetId}
             options={targets}
-            onChange={targetId =>
-              setForm(current => ({ ...current, targetId }))
-            }
+            onChange={targetId => {
+              action.clearFieldError('targetId');
+              setForm(current => ({ ...current, targetId }));
+            }}
           />
         ) : null}
         <Text style={s.note}>
@@ -235,7 +257,7 @@ export function RequestsScreen() {
     setSelected(item);
     setDecision(next);
     setNote('');
-    action.setError('');
+    action.clearFeedback();
   };
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
@@ -244,7 +266,7 @@ export function RequestsScreen() {
         action={t('+ Add')}
         onAction={() => {
           setForm(blank());
-          action.setError('');
+          action.clearFeedback();
           setAdding(true);
         }}
       />
@@ -316,7 +338,9 @@ export function RequestsScreen() {
           action.run(async () => {
             if (!selected) return;
             if (decision === 'REJECTED' && !note.trim())
-              throw new Error('Enter a reason for rejection.');
+              throw new ValidationError({
+                note: 'Enter a reason for rejection.',
+              });
             await mutate(
               `/admin/management-requests/${selected.id}/decision`,
               { decision, note },
@@ -335,7 +359,11 @@ export function RequestsScreen() {
               : t('Comment (optional)')
           }
           value={note}
-          onChangeText={setNote}
+          error={action.fieldErrors.note}
+          onChangeText={value => {
+            action.clearFieldError('note');
+            setNote(value);
+          }}
           multiline
           maxLength={500}
         />
@@ -348,17 +376,21 @@ export function RequestsScreen() {
         error={action.error}
         onSave={() =>
           action.run(async () => {
-            if (
-              form.title.trim().length < 2 ||
-              form.description.trim().length < 5
-            )
-              throw new Error(
-                'Enter a title and a description of at least 5 characters.',
-              );
+            const errors: Record<string, string> = {};
+            if (form.title.trim().length < 2)
+              errors.title = 'Enter a title of at least 2 characters.';
+            if (form.description.trim().length < 5)
+              errors.description =
+                'Enter a description of at least 5 characters.';
             if (form.category === 'ABSENCE' && !form.studentId)
-              throw new Error('Select a student.');
+              errors.studentId = 'Select a student.';
             if (form.category === 'LEAVE' && !form.driverId)
-              throw new Error('Select a driver.');
+              errors.driverId = 'Select a driver.';
+            if (form.category === 'MAINTENANCE' && !form.vehicleId)
+              errors.vehicleId = 'Select a vehicle.';
+            if (form.date && !isValidDate(form.date))
+              errors.date = 'Enter the date in YYYY-MM-DD format.';
+            if (Object.keys(errors).length) throw new ValidationError(errors);
             await mutate('/management/requests', {
               category: form.category,
               title: form.title.trim(),
@@ -375,77 +407,95 @@ export function RequestsScreen() {
         <Choice
           label={t('Type')}
           value={form.category}
+          error={action.fieldErrors.category}
           optional={false}
           options={requestCategories.map(item => ({
             ...item,
             label: t(item.label),
           }))}
-          onChange={category =>
+          onChange={category => {
+            action.clearFeedback();
             setForm(current => ({
               ...current,
               category: category as ManagementRequest['category'],
               studentId: '',
               driverId: '',
               vehicleId: '',
-            }))
-          }
+            }));
+          }}
         />
         {form.category === 'ABSENCE' ? (
           <Choice
             label={t('Student')}
             value={form.studentId}
+            error={action.fieldErrors.studentId}
             options={(data?.students || []).map(item => ({
               value: item.id,
               label: item.studentName,
             }))}
-            onChange={studentId =>
-              setForm(current => ({ ...current, studentId }))
-            }
+            onChange={studentId => {
+              action.clearFieldError('studentId');
+              setForm(current => ({ ...current, studentId }));
+            }}
           />
         ) : form.category === 'LEAVE' ? (
           <Choice
             label={t('Driver')}
             value={form.driverId}
+            error={action.fieldErrors.driverId}
             options={(data?.drivers || []).map(item => ({
               value: item.id,
               label: item.name,
             }))}
-            onChange={driverId =>
-              setForm(current => ({ ...current, driverId }))
-            }
+            onChange={driverId => {
+              action.clearFieldError('driverId');
+              setForm(current => ({ ...current, driverId }));
+            }}
           />
         ) : form.category === 'MAINTENANCE' ? (
           <Choice
             label={t('Vehicle')}
             value={form.vehicleId}
+            error={action.fieldErrors.vehicleId}
             options={transport.vehicles.map(item => ({
               value: item.id,
               label: item.name,
             }))}
-            onChange={vehicleId =>
-              setForm(current => ({ ...current, vehicleId }))
-            }
+            onChange={vehicleId => {
+              action.clearFieldError('vehicleId');
+              setForm(current => ({ ...current, vehicleId }));
+            }}
           />
         ) : null}
         <Input
           label={t('Title')}
           value={form.title}
-          onChangeText={title => setForm(current => ({ ...current, title }))}
+          error={action.fieldErrors.title}
+          onChangeText={title => {
+            action.clearFieldError('title');
+            setForm(current => ({ ...current, title }));
+          }}
           maxLength={160}
         />
         <Input
           label={t('Description')}
           value={form.description}
-          onChangeText={description =>
-            setForm(current => ({ ...current, description }))
-          }
+          error={action.fieldErrors.description}
+          onChangeText={description => {
+            action.clearFieldError('description');
+            setForm(current => ({ ...current, description }));
+          }}
           multiline
           maxLength={2000}
         />
         <Input
           label={t('Date (YYYY-MM-DD)')}
           value={form.date}
-          onChangeText={date => setForm(current => ({ ...current, date }))}
+          error={action.fieldErrors.date}
+          onChangeText={date => {
+            action.clearFieldError('date');
+            setForm(current => ({ ...current, date }));
+          }}
           maxLength={10}
         />
       </FormModal>
@@ -474,7 +524,7 @@ export function CommunicationScreen() {
     kind: string,
     text = '',
   ) => {
-    action.setError('');
+    action.clearFeedback();
     setComposer(channel);
     setGroup(kind);
     setFilter('');
@@ -575,9 +625,13 @@ export function CommunicationScreen() {
         onSave={() =>
           action.run(async () => {
             if (!composer) return;
-            if (!recipient) throw new Error('Select a recipient.');
+            const errors: Record<string, string> = {};
+            if ((group === 'ROUTE' || group === 'VEHICLE') && !filter)
+              errors.filter = 'Select an option';
+            if (!recipient) errors.recipient = 'Select a recipient.';
             if (composer !== 'call' && !message.trim())
-              throw new Error('Enter a message.');
+              errors.message = 'Enter a message.';
+            if (Object.keys(errors).length) throw new ValidationError(errors);
             await contact(recipient, composer, message);
           })
         }
@@ -585,8 +639,10 @@ export function CommunicationScreen() {
         <Choice
           label={t('Contact type')}
           value={group}
+          error={action.fieldErrors.group}
           optional={false}
           onChange={value => {
+            action.clearFeedback();
             setGroup(value);
             setRecipient('');
             setFilter('');
@@ -602,7 +658,10 @@ export function CommunicationScreen() {
           <Choice
             label={group === 'ROUTE' ? t('Route') : t('Vehicle')}
             value={filter}
+            error={action.fieldErrors.filter}
             onChange={value => {
+              action.clearFieldError('filter');
+              action.clearFieldError('recipient');
               setFilter(value);
               setRecipient('');
             }}
@@ -615,7 +674,11 @@ export function CommunicationScreen() {
         <Choice
           label={t('Recipient')}
           value={recipient}
-          onChange={setRecipient}
+          error={action.fieldErrors.recipient}
+          onChange={value => {
+            action.clearFieldError('recipient');
+            setRecipient(value);
+          }}
           options={recipients}
         />
         {!recipients.length ? (
@@ -626,7 +689,11 @@ export function CommunicationScreen() {
             <Input
               label={t('Message')}
               value={message}
-              onChangeText={setMessage}
+              error={action.fieldErrors.message}
+              onChangeText={value => {
+                action.clearFieldError('message');
+                setMessage(value);
+              }}
               multiline
               maxLength={2000}
             />
@@ -660,7 +727,7 @@ export function SettingsScreen() {
   const isAdmin = session?.user.role === 'ADMIN';
   const open = (next: SettingSection) => {
     if (!isAdmin && !['PROFILE', 'SECURITY'].includes(next)) return;
-    action.setError('');
+    action.clearFeedback();
     setForm({ ...data?.settings });
     setName(session?.user.name || '');
     setSection(next);
@@ -723,7 +790,11 @@ export function SettingsScreen() {
       key={key}
       label={t(label)}
       value={form[key] || ''}
-      onChangeText={value => setForm(current => ({ ...current, [key]: value }))}
+      error={action.fieldErrors[key]}
+      onChangeText={value => {
+        action.clearFieldError(key);
+        setForm(current => ({ ...current, [key]: value }));
+      }}
       multiline={multiline}
       maxLength={
         key === 'address'
@@ -789,8 +860,13 @@ export function SettingsScreen() {
               await signOut();
               return;
             }
-            if (section === 'PROFILE') await updateProfile({ name });
-            else {
+            if (section === 'PROFILE') {
+              if (name.trim().length < 2)
+                throw new ValidationError({
+                  name: 'Enter a name of at least 2 characters.',
+                });
+              await updateProfile({ name: name.trim() });
+            } else {
               if (!isAdmin)
                 throw new Error(
                   'You do not have permission to change these settings.',
@@ -803,8 +879,23 @@ export function SettingsScreen() {
                   : section === 'WHATSAPP'
                   ? ['whatsappNumber']
                   : ['emergencyPhone'];
-              if (section === 'BUSINESS' && !form.businessName?.trim())
-                throw new Error('Enter the business name.');
+              const errors: Record<string, string> = {};
+              if (
+                section === 'BUSINESS' &&
+                (form.businessName?.trim().length || 0) < 2
+              )
+                errors.businessName = 'Enter a name of at least 2 characters.';
+              for (const key of keys) {
+                if (
+                  ['phone', 'whatsappNumber', 'emergencyPhone'].includes(key) &&
+                  form[key]?.trim() &&
+                  !(
+                    key === 'emergencyPhone' ? /^\+?\d{3,15}$/ : /^\+?\d{7,15}$/
+                  ).test(form[key]!.replace(/[ ()-]/g, ''))
+                )
+                  errors[key] = 'Enter a valid mobile number.';
+              }
+              if (Object.keys(errors).length) throw new ValidationError(errors);
               await mutate(
                 '/admin/settings',
                 Object.fromEntries(
@@ -828,7 +919,11 @@ export function SettingsScreen() {
             <Input
               label={isAdmin ? t('Admin name') : t('Your name')}
               value={name}
-              onChangeText={setName}
+              error={action.fieldErrors.name}
+              onChangeText={value => {
+                action.clearFieldError('name');
+                setName(value);
+              }}
               maxLength={80}
             />
             <Detail label={t('Mobile')} value={session?.user.phone} />

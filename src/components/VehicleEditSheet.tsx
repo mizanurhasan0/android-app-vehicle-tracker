@@ -1,3 +1,5 @@
+import { ValidationError } from '../utils/validation';
+import { ToastHost } from './Toast';
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -72,9 +74,12 @@ function VehicleEditor({
   const save = () => {
     if (!changed) return;
     action.run(async () => {
-      if (!draft.name || !draft.plate || !/^\d{14,17}$/.test(draft.imei)) {
-        throw new Error('Enter a vehicle name, plate and a 14–17 digit IMEI.');
-      }
+      const errors: Record<string, string> = {};
+      const message = 'Enter a vehicle name, plate and a 14–17 digit IMEI.';
+      if (!draft.name) errors.name = message;
+      if (!draft.plate) errors.plate = message;
+      if (!/^\d{14,17}$/.test(draft.imei)) errors.imei = message;
+      if (Object.keys(errors).length) throw new ValidationError(errors);
       await mutate<Vehicle>(
         `/vehicles/${encodeURIComponent(vehicle.id)}`,
         draft,
@@ -145,7 +150,11 @@ function VehicleEditor({
               <Field
                 label={t('Vehicle name')}
                 value={name}
-                onChangeText={setName}
+                error={action.fieldErrors.name}
+                onChangeText={value => {
+                  action.clearFieldError('name');
+                  setName(value);
+                }}
                 maxLength={60}
                 editable={!action.busy}
                 autoCapitalize="words"
@@ -153,7 +162,11 @@ function VehicleEditor({
               <Field
                 label={t('Registration plate')}
                 value={plate}
-                onChangeText={setPlate}
+                error={action.fieldErrors.plate}
+                onChangeText={value => {
+                  action.clearFieldError('plate');
+                  setPlate(value);
+                }}
                 maxLength={30}
                 editable={!action.busy}
                 autoCapitalize="characters"
@@ -162,7 +175,11 @@ function VehicleEditor({
               <Field
                 label={t('GPS device IMEI')}
                 value={imei}
-                onChangeText={setImei}
+                error={action.fieldErrors.imei}
+                onChangeText={value => {
+                  action.clearFieldError('imei');
+                  setImei(value);
+                }}
                 keyboardType="number-pad"
                 maxLength={17}
                 editable={!action.busy}
@@ -176,7 +193,11 @@ function VehicleEditor({
               <Field
                 label={t('Driver name (optional)')}
                 value={driverName}
-                onChangeText={setDriverName}
+                error={action.fieldErrors.driverName}
+                onChangeText={value => {
+                  action.clearFieldError('driverName');
+                  setDriverName(value);
+                }}
                 maxLength={60}
                 editable={!action.busy}
                 autoCapitalize="words"
@@ -184,7 +205,11 @@ function VehicleEditor({
               <Field
                 label={t('Driver phone (optional)')}
                 value={driverPhone}
-                onChangeText={setDriverPhone}
+                error={action.fieldErrors.driverPhone}
+                onChangeText={value => {
+                  action.clearFieldError('driverPhone');
+                  setDriverPhone(value);
+                }}
                 keyboardType="phone-pad"
                 maxLength={30}
                 editable={!action.busy}
@@ -211,6 +236,7 @@ function VehicleEditor({
           </SafeAreaView>
         </View>
       </KeyboardAvoidingView>
+      <ToastHost modal />
     </Modal>
   );
 }

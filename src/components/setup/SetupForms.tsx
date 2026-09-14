@@ -1,3 +1,4 @@
+import { ValidationError } from '../../utils/validation';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PaymentAccount } from '../../api/types';
@@ -69,7 +70,10 @@ export function AccountForm() {
                 disabled: action.busy,
               }}
               disabled={action.busy}
-              onPress={() => setMethod(wallet)}
+              onPress={() => {
+                action.clearFeedback();
+                setMethod(wallet);
+              }}
               style={({ pressed }) => [
                 form.wallet,
                 method === wallet && form.walletSelected,
@@ -107,7 +111,11 @@ export function AccountForm() {
       <Field
         label={t('Receiving account number')}
         value={draft.number}
-        onChangeText={number => updateDraft({ number })}
+        error={action.fieldErrors.number}
+        onChangeText={number => {
+          action.clearFieldError('number');
+          updateDraft({ number });
+        }}
         keyboardType="phone-pad"
         autoCorrect={false}
         maxLength={12}
@@ -116,7 +124,11 @@ export function AccountForm() {
       <Field
         label={t('Payment instructions')}
         value={draft.instructions}
-        onChangeText={instructions => updateDraft({ instructions })}
+        error={action.fieldErrors.instructions}
+        onChangeText={instructions => {
+          action.clearFieldError('instructions');
+          updateDraft({ instructions });
+        }}
         multiline
         maxLength={300}
         editable={!action.busy}
@@ -132,11 +144,17 @@ export function AccountForm() {
           action.run(async () => {
             const number = draft.number.trim();
             const instructions = draft.instructions.trim();
-            if (!/^01[3-9]\d{8,9}$/.test(number) || !instructions) {
-              throw new Error(
-                'Select a method and enter a valid number and payment instructions.',
-              );
-            }
+            const errors: Record<string, string> = {};
+            if (
+              !(
+                method === 'BKASH' ? /^01[3-9]\d{8}$/ : /^01[3-9]\d{8,9}$/
+              ).test(number)
+            )
+              errors.number =
+                'Enter the receiving account’s valid mobile wallet number.';
+            if (!instructions)
+              errors.instructions = 'Add payment instructions.';
+            if (Object.keys(errors).length) throw new ValidationError(errors);
             await mutate(
               `/admin/payment-accounts/${method}`,
               { number, instructions },
@@ -174,14 +192,22 @@ export function VehicleForm() {
         <Field
           label={t('Vehicle name')}
           value={name}
-          onChangeText={setName}
+          error={action.fieldErrors.name}
+          onChangeText={value => {
+            action.clearFieldError('name');
+            setName(value);
+          }}
           maxLength={60}
           editable={!action.busy}
         />
         <Field
           label={t('Registration plate')}
           value={plate}
-          onChangeText={setPlate}
+          error={action.fieldErrors.plate}
+          onChangeText={value => {
+            action.clearFieldError('plate');
+            setPlate(value);
+          }}
           maxLength={30}
           autoCapitalize="characters"
           autoCorrect={false}
@@ -190,7 +216,11 @@ export function VehicleForm() {
         <Field
           label={t('GPS device IMEI')}
           value={imei}
-          onChangeText={setImei}
+          error={action.fieldErrors.imei}
+          onChangeText={value => {
+            action.clearFieldError('imei');
+            setImei(value);
+          }}
           keyboardType="number-pad"
           maxLength={17}
           hint={t('Find the 14–17 digit number on your GPS device.')}
@@ -204,14 +234,22 @@ export function VehicleForm() {
         <Field
           label={t('Driver name (optional)')}
           value={driverName}
-          onChangeText={setDriverName}
+          error={action.fieldErrors.driverName}
+          onChangeText={value => {
+            action.clearFieldError('driverName');
+            setDriverName(value);
+          }}
           maxLength={60}
           editable={!action.busy}
         />
         <Field
           label={t('Driver phone (optional)')}
           value={driverPhone}
-          onChangeText={setDriverPhone}
+          error={action.fieldErrors.driverPhone}
+          onChangeText={value => {
+            action.clearFieldError('driverPhone');
+            setDriverPhone(value);
+          }}
           keyboardType="phone-pad"
           maxLength={15}
           editable={!action.busy}
@@ -224,11 +262,13 @@ export function VehicleForm() {
         busy={action.busy}
         onPress={() => {
           action.run(async () => {
-            if (!name.trim() || !plate.trim() || !/^\d{14,17}$/.test(imei)) {
-              throw new Error(
-                'Enter a vehicle name, plate and a 14–17 digit IMEI.',
-              );
-            }
+            const errors: Record<string, string> = {};
+            const message =
+              'Enter a vehicle name, plate and a 14–17 digit IMEI.';
+            if (!name.trim()) errors.name = message;
+            if (!plate.trim()) errors.plate = message;
+            if (!/^\d{14,17}$/.test(imei)) errors.imei = message;
+            if (Object.keys(errors).length) throw new ValidationError(errors);
             await mutate('/vehicles', {
               name: name.trim(),
               plate: plate.trim(),
@@ -287,14 +327,22 @@ export function RouteForm({ onAddVehicle }: { onAddVehicle: () => void }) {
         <Field
           label={t('Route / road name')}
           value={name}
-          onChangeText={setName}
+          error={action.fieldErrors.name}
+          onChangeText={value => {
+            action.clearFieldError('name');
+            setName(value);
+          }}
           maxLength={100}
           editable={!action.busy}
         />
         <Select
           label={t('Assigned vehicle')}
           value={vehicleId}
-          onChange={setVehicleId}
+          error={action.fieldErrors.vehicleId}
+          onChange={value => {
+            action.clearFieldError('vehicleId');
+            setVehicleId(value);
+          }}
           options={data.vehicles.map(item => ({
             value: item.id,
             label: `${item.name} · ${item.plate}`,
@@ -304,7 +352,11 @@ export function RouteForm({ onAddVehicle }: { onAddVehicle: () => void }) {
         <Field
           label={t('Monthly fee (৳)')}
           value={amount}
-          onChangeText={setAmount}
+          error={action.fieldErrors.monthlyAmount}
+          onChangeText={value => {
+            action.clearFieldError('monthlyAmount');
+            setAmount(value);
+          }}
           keyboardType="decimal-pad"
           maxLength={10}
           editable={!action.busy}
@@ -314,7 +366,11 @@ export function RouteForm({ onAddVehicle }: { onAddVehicle: () => void }) {
         <Field
           label={t('Pickup stops — one per line')}
           value={stops}
-          onChangeText={setStops}
+          error={action.fieldErrors.stops}
+          onChangeText={value => {
+            action.clearFieldError('stops');
+            setStops(value);
+          }}
           multiline
           placeholder={t('Main gate\nCentral road\nSchool entrance')}
           hint={t('List stops in the order the vehicle visits them.')}
@@ -352,19 +408,30 @@ export function RouteForm({ onAddVehicle }: { onAddVehicle: () => void }) {
         busy={action.busy}
         onPress={() => {
           action.run(async () => {
-            if (
-              name.trim().length < 2 ||
-              !data.vehicles.some(vehicle => vehicle.id === vehicleId) ||
-              !stopNames.length
-            ) {
-              throw new Error(
-                'Enter a route name, select a vehicle and add at least one stop.',
-              );
+            const errors: Record<string, string> = {};
+            const message =
+              'Enter a route name, select a vehicle and add at least one stop.';
+            if (name.trim().length < 2) errors.name = message;
+            if (!data.vehicles.some(vehicle => vehicle.id === vehicleId))
+              errors.vehicleId = message;
+            if (!stopNames.length) errors.stops = message;
+            else if (
+              stopNames.length > 50 ||
+              new Set(stopNames).size !== stopNames.length
+            )
+              errors.stops =
+                'Use different stop names, with no more than 50 stops.';
+            let monthlyAmount = 0;
+            try {
+              monthlyAmount = toPoisha(amount);
+            } catch (error) {
+              errors.monthlyAmount = (error as Error).message;
             }
+            if (Object.keys(errors).length) throw new ValidationError(errors);
             await mutate('/admin/routes', {
               name: name.trim(),
               vehicleId,
-              monthlyAmount: toPoisha(amount),
+              monthlyAmount,
               stops: stopNames,
             });
             setName('');

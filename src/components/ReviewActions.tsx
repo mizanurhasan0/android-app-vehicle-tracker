@@ -1,3 +1,4 @@
+import { ValidationError } from '../utils/validation';
 import { useTranslation } from '../i18n';
 import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -22,11 +23,11 @@ export function ReviewActions({
     action.run(
       async () => {
         if ((!approved || resolve) && !note.trim())
-          throw new Error(
-            resolve
+          throw new ValidationError({
+            note: resolve
               ? 'Add a resolution note first.'
               : 'Add a rejection reason first.',
-          );
+          });
         await mutate(
           path,
           resolve
@@ -53,7 +54,11 @@ export function ReviewActions({
           resolve ? t('Resolution note') : t('Review note / rejection reason')
         }
         value={note}
-        onChangeText={setNote}
+        error={action.fieldErrors.note}
+        onChangeText={value => {
+          action.clearFieldError('note');
+          setNote(value);
+        }}
         maxLength={500}
         multiline
       />

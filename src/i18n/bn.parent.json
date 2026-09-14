@@ -140,5 +140,19 @@
   "Method: {{method}}": "মাধ্যম: {{method}}",
   "Transaction ID: {{id}}": "ট্রানজেকশন আইডি: {{id}}",
   "Sender number: {{number}}": "প্রেরকের নম্বর: {{number}}",
-  "Recipient number: {{number}}": "প্রাপকের নম্বর: {{number}}"
+  "Recipient number: {{number}}": "প্রাপকের নম্বর: {{number}}",
+  "Enter the student name.": "শিক্ষার্থীর নাম লিখুন।",
+  "Enter at least 2 characters for the student name.": "শিক্ষার্থীর নামে কমপক্ষে ২টি অক্ষর লিখুন।",
+  "Enter the class.": "শ্রেণি লিখুন।",
+  "Enter the guardian mobile number.": "অভিভাবকের মোবাইল নম্বর লিখুন।",
+  "Select a route.": "একটি রুট নির্বাচন করুন।",
+  "Select a pickup stop.": "ওঠার স্টপ নির্বাচন করুন।",
+  "Select a boarding stop.": "ওঠার স্টপ নির্বাচন করুন।",
+  "Select a different destination stop.": "আলাদা একটি গন্তব্য স্টপ নির্বাচন করুন।",
+  "Enter the driver name.": "চালকের নাম লিখুন।",
+  "Enter the mobile number.": "মোবাইল নম্বর লিখুন।",
+  "Select an active service.": "একটি চালু সেবা নির্বাচন করুন।",
+  "Select a complaint category.": "অভিযোগের ধরন নির্বাচন করুন।",
+  "Add at least 10 characters of detail.": "বিস্তারিত লিখুন (কমপক্ষে ১০টি অক্ষর)।",
+  "Add a reason with at least 5 characters.": "কারণ লিখুন (কমপক্ষে ৫টি অক্ষর)।"
 }

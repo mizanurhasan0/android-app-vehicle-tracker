@@ -14,6 +14,7 @@ import { useManagement } from '../../context/ManagementContext';
 import { useData } from '../../context/DataContext';
 import { useTranslation } from '../../i18n';
 import { currentMonth, money, numberLabel, toPoisha } from '../../utils/format';
+import { ValidationError, isValidDate } from '../../utils/validation';
 import { monthInDhaka } from './reportUtils';
 import {
   AdminPage,
@@ -50,7 +51,7 @@ export function AttendanceScreen() {
   useEffect(() => {
     setDraft({});
     setSaved(false);
-    action.setError('');
+    action.clearFeedback();
   }, [tab, date, vehicleId]); // eslint-disable-line react-hooks/exhaustive-deps
   const people =
     tab === 'STUDENT'
@@ -100,7 +101,11 @@ export function AttendanceScreen() {
           <Input
             label={t('Date (YYYY-MM-DD)')}
             value={date}
-            onChangeText={setDate}
+            error={action.fieldErrors.date}
+            onChangeText={value => {
+              action.clearFieldError('date');
+              setDate(value);
+            }}
             maxLength={10}
           />
         </View>
@@ -224,8 +229,10 @@ export function AttendanceScreen() {
           disabled={!Object.keys(draft).length}
           onPress={() =>
             action.run(async () => {
-              if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
-                throw new Error('Enter the date in YYYY-MM-DD format.');
+              if (!isValidDate(date))
+                throw new ValidationError({
+                  date: 'Enter the date in YYYY-MM-DD format.',
+                });
               const entries: AttendanceInput[] = people
                 .filter(item => draft[item.id])
                 .map(item => ({
@@ -282,7 +289,7 @@ function MaintenanceForm({
   const [checks, setChecks] = useState<string[]>([]);
   useEffect(() => {
     if (visible) {
-      action.setError('');
+      action.clearFeedback();
       setChecks([]);
       setForm(
         item
@@ -299,8 +306,10 @@ function MaintenanceForm({
       );
     }
   }, [visible, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const set = (key: string, value: string) =>
+  const set = (key: string, value: string) => {
+    action.clearFieldError(key);
     setForm(current => ({ ...current, [key]: value }));
+  };
   return (
     <FormModal
       title={item ? t('Edit maintenance') : t('Add maintenance')}
@@ -310,16 +319,31 @@ function MaintenanceForm({
       error={action.error}
       onSave={() =>
         action.run(async () => {
-          if (!form.vehicleId || !form.title.trim())
-            throw new Error('Select a vehicle and enter the work title.');
+          const errors: Record<string, string> = {};
+          if (!form.vehicleId) errors.vehicleId = 'Select a vehicle.';
+          if (form.title.trim().length < 2)
+            errors.title = 'Enter a title of at least 2 characters.';
+          if (!isValidDate(form.serviceDate))
+            errors.serviceDate = 'Enter the date in YYYY-MM-DD format.';
+          if (form.nextServiceDate && !isValidDate(form.nextServiceDate))
+            errors.nextServiceDate = 'Enter the date in YYYY-MM-DD format.';
+          let amount = 0;
+          if (
+            form.amount.trim() &&
+            !/^0+(\.0{1,2})?$/.test(form.amount.trim())
+          ) {
+            try {
+              amount = toPoisha(form.amount);
+            } catch (problem) {
+              errors.amount = (problem as Error).message;
+            }
+          }
+          if (Object.keys(errors).length) throw new ValidationError(errors);
           const input: MaintenanceInput = {
             ...form,
             title: form.title.trim(),
             nextServiceDate: form.nextServiceDate || null,
-            amount:
-              form.amount.trim() && Number(form.amount) !== 0
-                ? toPoisha(form.amount)
-                : 0,
+            amount,
             description: [
               form.description.trim(),
               checks.length ? `কাজ: ${checks.join(', ')}` : '',
@@ -339,6 +363,7 @@ function MaintenanceForm({
       <Choice
         label={t('Vehicle *')}
         value={form.vehicleId}
+        error={action.fieldErrors.vehicleId}
         onChange={v => set('vehicleId', v)}
         options={transport.vehicles.map(v => ({
           value: v.id,
@@ -348,6 +373,7 @@ function MaintenanceForm({
       <Input
         label={t('Work title *')}
         value={form.title}
+        error={action.fieldErrors.title}
         onChangeText={v => set('title', v)}
         maxLength={120}
       />
@@ -383,6 +409,7 @@ function MaintenanceForm({
       <Input
         label={t('Details')}
         value={form.description}
+        error={action.fieldErrors.description}
         onChangeText={v => set('description', v)}
         multiline
         maxLength={2000}
@@ -390,24 +417,28 @@ function MaintenanceForm({
       <Input
         label={t('Service date (YYYY-MM-DD)')}
         value={form.serviceDate}
+        error={action.fieldErrors.serviceDate}
         onChangeText={v => set('serviceDate', v)}
         maxLength={10}
       />
       <Input
         label={t('Next service (YYYY-MM-DD)')}
         value={form.nextServiceDate}
+        error={action.fieldErrors.nextServiceDate}
         onChangeText={v => set('nextServiceDate', v)}
         maxLength={10}
       />
       <Input
         label={t('Total cost (৳)')}
         value={form.amount}
+        error={action.fieldErrors.amount}
         onChangeText={v => set('amount', v)}
         keyboardType="decimal-pad"
       />
       <Choice
         label={t('Status')}
         value={form.status}
+        error={action.fieldErrors.status}
         optional={false}
         onChange={v => set('status', v)}
         options={[
@@ -539,7 +570,7 @@ function LedgerForm({
   });
   useEffect(() => {
     if (visible) {
-      action.setError('');
+      action.clearFeedback();
       setForm({
         type: initialType,
         category: 'OTHER',
@@ -552,8 +583,10 @@ function LedgerForm({
       });
     }
   }, [visible, initialType]); // eslint-disable-line react-hooks/exhaustive-deps
-  const set = (key: string, value: string) =>
+  const set = (key: string, value: string) => {
+    action.clearFieldError(key);
     setForm(current => ({ ...current, [key]: value }));
+  };
   const categories =
     form.type === 'EXPENSE'
       ? ['SALARY', 'FUEL', 'REPAIR', 'PARTS', 'TAX', 'OFFICE', 'OTHER']
@@ -575,15 +608,25 @@ function LedgerForm({
       error={action.error}
       onSave={() =>
         action.run(async () => {
-          if (!form.title.trim())
-            throw new Error('Enter the account entry title.');
+          const errors: Record<string, string> = {};
+          if (form.title.trim().length < 2)
+            errors.title = 'Enter a title of at least 2 characters.';
           if (form.category === 'SALARY' && !form.driverId)
-            throw new Error('Select a driver for the salary payment.');
+            errors.driverId = 'Select a driver for the salary payment.';
+          if (!isValidDate(form.date))
+            errors.date = 'Enter the date in YYYY-MM-DD format.';
+          let amount = 0;
+          try {
+            amount = toPoisha(form.amount);
+          } catch (problem) {
+            errors.amount = (problem as Error).message;
+          }
+          if (Object.keys(errors).length) throw new ValidationError(errors);
           const input: LedgerInput = {
             type: form.type,
             category: form.category,
             title: form.title.trim(),
-            amount: toPoisha(form.amount),
+            amount,
             date: form.date,
             note: form.note,
             ...(form.vehicleId ? { vehicleId: form.vehicleId } : {}),
@@ -597,24 +640,27 @@ function LedgerForm({
       <Choice
         label={t('Entry type')}
         value={form.type}
+        error={action.fieldErrors.type}
         optional={false}
         options={[
           { value: 'INCOME', label: t('Income') },
           { value: 'EXPENSE', label: t('Expense') },
           { value: 'INVESTMENT', label: t('Investment') },
         ]}
-        onChange={v =>
+        onChange={v => {
+          action.clearFeedback();
           setForm(current => ({
             ...current,
             type: v as LedgerEntry['type'],
             category: 'OTHER',
             driverId: '',
-          }))
-        }
+          }));
+        }}
       />
       <Choice
         label={t('Category')}
         value={form.category}
+        error={action.fieldErrors.category}
         optional={false}
         options={categories.map(value => ({
           value,
@@ -625,24 +671,28 @@ function LedgerForm({
       <Input
         label={t('Title *')}
         value={form.title}
+        error={action.fieldErrors.title}
         onChangeText={v => set('title', v)}
         maxLength={120}
       />
       <Input
         label={t('Amount (৳) *')}
         value={form.amount}
+        error={action.fieldErrors.amount}
         onChangeText={v => set('amount', v)}
         keyboardType="decimal-pad"
       />
       <Input
         label={t('Date (YYYY-MM-DD)')}
         value={form.date}
+        error={action.fieldErrors.date}
         onChangeText={v => set('date', v)}
         maxLength={10}
       />
       <Choice
         label={t('Vehicle (if applicable)')}
         value={form.vehicleId}
+        error={action.fieldErrors.vehicleId}
         options={transport.vehicles.map(item => ({
           value: item.id,
           label: item.name,
@@ -657,6 +707,7 @@ function LedgerForm({
               : t('Driver (if applicable)')
           }
           value={form.driverId}
+          error={action.fieldErrors.driverId}
           onChange={v => set('driverId', v)}
           options={(data?.drivers || []).map(item => ({
             value: item.id,
@@ -671,6 +722,7 @@ function LedgerForm({
             : t('Note')
         }
         value={form.note}
+        error={action.fieldErrors.note}
         onChangeText={v => set('note', v)}
         multiline
         maxLength={2000}

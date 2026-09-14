@@ -1,6 +1,7 @@
 import React from 'react';
+import { ToastHost } from '../src/components/Toast';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Alert, StyleSheet, Text } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { PaymentsScreen } from '../src/screens/PaymentsScreen';
 import { ReviewActions } from '../src/components/ReviewActions';
 import { Button, Empty, Field, Select } from '../src/components/ui';
@@ -25,13 +26,15 @@ jest.mock('../src/context/DataContext', () => ({
 }));
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
-  Picker.Item = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const Picker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
+  Picker.Item = (props: object) => ReactModule.createElement(NativeView, props);
   return { Picker };
 });
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 beforeEach(() => {
   mockUser = { role: 'GUARDIAN' };
@@ -601,3 +604,65 @@ it.each(['ADMIN', 'GUARDIAN'] as const)(
     await act(async () => screen.unmount());
   },
 );
+
+it('highlights invalid payment fields, clears each corrected field, and submits only valid proof', async () => {
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(
+      <View>
+        <PaymentsScreen />
+        <ToastHost />
+      </View>,
+    );
+  });
+  const press = async (title: string) => {
+    await act(async () =>
+      screen.root
+        .findAllByType(Button)
+        .find(node => node.props.title === title)!
+        .props.onPress(),
+    );
+  };
+  const field = (label: string) =>
+    screen.root.findAllByType(Field).find(node => node.props.label === label)!;
+  await press('I’ve paid · submit details');
+  expect(
+    screen.root
+      .findAllByType(Button)
+      .find(node => node.props.title === 'Submit for verification')!.props
+      .disabled,
+  ).toBe(true);
+  const method = () =>
+    screen.root
+      .findAllByType(Select)
+      .find(node => node.props.label === 'Payment method')!;
+  await act(async () => method().props.onChange('BKASH'));
+  await press('Submit for verification');
+  expect(mockMutate).not.toHaveBeenCalled();
+  expect(field('Number you sent money from').props.error).toBeTruthy();
+  expect(field('Transaction ID').props.error).toBeTruthy();
+  expect(
+    screen.root
+      .findAllByType(View)
+      .some(node => node.props.testID === 'feedback-toast'),
+  ).toBe(true);
+  await act(async () =>
+    field('Number you sent money from').props.onChangeText('01700000002'),
+  );
+  expect(field('Number you sent money from').props.error).toBeUndefined();
+  expect(field('Transaction ID').props.error).toBeTruthy();
+  await act(async () =>
+    field('Transaction ID').props.onChangeText('CORRECT123'),
+  );
+  expect(field('Transaction ID').props.error).toBeUndefined();
+  await press('Submit for verification');
+  expect(mockMutate).toHaveBeenCalledTimes(1);
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/payments/submissions',
+    expect.objectContaining({
+      senderNumber: '01700000002',
+      transactionId: 'CORRECT123',
+    }),
+  );
+  await act(async () => screen.unmount());
+});

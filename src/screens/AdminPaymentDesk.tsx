@@ -1,3 +1,4 @@
+import { ValidationError } from '../utils/validation';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Payment } from '../api/types';
@@ -174,7 +175,11 @@ function BillGenerator() {
         label={t('Billing month (YYYY-MM)')}
         keyboardType="numbers-and-punctuation"
         value={month}
-        onChangeText={setMonth}
+        error={action.fieldErrors.month}
+        onChangeText={value => {
+          action.clearFieldError('month');
+          setMonth(value);
+        }}
         placeholder="2026-09"
         maxLength={7}
         autoCorrect={false}
@@ -191,7 +196,9 @@ function BillGenerator() {
         onPress={() => {
           action.run(async () => {
             if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
-              throw new Error('Use a valid month such as 2026-09.');
+              throw new ValidationError({
+                month: 'Use a valid month such as 2026-09.',
+              });
             }
             await mutate('/admin/bills/generate', { month });
           }, 'Monthly bills are ready. Guardians have been notified.');

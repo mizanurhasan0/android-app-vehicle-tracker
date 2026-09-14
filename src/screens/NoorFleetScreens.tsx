@@ -7,6 +7,7 @@ import { ScheduleInput } from '../api/management';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { useManagement } from '../context/ManagementContext';
+import { ValidationError } from '../utils/validation';
 import { useAction } from '../hooks/useAction';
 import { NoorIcon, NoorCard, NoorBadge, NoorSection } from '../components/Noor';
 import { Page, Button, Field, Select, Notice, Empty } from '../components/ui';
@@ -329,31 +330,51 @@ function VehicleMetadata({
       <Field
         label={t('Model')}
         value={model}
-        onChangeText={setModel}
+        error={action.fieldErrors.model}
+        onChangeText={value => {
+          action.clearFieldError('model');
+          setModel(value);
+        }}
         maxLength={100}
       />
       <Field
         label={t('Purchase date (YYYY-MM-DD)')}
         value={purchaseDate}
-        onChangeText={setPurchaseDate}
+        error={action.fieldErrors.purchaseDate}
+        onChangeText={value => {
+          action.clearFieldError('purchaseDate');
+          setPurchaseDate(value);
+        }}
         maxLength={10}
       />
       <Field
         label={t('Fitness expiry (YYYY-MM-DD)')}
         value={fitnessExpiresAt}
-        onChangeText={setFitness}
+        error={action.fieldErrors.fitnessExpiresAt}
+        onChangeText={value => {
+          action.clearFieldError('fitnessExpiresAt');
+          setFitness(value);
+        }}
         maxLength={10}
       />
       <Field
         label={t('License expiry (YYYY-MM-DD)')}
         value={licenseExpiresAt}
-        onChangeText={setLicense}
+        error={action.fieldErrors.licenseExpiresAt}
+        onChangeText={value => {
+          action.clearFieldError('licenseExpiresAt');
+          setLicense(value);
+        }}
         maxLength={10}
       />
       <Select
         label={t('Status')}
         value={status}
-        onChange={v => setStatus(v as Vehicle['status'] & string)}
+        error={action.fieldErrors.status}
+        onChange={v => {
+          action.clearFieldError('status');
+          setStatus(v as Vehicle['status'] & string);
+        }}
         options={[
           { value: 'RUNNING', label: t('Running') },
           { value: 'MAINTENANCE', label: t('Maintenance') },
@@ -636,12 +657,16 @@ function ScheduleEditor({
           position: i,
         })),
   );
-  const update = (i: number, change: Partial<ScheduleInput>) =>
+  const update = (i: number, change: Partial<ScheduleInput>) => {
+    Object.keys(change).forEach(key =>
+      action.clearFieldError(`entries.${i}.${key}`),
+    );
     setEntries(current =>
       current.map((entry, index) =>
         index === i ? { ...entry, ...change } : entry,
       ),
     );
+  };
   return (
     <NoorCard>
       {entries.map((entry, i) => (
@@ -649,6 +674,7 @@ function ScheduleEditor({
           <Field
             label={t('Stop {{number}}', { number: numberLabel(i + 1) })}
             value={entry.label}
+            error={action.fieldErrors[`entries.${i}.label`]}
             onChangeText={label => update(i, { label })}
           />
           <View style={f.actionRow}>
@@ -656,6 +682,7 @@ function ScheduleEditor({
               <Field
                 label={t('Time (HH:mm)')}
                 value={entry.time}
+                error={action.fieldErrors[`entries.${i}.time`]}
                 maxLength={5}
                 onChangeText={time => update(i, { time })}
               />
@@ -664,6 +691,7 @@ function ScheduleEditor({
               <Select
                 label={t('Trip')}
                 value={entry.period}
+                error={action.fieldErrors[`entries.${i}.period`]}
                 options={[
                   { value: 'MORNING', label: t('Morning') },
                   { value: 'AFTERNOON', label: t('Afternoon') },
@@ -676,9 +704,12 @@ function ScheduleEditor({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t('Remove stop')}
-              onPress={() =>
-                setEntries(current => current.filter((_, index) => index !== i))
-              }
+              onPress={() => {
+                action.clearFeedback();
+                setEntries(current =>
+                  current.filter((_, index) => index !== i),
+                );
+              }}
             >
               <Text style={f.remove}>×</Text>
             </Pressable>
@@ -708,13 +739,15 @@ function ScheduleEditor({
         busy={action.busy}
         onPress={() =>
           action.run(async () => {
-            if (
-              entries.some(
-                e =>
-                  !e.label.trim() || !/^([01]\d|2[0-3]):[0-5]\d$/.test(e.time),
-              )
-            )
-              throw new Error('Enter a stop name and valid time.');
+            const errors: Record<string, string> = {};
+            entries.forEach((entry, index) => {
+              if (!entry.label.trim())
+                errors[`entries.${index}.label`] = 'Enter the stop name.';
+              if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(entry.time))
+                errors[`entries.${index}.time`] =
+                  'Enter a valid time as HH:mm.';
+            });
+            if (Object.keys(errors).length) throw new ValidationError(errors);
             await mutate(
               `/admin/routes/${routeId}/schedule`,
               {

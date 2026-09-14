@@ -1,3 +1,4 @@
+import { ToastMessage } from './Toast';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from '../i18n';
@@ -50,11 +51,7 @@ export function LanguageSwitcher({ stacked = false }: { stacked?: boolean }) {
           </Pressable>
         ))}
       </View>
-      {settings.error ? (
-        <Text accessibilityLiveRegion="polite" style={local.error}>
-          {t(settings.error)}
-        </Text>
-      ) : null}
+      <ToastMessage message={settings.error} />
     </View>
   );
 }

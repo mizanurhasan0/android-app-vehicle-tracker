@@ -1,3 +1,4 @@
+import { showToast } from '../components/Toast';
 import { useTranslation } from '../i18n';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -116,7 +117,11 @@ export function VehicleHistoryScreen({
       <Field
         label={t('Date (YYYY-MM-DD)')}
         value={input}
-        onChangeText={setInput}
+        error={dateError}
+        onChangeText={value => {
+          setDateError('');
+          setInput(value);
+        }}
         autoCapitalize="none"
         keyboardType="numbers-and-punctuation"
       />
@@ -129,6 +134,7 @@ export function VehicleHistoryScreen({
             selectDay(input);
           } catch (error) {
             setDateError((error as Error).message);
+            showToast((error as Error).message);
           }
         }}
       />
@@ -165,7 +171,7 @@ export function VehicleHistoryScreen({
         <>
           {!history.route.freshness.complete ? (
             <Notice
-              kind="error"
+              kind="warning"
               text={t(
                 '{{number}} positions are waiting to sync. This history is incomplete; refresh shortly.',
                 { number: numberLabel(history.route.freshness.pendingPoints) },

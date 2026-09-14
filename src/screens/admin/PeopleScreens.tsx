@@ -18,6 +18,7 @@ import { useData } from '../../context/DataContext';
 import { locale, useTranslation } from '../../i18n';
 import { currentMonth, money, numberLabel, toPoisha } from '../../utils/format';
 import { journeyFare, journeyDestinations } from '../../utils/routeFares';
+import { ValidationError } from '../../utils/validation';
 import { pickStudentPhoto } from '../../utils/photo';
 import {
   AdminPage,
@@ -39,6 +40,14 @@ import {
   today,
   useAction,
 } from './AdminUi';
+
+function validatedAmount(value: string, field: string) {
+  try {
+    return toPoisha(value);
+  } catch (problem) {
+    throw new ValidationError({ [field]: (problem as Error).message });
+  }
+}
 
 type StudentFormValue = {
   studentName: string;
@@ -107,7 +116,7 @@ function StudentForm({
   const [form, setForm] = useState(blankStudent);
   useEffect(() => {
     if (visible) {
-      action.setError('');
+      action.clearFeedback();
       setForm(
         student
           ? {
@@ -134,7 +143,11 @@ function StudentForm({
   const set = <K extends keyof StudentFormValue>(
     key: K,
     value: StudentFormValue[K],
-  ) => setForm(current => ({ ...current, [key]: value }));
+  ) => {
+    action.clearFieldError(key);
+    if (key === 'amount') action.clearFieldError('monthlyAmount');
+    setForm(current => ({ ...current, [key]: value }));
+  };
   const selectedRoute = transport.routes.find(item => item.id === form.routeId);
   const sameJourney =
     !!student &&
@@ -166,13 +179,21 @@ function StudentForm({
         !form.routeId ||
         !form.stopId
       )
-        throw new Error(
-          'Enter the student name, guardian phone number, route and pickup stop.',
-        );
+        throw new ValidationError({
+          ...(!form.studentName.trim()
+            ? { studentName: 'Enter the student name.' }
+            : {}),
+          ...(!form.guardianPhone.trim()
+            ? { guardianPhone: 'Enter the guardian mobile number.' }
+            : {}),
+          ...(!form.routeId ? { routeId: 'Select a route.' } : {}),
+          ...(!form.stopId ? { stopId: 'Select a pickup stop.' } : {}),
+        });
       if (form.dropoffStopId && !sameJourney && configuredAmount === undefined)
-        throw new Error(
-          'No fare is configured for this journey. Select another destination.',
-        );
+        throw new ValidationError({
+          dropoffStopId:
+            'No fare is configured for this journey. Select another destination.',
+        });
       const { amount, dropoffStopId, guardianName, ...rest } = form;
       const input: StudentInput = {
         ...rest,
@@ -182,7 +203,9 @@ function StudentForm({
           ? { guardianName: guardianName.trim() }
           : {}),
         dropoffStopId: dropoffStopId || null,
-        ...(!dropoffStopId ? { monthlyAmount: toPoisha(amount) } : {}),
+        ...(!dropoffStopId
+          ? { monthlyAmount: validatedAmount(amount, 'monthlyAmount') }
+          : {}),
       };
       if (student) {
         await mutate<Student>(`/admin/students/${student.id}`, input, 'PATCH');
@@ -217,6 +240,7 @@ function StudentForm({
       <Input
         label={t('Student name *')}
         value={form.studentName}
+        error={action.fieldErrors.studentName}
         onChangeText={v => set('studentName', v)}
         maxLength={100}
       />
@@ -225,6 +249,7 @@ function StudentForm({
           <Input
             label={t('Class')}
             value={form.className}
+            error={action.fieldErrors.className}
             onChangeText={v => set('className', v)}
             maxLength={40}
           />
@@ -233,6 +258,7 @@ function StudentForm({
           <Input
             label={t('Roll number')}
             value={form.roll}
+            error={action.fieldErrors.roll}
             onChangeText={v => set('roll', v)}
             maxLength={20}
           />
@@ -241,6 +267,7 @@ function StudentForm({
       <Input
         label={t('Student ID')}
         value={form.studentCode}
+        error={action.fieldErrors.studentCode}
         onChangeText={v => set('studentCode', v)}
         maxLength={40}
       />
@@ -271,6 +298,7 @@ function StudentForm({
         <Input
           label={t('Guardian name (optional)')}
           value={form.guardianName}
+          error={action.fieldErrors.guardianName}
           onChangeText={v => set('guardianName', v)}
           maxLength={80}
         />
@@ -279,6 +307,7 @@ function StudentForm({
         label={t('Guardian mobile number *')}
         editable={!student}
         value={form.guardianPhone}
+        error={action.fieldErrors.guardianPhone}
         onChangeText={v => set('guardianPhone', v)}
         keyboardType="phone-pad"
         maxLength={16}
@@ -293,6 +322,7 @@ function StudentForm({
       <Input
         label={t('Emergency contact')}
         value={form.emergencyContact}
+        error={action.fieldErrors.emergencyContact}
         onChangeText={v => set('emergencyContact', v)}
         keyboardType="phone-pad"
         maxLength={16}
@@ -300,6 +330,7 @@ function StudentForm({
       <Input
         label={t('Pickup address')}
         value={form.pickupAddress}
+        error={action.fieldErrors.pickupAddress}
         onChangeText={v => set('pickupAddress', v)}
         multiline
         maxLength={400}
@@ -307,6 +338,7 @@ function StudentForm({
       <Input
         label={t('Drop-off address')}
         value={form.dropAddress}
+        error={action.fieldErrors.dropAddress}
         onChangeText={v => set('dropAddress', v)}
         maxLength={400}
       />
@@ -314,11 +346,19 @@ function StudentForm({
       <Choice
         label={t('Route *')}
         value={form.routeId}
+        error={action.fieldErrors.routeId}
         options={transport.routes.map(item => ({
           value: item.id,
           label: `${item.name} · ${item.vehicleName}`,
         }))}
         onChange={v => {
+          [
+            'routeId',
+            'stopId',
+            'dropoffStopId',
+            'amount',
+            'monthlyAmount',
+          ].forEach(action.clearFieldError);
           const chosen = transport.routes.find(item => item.id === v);
           setForm(current => ({
             ...current,
@@ -332,11 +372,15 @@ function StudentForm({
       <Choice
         label={t('Pickup stop *')}
         value={form.stopId}
+        error={action.fieldErrors.stopId}
         options={(selectedRoute?.stops || []).map(item => ({
           value: item.id,
           label: item.name,
         }))}
-        onChange={v =>
+        onChange={v => {
+          ['stopId', 'dropoffStopId', 'amount', 'monthlyAmount'].forEach(
+            action.clearFieldError,
+          );
           setForm(current => ({
             ...current,
             stopId: v,
@@ -344,18 +388,22 @@ function StudentForm({
             amount: selectedRoute
               ? String(selectedRoute.monthlyAmount / 100)
               : '',
-          }))
-        }
+          }));
+        }}
       />
       <Choice
         label={t('Destination stop')}
         value={form.dropoffStopId}
+        error={action.fieldErrors.dropoffStopId}
         optional={false}
         options={[
           { value: '', label: t('Default / custom monthly fee') },
           ...destinations.map(stop => ({ value: stop.id, label: stop.name })),
         ]}
-        onChange={v =>
+        onChange={v => {
+          ['stopId', 'dropoffStopId', 'amount', 'monthlyAmount'].forEach(
+            action.clearFieldError,
+          );
           setForm(current => ({
             ...current,
             dropoffStopId: v,
@@ -363,8 +411,8 @@ function StudentForm({
               !v && selectedRoute
                 ? String(selectedRoute.monthlyAmount / 100)
                 : current.amount,
-          }))
-        }
+          }));
+        }}
       />
       {form.dropoffStopId ? (
         <>
@@ -389,6 +437,7 @@ function StudentForm({
         <Input
           label={t('Monthly fee (৳) *')}
           value={form.amount}
+          error={action.fieldErrors.amount || action.fieldErrors.monthlyAmount}
           onChangeText={v => set('amount', v)}
           keyboardType="decimal-pad"
         />
@@ -397,6 +446,7 @@ function StudentForm({
         <Choice
           label={t('Status')}
           value={form.status}
+          error={action.fieldErrors.status}
           optional={false}
           options={
             student.status === 'STOPPED'
@@ -756,7 +806,7 @@ function DriverForm({
   });
   useEffect(() => {
     if (visible) {
-      action.setError('');
+      action.clearFeedback();
       setForm(
         driver
           ? {
@@ -782,8 +832,11 @@ function DriverForm({
       );
     }
   }, [visible, driver?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const set = (key: string, value: string) =>
+  const set = (key: string, value: string) => {
+    action.clearFieldError(key);
+    if (key === 'salary') action.clearFieldError('monthlySalary');
     setForm(current => ({ ...current, [key]: value }));
+  };
   return (
     <FormModal
       title={driver ? t('Edit driver details') : t('Add driver')}
@@ -794,7 +847,12 @@ function DriverForm({
       onSave={() =>
         action.run(async () => {
           if (!form.name.trim() || !form.phone.trim())
-            throw new Error('Enter the driver name and mobile number.');
+            throw new ValidationError({
+              ...(!form.name.trim() ? { name: 'Enter the driver name.' } : {}),
+              ...(!form.phone.trim()
+                ? { phone: 'Enter the mobile number.' }
+                : {}),
+            });
           const input: DriverInput = {
             name: form.name.trim(),
             phone: form.phone.trim(),
@@ -803,7 +861,7 @@ function DriverForm({
             ...(form.joiningDate ? { joiningDate: form.joiningDate } : {}),
             monthlySalary:
               form.salary.trim() && Number(form.salary) !== 0
-                ? toPoisha(form.salary)
+                ? validatedAmount(form.salary, 'monthlySalary')
                 : 0,
             vehicleId: form.vehicleId || null,
             status: form.status,
@@ -820,12 +878,14 @@ function DriverForm({
       <Input
         label={t('Name *')}
         value={form.name}
+        error={action.fieldErrors.name}
         onChangeText={v => set('name', v)}
         maxLength={100}
       />
       <Input
         label={t('Mobile number *')}
         value={form.phone}
+        error={action.fieldErrors.phone}
         onChangeText={v => set('phone', v)}
         keyboardType="phone-pad"
         maxLength={16}
@@ -833,6 +893,7 @@ function DriverForm({
       <Input
         label={t('NID')}
         value={form.nid}
+        error={action.fieldErrors.nid}
         onChangeText={v => set('nid', v)}
         keyboardType="number-pad"
         maxLength={20}
@@ -840,6 +901,7 @@ function DriverForm({
       <Input
         label={t('Address')}
         value={form.address}
+        error={action.fieldErrors.address}
         onChangeText={v => set('address', v)}
         multiline
         maxLength={400}
@@ -847,12 +909,14 @@ function DriverForm({
       <Input
         label={t('Joining date (YYYY-MM-DD)')}
         value={form.joiningDate}
+        error={action.fieldErrors.joiningDate}
         onChangeText={v => set('joiningDate', v)}
         maxLength={10}
       />
       <Choice
         label={t('Assigned vehicle')}
         value={form.vehicleId}
+        error={action.fieldErrors.vehicleId}
         onChange={v => set('vehicleId', v)}
         options={transport.vehicles.map(item => ({
           value: item.id,
@@ -862,12 +926,14 @@ function DriverForm({
       <Input
         label={t('Monthly salary (৳)')}
         value={form.salary}
+        error={action.fieldErrors.salary || action.fieldErrors.monthlySalary}
         onChangeText={v => set('salary', v)}
         keyboardType="decimal-pad"
       />
       <Choice
         label={t('Status')}
         value={form.status}
+        error={action.fieldErrors.status}
         optional={false}
         onChange={v => set('status', v)}
         options={[

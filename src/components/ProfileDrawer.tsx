@@ -1,3 +1,4 @@
+import { ToastHost, showToast } from './Toast';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -46,6 +47,7 @@ export function ProfileDrawer({
   const [name, setName] = useState(session?.user.name ?? '');
   const [operation, setOperation] = useState<'save' | 'signOut' | null>(null);
   const [error, setError] = useState('');
+  const [nameError, setNameError] = useState('');
   const [success, setSuccess] = useState('');
   const busy = operation !== null;
 
@@ -116,6 +118,7 @@ export function ProfileDrawer({
     if (pending.current) return;
     setName(session?.user.name ?? '');
     setEditing(false);
+    setNameError('');
     setError('');
     setSuccess('');
     Keyboard.dismiss();
@@ -143,12 +146,15 @@ export function ProfileDrawer({
     if (pending.current || closing.current) return;
     const trimmed = name.trim();
     if (trimmed.length < 2 || trimmed.length > 80) {
+      showToast('Enter a name between 2 and 80 characters.');
+      setNameError('Enter a name between 2 and 80 characters.');
       setError('Enter a name between 2 and 80 characters.');
       return;
     }
     pending.current = true;
     setOperation('save');
     setError('');
+    setNameError('');
     setSuccess('');
     try {
       await updateProfile({ name: trimmed });
@@ -305,7 +311,11 @@ export function ProfileDrawer({
                       <Field
                         label={t('Full name')}
                         value={name}
-                        onChangeText={setName}
+                        error={nameError}
+                        onChangeText={value => {
+                          setNameError('');
+                          setName(value);
+                        }}
                         maxLength={80}
                         editable={!busy}
                         autoCapitalize="words"
@@ -407,6 +417,7 @@ export function ProfileDrawer({
           </SafeAreaView>
         </Animated.View>
       </View>
+      {visible ? <ToastHost modal /> : null}
     </Modal>
   );
 }

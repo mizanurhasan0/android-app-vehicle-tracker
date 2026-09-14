@@ -1,6 +1,7 @@
 import React from 'react';
+import { ToastHost } from '../src/components/Toast';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Alert, Text, TextInput } from 'react-native';
+import { Alert, Text, TextInput, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { i18n, locale } from '../src/i18n';
 import { ManagementOverview, Student } from '../src/api/management';
@@ -88,13 +89,16 @@ jest.mock('../src/utils/photo', () => ({
 }));
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const MockPicker = (props: object) => ReactModule.createElement(View, props);
-  MockPicker.Item = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const MockPicker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
+  MockPicker.Item = (props: object) =>
+    ReactModule.createElement(NativeView, props);
   return { Picker: MockPicker };
 });
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 const student = (id: string, name = 'Student One'): Student => ({
   id,
@@ -206,7 +210,12 @@ afterEach(async () => {
 });
 const render = async (Component: React.ComponentType) => {
   await act(async () => {
-    screen = TestRenderer.create(<Component />);
+    screen = TestRenderer.create(
+      <View>
+        <Component />
+        <ToastHost />
+      </View>,
+    );
   });
 };
 const setInput = async (label: string, value: string) => {
@@ -294,13 +303,19 @@ it('creates a linked student with the selected stop and integer poisha, and rese
   ).toBe('');
   await save();
   expect(mockMutate).not.toHaveBeenCalled();
-  expect(textContent()).toContain(
-    'Enter the student name, guardian phone number, route and pickup stop.',
-  );
+  expect(textContent()).toContain('Select a pickup stop.');
+  expect(
+    screen.root
+      .findAllByType(Choice)
+      .find(item => item.props.label === 'Pickup stop *')!.props.error,
+  ).toBe('Select a pickup stop.');
+  expect(
+    screen.root
+      .findAllByType(View)
+      .some(node => node.props.testID === 'feedback-toast'),
+  ).toBe(true);
   await changeLanguage('bn');
-  expect(textContent()).toContain(
-    'শিক্ষার্থীর নাম, অভিভাবকের নম্বর, রুট ও পিকআপ স্থান দিন।',
-  );
+  expect(textContent()).toContain('ওঠার স্টপ নির্বাচন করুন।');
   expect(
     screen.root
       .findAllByType(TextInput)
@@ -322,6 +337,11 @@ it('creates a linked student with the selected stop and integer poisha, and rese
       ),
   ).toBe(true);
   await select('Pickup stop *', 'stop-2');
+  expect(
+    screen.root
+      .findAllByType(Choice)
+      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props.error,
+  ).toBeUndefined();
   await setInput('Monthly fee (৳) *', '2800.50');
   await save();
   expect(mockMutate).toHaveBeenCalledWith(
@@ -480,7 +500,6 @@ it('switches shared controls and known errors without translating data values', 
       />
       <Detail label="Status" value="Paid" />
       <ErrorText message="Could not save. Please try again." />
-      <ErrorText message="A custom server error" />
       <FormModal
         title="Edit student details"
         visible
@@ -496,7 +515,7 @@ it('switches shared controls and known errors without translating data values', 
   expect(textContent()).toContain('শিক্ষার্থীর তথ্য সম্পাদনা');
   expect(textContent()).toContain(i18n.t('Save'));
   expect(textContent()).toContain('Paid');
-  expect(textContent()).toContain('A custom server error');
+
   expect(screen.root.findByType(TextInput).props.value).toBe('Active');
   expect(screen.root.findByType(TextInput).props.accessibilityLabel).toBe(
     i18n.t('Name'),

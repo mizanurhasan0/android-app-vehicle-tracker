@@ -1,6 +1,7 @@
 import React from 'react';
+import { ToastHost } from '../src/components/Toast';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Linking, Text } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 import { i18n } from '../src/i18n';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParams } from '../src/navigation/types';
@@ -71,13 +72,15 @@ jest.mock('../src/components/FleetMap', () => ({ FleetMap: () => null }));
 jest.mock('../src/components/VehicleCard', () => ({ VehicleCard: () => null }));
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
-  Picker.Item = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const Picker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
+  Picker.Item = (props: object) => ReactModule.createElement(NativeView, props);
   return { Picker };
 });
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 beforeEach(async () => {
@@ -193,7 +196,12 @@ async function language(value: 'en' | 'bn') {
 
 it('validates and submits the reviewed admission fields, using the authenticated guardian', async () => {
   await act(async () => {
-    screen = TestRenderer.create(<AdmissionScreen {...props('Admission')} />);
+    screen = TestRenderer.create(
+      <View>
+        <AdmissionScreen {...props('Admission')} />
+        <ToastHost />
+      </View>,
+    );
   });
   await button('Next');
   expect(
@@ -254,7 +262,12 @@ it('validates and submits the reviewed admission fields, using the authenticated
 
 it('clears the old pickup stop when changing route and preserves earlier student fields', async () => {
   await act(async () => {
-    screen = TestRenderer.create(<AdmissionScreen {...props('Admission')} />);
+    screen = TestRenderer.create(
+      <View>
+        <AdmissionScreen {...props('Admission')} />
+        <ToastHost />
+      </View>,
+    );
   });
   await field('Student name *', 'Student One');
   await field('Class *', 'Class 6');
@@ -377,19 +390,40 @@ it('normalizes Bangladesh WhatsApp links and rejects arbitrary URI content', () 
 
 it('relocalizes mounted admission validation without replacing entered text', async () => {
   await act(async () => {
-    screen = TestRenderer.create(<AdmissionScreen {...props('Admission')} />);
+    screen = TestRenderer.create(
+      <View>
+        <AdmissionScreen {...props('Admission')} />
+        <ToastHost />
+      </View>,
+    );
   });
   await field('Student name *', 'শিক্ষার্থী One');
   await button('Next');
-  expect(text()).toContain('Enter the student name and class.');
+  expect(text()).toContain('Enter the class.');
+  expect(mockMutate).not.toHaveBeenCalled();
+  expect(
+    screen.root
+      .findAllByType(Field)
+      .find(node => node.props.label === 'Class *')!.props.error,
+  ).toBe('Enter the class.');
+  expect(
+    screen.root
+      .findAllByType(View)
+      .some(node => node.props.testID === 'feedback-toast'),
+  ).toBe(true);
   await language('bn');
-  expect(text()).toContain('শিক্ষার্থীর নাম ও শ্রেণি লিখুন।');
+  expect(text()).toContain('শ্রেণি লিখুন।');
   expect(screen.root.findAllByType(Field)[0].props.value).toBe(
     'শিক্ষার্থী One',
   );
   await field('Class *', 'Class 6');
+  expect(
+    screen.root
+      .findAllByType(Field)
+      .find(node => node.props.label === i18n.t('Class *'))!.props.error,
+  ).toBeUndefined();
   await language('en');
-  expect(text()).toContain('Enter the student name and class.');
+  expect(text()).toContain('Enter the class.');
   expect(screen.root.findAllByType(Field)[1].props.value).toBe('Class 6');
   expect(mockMutate).not.toHaveBeenCalled();
 });
@@ -655,7 +689,12 @@ it('requires a configured destination and previews its own fare before submittin
     },
   ];
   await act(async () => {
-    screen = TestRenderer.create(<AdmissionScreen {...props('Admission')} />);
+    screen = TestRenderer.create(
+      <View>
+        <AdmissionScreen {...props('Admission')} />
+        <ToastHost />
+      </View>,
+    );
   });
   await field('Student name *', 'Journey Student');
   await field('Class *', 'Class 6');

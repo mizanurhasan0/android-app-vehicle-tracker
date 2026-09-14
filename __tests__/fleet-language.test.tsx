@@ -1,4 +1,6 @@
 import React from 'react';
+import { ToastHost } from '../src/components/Toast';
+import { View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { Alert, Linking, Text, TextInput } from 'react-native';
 import { i18n } from '../src/i18n';
@@ -115,11 +117,13 @@ jest.mock('../src/components/setup/SetupForms', () => ({
 }));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: require('react-native').View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
-  const { View } = require('react-native');
-  const Picker = (props: object) => ReactModule.createElement(View, props);
+  const { View: NativeView } = require('react-native');
+  const Picker = (props: object) =>
+    ReactModule.createElement(NativeView, props);
   Picker.Item = Picker;
   return { Picker };
 });
@@ -142,7 +146,12 @@ afterEach(async () => {
 });
 async function render(element: React.ReactElement) {
   await act(async () => {
-    screen = TestRenderer.create(element);
+    screen = TestRenderer.create(
+      <View>
+        {element}
+        <ToastHost />
+      </View>,
+    );
   });
 }
 async function language(value: 'en' | 'bn') {
@@ -285,9 +294,9 @@ it('retains the selected route period and edits, retranslates validation, and sa
       .props.onChangeText('bad');
   });
   await submit('Save schedule');
-  expect(textValues()).toContain('Enter a stop name and valid time.');
+  expect(textValues()).toContain('Enter a valid time as HH:mm.');
   await language('bn');
-  expect(textValues()).toContain('স্টপের নাম ও সঠিক সময় লিখুন।');
+  expect(textValues()).toContain('HH:mm ফরম্যাটে সঠিক সময় লিখুন।');
   const tab = screen.root.findAll(
     node =>
       node.props.accessibilityRole === 'tab' &&

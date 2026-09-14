@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ToastHost, ToastMessage } from '../../components/Toast';
+import { useAction as useSharedAction } from '../../hooks/useAction';
 import { NoorIcon } from '../../components/Noor';
 import { i18n, locale, translateMessage, useTranslation } from '../../i18n';
 import { normalizeDigits, readable } from '../../utils/format';
@@ -122,14 +124,7 @@ export function Box({ children }: React.PropsWithChildren) {
   return <View style={s.box}>{children}</View>;
 }
 export function ErrorText({ message }: { message?: string }) {
-  useTranslation();
-  return message ? (
-    <View style={s.error}>
-      <Text accessibilityLiveRegion="polite" style={s.errorText}>
-        {translateMessage(message)}
-      </Text>
-    </View>
-  ) : null;
+  return <ToastMessage message={message} kind="error" />;
 }
 export function EmptyState({
   text = 'No data yet',
@@ -280,7 +275,11 @@ export function Tabs({
     </View>
   );
 }
-export function Input({ label, ...props }: TextInputProps & { label: string }) {
+export function Input({
+  label,
+  error,
+  ...props
+}: TextInputProps & { label: string; error?: string }) {
   const { t } = useTranslation();
   return (
     <View style={s.field}>
@@ -288,6 +287,10 @@ export function Input({ label, ...props }: TextInputProps & { label: string }) {
       <TextInput
         {...props}
         accessibilityLabel={t(label)}
+        accessibilityHint={
+          error ? translateMessage(error) : props.accessibilityHint
+        }
+        aria-invalid={!!error}
         placeholder={props.placeholder ? t(props.placeholder) : undefined}
         placeholderTextColor={C.muted}
         onChangeText={value =>
@@ -300,8 +303,16 @@ export function Input({ label, ...props }: TextInputProps & { label: string }) {
               : value,
           )
         }
-        style={[s.input, props.multiline && s.multiline, props.style]}
+        style={[
+          s.input,
+          props.multiline && s.multiline,
+          props.style,
+          !!error && s.invalid,
+        ]}
       />
+      {error ? (
+        <Text style={s.errorText}>{translateMessage(error)}</Text>
+      ) : null}
     </View>
   );
 }
@@ -311,19 +322,23 @@ export function Choice({
   options,
   onChange,
   optional = true,
+  error,
 }: {
   label: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
   optional?: boolean;
+  error?: string;
 }) {
   const { t } = useTranslation();
   return (
     <View style={s.field}>
       <Text style={s.label}>{t(label)}</Text>
-      <View style={s.select}>
+      <View style={[s.select, !!error && s.invalid]}>
         <Picker
+          accessibilityHint={error ? translateMessage(error) : undefined}
+          aria-invalid={!!error}
           selectedValue={value}
           onValueChange={item => onChange(String(item))}
           accessibilityLabel={t(label)}
@@ -341,6 +356,9 @@ export function Choice({
           ))}
         </Picker>
       </View>
+      {error ? (
+        <Text style={s.errorText}>{translateMessage(error)}</Text>
+      ) : null}
     </View>
   );
 }
@@ -444,31 +462,13 @@ export function FormModal({
             <SmallButton title={saveTitle} busy={busy} onPress={onSave} />
           </ScrollView>
         </KeyboardAvoidingView>
+        {visible ? <ToastHost modal /> : null}
       </SafeAreaView>
     </Modal>
   );
 }
 export function useAction() {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const running = useRef(false);
-  const run = async (task: () => Promise<void>) => {
-    if (running.current) return;
-    running.current = true;
-    setBusy(true);
-    setError('');
-    try {
-      await task();
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : 'Could not save. Please try again.',
-      );
-    } finally {
-      running.current = false;
-      setBusy(false);
-    }
-  };
-  return { busy, error, setError, run };
+  return useSharedAction('');
 }
 export async function contact(
   phone: string,
@@ -709,6 +709,7 @@ export const s = StyleSheet.create({
     color: C.text,
     fontSize: 14,
   },
+  invalid: { borderColor: '#A3203E', borderWidth: 2 },
   multiline: { minHeight: 90, textAlignVertical: 'top' },
   select: {
     backgroundColor: C.white,

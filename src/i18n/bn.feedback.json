@@ -1,0 +1,14 @@
+{
+  "Check this value and try again.": "এই তথ্যটি যাচাই করে আবার চেষ্টা করুন।",
+  "Please check the highlighted fields.": "লাল চিহ্নিত ঘরগুলোর তথ্য ঠিক করুন।",
+  "The server could not complete this request. Please try again shortly.": "সার্ভার অনুরোধটি সম্পন্ন করতে পারেনি। একটু পরে আবার চেষ্টা করুন।",
+  "The server returned an unexpected response. Please try again.": "সার্ভার থেকে সঠিক উত্তর পাওয়া যায়নি। আবার চেষ্টা করুন।",
+  "Enter the receiving account’s valid mobile wallet number.": "টাকা গ্রহণের অ্যাকাউন্টের সঠিক মোবাইল ওয়ালেট নম্বর দিন।",
+  "Add payment instructions.": "পেমেন্টের নির্দেশনা লিখুন।",
+  "Use different stop names, with no more than 50 stops.": "আলাদা নাম দিয়ে সর্বোচ্চ ৫০টি স্টপ যোগ করুন।",
+  "Enter a title of at least 2 characters.": "কমপক্ষে ২ অক্ষরের একটি শিরোনাম লিখুন।",
+  "Enter a message of at least 2 characters.": "কমপক্ষে ২ অক্ষরের একটি বার্তা লিখুন।",
+  "Enter a description of at least 5 characters.": "কমপক্ষে ৫ অক্ষরের একটি বিবরণ লিখুন।",
+  "Enter a name of at least 2 characters.": "কমপক্ষে ২ অক্ষরের একটি নাম লিখুন।",
+  "Dismiss notification": "বার্তা বন্ধ করুন"
+}
