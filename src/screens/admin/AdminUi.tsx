@@ -213,6 +213,40 @@ export function SmallButton({
     </Pressable>
   );
 }
+export function IconButton({
+  title,
+  icon,
+  onPress,
+  disabled,
+  busy,
+}: {
+  title: string;
+  icon: string;
+  onPress: () => void;
+  disabled?: boolean;
+  busy?: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t(title)}
+      accessibilityState={{ disabled: !!disabled || !!busy, busy: !!busy }}
+      disabled={disabled || busy}
+      onPress={onPress}
+      style={({ pressed }) => [
+        s.iconButton,
+        (disabled || busy || pressed) && s.dim,
+      ]}
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color={C.green} />
+      ) : (
+        <NoorIcon name={icon} size={18} color={C.green} />
+      )}
+    </Pressable>
+  );
+}
 export function SearchBar({
   value,
   onChange,
@@ -503,43 +537,70 @@ export async function contact(
 export function ContactActions({
   phone,
   onEdit,
+  compact = false,
 }: {
   phone: string;
   onEdit?: () => void;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const action = useAction();
   return (
     <View style={s.stack}>
       <ErrorText message={action.error} />
-      <View style={s.row}>
-        <View style={s.flex}>
-          <SmallButton
-            title={t('Call')}
+      {compact ? (
+        <View style={s.compactActions}>
+          <IconButton
+            title="Call"
             icon="phone"
             disabled={!phone}
             busy={action.busy}
             onPress={() => action.run(() => contact(phone, 'call'))}
           />
-        </View>
-        <View style={s.flex}>
-          <SmallButton
-            title={t('WhatsApp')}
+          <IconButton
+            title="WhatsApp"
             icon="whatsapp"
             disabled={!phone}
             busy={action.busy}
             onPress={() => action.run(() => contact(phone, 'whatsapp'))}
           />
-        </View>
-        <View style={s.flex}>
-          <SmallButton
-            title={t(onEdit ? 'Edit' : 'SMS')}
+          <IconButton
+            title={onEdit ? 'Edit' : 'SMS'}
             icon={onEdit ? 'edit' : 'sms'}
             onPress={onEdit || (() => action.run(() => contact(phone, 'sms')))}
             disabled={!onEdit && !phone}
           />
         </View>
-      </View>
+      ) : (
+        <View style={s.row}>
+          <View style={s.flex}>
+            <SmallButton
+              title={t('Call')}
+              icon="phone"
+              disabled={!phone}
+              busy={action.busy}
+              onPress={() => action.run(() => contact(phone, 'call'))}
+            />
+          </View>
+          <View style={s.flex}>
+            <SmallButton
+              title={t('WhatsApp')}
+              icon="whatsapp"
+              disabled={!phone}
+              busy={action.busy}
+              onPress={() => action.run(() => contact(phone, 'whatsapp'))}
+            />
+          </View>
+          <View style={s.flex}>
+            <SmallButton
+              title={t(onEdit ? 'Edit' : 'SMS')}
+              icon={onEdit ? 'edit' : 'sms'}
+              onPress={onEdit || (() => action.run(() => contact(phone, 'sms')))}
+              disabled={!onEdit && !phone}
+            />
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -601,6 +662,7 @@ export const s = StyleSheet.create({
     gap: 10,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  compactActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   between: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -627,6 +689,16 @@ export const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
+  },
+  iconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.mint,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     fontSize: 12,

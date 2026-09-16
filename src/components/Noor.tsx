@@ -67,6 +67,79 @@ export function NoorIcon({
 }) {
   if (iconMap[name])
     return <AppIcon kind={iconMap[name]} size={size} color={color} />;
+  if (name === 'mobile')
+    return (
+      <View
+        accessible={false}
+        style={[n.symbolBox, { width: size, height: size }]}
+      >
+        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
+          <View style={[n.mobileFrame, { borderColor: color }]}>
+            <View style={[n.mobileScreen, { borderColor: color }]} />
+            <View style={[n.mobileSpeaker, { backgroundColor: color }]} />
+            <View style={[n.mobileButton, { backgroundColor: color }]} />
+          </View>
+        </View>
+      </View>
+    );
+  if (name === 'address')
+    return (
+      <View
+        accessible={false}
+        style={[n.symbolBox, { width: size, height: size }]}
+      >
+        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
+          <View style={[n.addressRoof, { borderColor: color }]} />
+          <View style={[n.addressBody, { borderColor: color }]} />
+          <View style={[n.addressDoor, { backgroundColor: color }]} />
+        </View>
+      </View>
+    );
+  if (name === 'emergency')
+    return (
+      <View
+        accessible={false}
+        style={[n.symbolBox, { width: size, height: size }]}
+      >
+        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
+          <View style={[n.handsetCurve, { borderColor: color }]} />
+          <View style={[n.handsetTop, { backgroundColor: color }]} />
+          <View style={[n.handsetBottom, { backgroundColor: color }]} />
+          <View style={[n.alertBadge, { borderColor: color }]}>
+            <View style={[n.alertBar, { backgroundColor: color }]} />
+            <View style={[n.alertDot, { backgroundColor: color }]} />
+          </View>
+        </View>
+      </View>
+    );
+  if (name === 'dropoff')
+    return (
+      <View
+        accessible={false}
+        style={[n.symbolBox, { width: size, height: size }]}
+      >
+        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
+          <View style={[n.flagPole, { backgroundColor: color }]} />
+          <View style={[n.flag, { borderColor: color }]}>
+            <View style={[n.flagLine, { backgroundColor: color }]} />
+          </View>
+          <View style={[n.flagBase, { backgroundColor: color }]} />
+        </View>
+      </View>
+    );
+  if (name === 'location' || name === 'pin')
+    return (
+      <View
+        accessible={false}
+        style={[n.symbolBox, { width: size, height: size }]}
+      >
+        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
+          <View style={[n.pin, { borderColor: color }]}>
+            <View style={[n.pinDot, { backgroundColor: color }]} />
+          </View>
+        </View>
+      </View>
+    );
   if (
     [
       'phone',
@@ -122,8 +195,6 @@ export function NoorIcon({
     add: '+',
     close: '×',
     check: '✓',
-    location: '●',
-    pin: '●',
     search: '⌕',
     edit: '✎',
     chevron: '›',
@@ -414,6 +485,142 @@ const n = StyleSheet.create({
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  mobileFrame: {
+    position: 'absolute',
+    left: 6,
+    top: 2,
+    width: 12,
+    height: 20,
+    borderWidth: 1.8,
+    borderRadius: 3,
+  },
+  mobileScreen: {
+    position: 'absolute',
+    left: 2,
+    top: 3,
+    width: 8,
+    height: 11,
+    borderWidth: 1,
+    borderRadius: 1,
+  },
+  mobileSpeaker: {
+    position: 'absolute',
+    left: 4,
+    top: 1.5,
+    width: 4,
+    height: 1,
+    borderRadius: 1,
+  },
+  mobileButton: {
+    position: 'absolute',
+    left: 4.5,
+    bottom: 1.5,
+    width: 3,
+    height: 1.5,
+    borderRadius: 1,
+  },
+  addressRoof: {
+    position: 'absolute',
+    left: 6,
+    top: 3,
+    width: 12,
+    height: 12,
+    borderLeftWidth: 1.8,
+    borderTopWidth: 1.8,
+    transform: [{ rotate: '45deg' }],
+  },
+  addressBody: {
+    position: 'absolute',
+    left: 5,
+    top: 10,
+    width: 14,
+    height: 11,
+    borderWidth: 1.8,
+    borderTopWidth: 0,
+    borderRadius: 2,
+  },
+  addressDoor: {
+    position: 'absolute',
+    left: 10,
+    top: 15,
+    width: 4,
+    height: 6,
+    borderTopLeftRadius: 1,
+    borderTopRightRadius: 1,
+  },
+  alertBadge: {
+    position: 'absolute',
+    right: 1,
+    top: 0,
+    width: 9,
+    height: 9,
+    borderWidth: 1.5,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  alertBar: {
+    width: 1.5,
+    height: 4,
+    borderRadius: 1,
+    marginTop: 1.5,
+  },
+  alertDot: {
+    width: 1.5,
+    height: 1.5,
+    borderRadius: 1,
+    marginTop: 0.5,
+  },
+  flagPole: {
+    position: 'absolute',
+    left: 5,
+    top: 2,
+    width: 2,
+    height: 19,
+    borderRadius: 1,
+  },
+  flag: {
+    position: 'absolute',
+    left: 7,
+    top: 3,
+    width: 12,
+    height: 9,
+    borderWidth: 1.8,
+    borderTopRightRadius: 2,
+    borderBottomRightRadius: 2,
+  },
+  flagLine: {
+    position: 'absolute',
+    left: 2,
+    top: 3,
+    width: 6,
+    height: 1.5,
+    borderRadius: 1,
+  },
+  flagBase: {
+    position: 'absolute',
+    left: 2,
+    bottom: 2,
+    width: 8,
+    height: 2,
+    borderRadius: 1,
+  },
+  pin: {
+    width: 15,
+    height: 15,
+    borderWidth: 2,
+    borderRadius: 10,
+    borderBottomLeftRadius: 2,
+    transform: [{ rotate: '45deg' }],
+  },
+  pinDot: {
+    position: 'absolute',
+    left: 3.5,
+    top: 3.5,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
   handsetCurve: {
     position: 'absolute',

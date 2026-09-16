@@ -3,7 +3,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { TransportShift } from '../api/management';
 import { useTranslation } from '../i18n';
 import { colors, styles } from '../theme';
-import { serviceDays, serviceShift, WEEKDAY_NAMES } from '../utils/transport';
+import {
+  serviceDays,
+  serviceShift,
+  WEEKDAY_NAMES,
+  WEEKDAY_SHORT_NAMES,
+} from '../utils/transport';
 import { Notice, Select } from './ui';
 
 export function TransportSchedule({
@@ -109,7 +114,7 @@ export function TransportScheduleSummary({
         : serviceShift(service)}
       {'\n'}
       {serviceDays(service)
-        .map(day => t(WEEKDAY_NAMES[day]))
+        .map(day => t(WEEKDAY_SHORT_NAMES[day]))
         .join(', ')}
     </Text>
   );

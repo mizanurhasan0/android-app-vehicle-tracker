@@ -29,6 +29,7 @@ import {
   ErrorText,
   FormModal,
   Heading,
+  IconButton,
   Input,
   SmallButton,
   Tabs,
@@ -255,10 +256,14 @@ const changeLanguage = async (language: 'en' | 'bn') => {
 };
 const pressButton = async (title: string) => {
   await act(async () =>
-    screen.root
-      .findAllByType(SmallButton)
-      .find(item => item.props.title === i18n.t(title))!
-      .props.onPress(),
+    (
+      screen.root
+        .findAllByType(SmallButton)
+        .find(item => item.props.title === i18n.t(title)) ||
+      screen.root
+        .findAllByType(IconButton)
+        .find(item => item.props.title === i18n.t(title))
+    )!.props.onPress(),
   );
 };
 const openForm = async () => {
@@ -1023,7 +1028,7 @@ it('starts an active new service when reusing a stopped student profile', async 
   mockManagement.students[0].status = 'STOPPED';
   mockParams = { id: mockManagement.students[0].id };
   await render(StudentProfileScreen);
-  await pressButton('Add service in another shift');
+  await pressAccessible('button', 'Add service in another shift');
   await save();
   expect(mockMutate).toHaveBeenCalledWith(
     '/admin/students',

@@ -10,6 +10,15 @@ export const WEEKDAY_NAMES = [
   'Friday',
   'Saturday',
 ];
+export const WEEKDAY_SHORT_NAMES = [
+  'SUN',
+  'MON',
+  'TUE',
+  'WED',
+  'THU',
+  'FRI',
+  'SAT',
+];
 export const DEFAULT_SHIFTS: TransportShift[] = [
   { id: 'MORNING', name: 'Morning', startTime: '07:00', endTime: '11:00' },
   { id: 'DAY', name: 'Day', startTime: '11:00', endTime: '15:00' },

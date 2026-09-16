@@ -867,6 +867,49 @@ const studentListStyles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+const studentProfileTopStyles = StyleSheet.create({
+  transportHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  transportHeaderRight: {
+    alignItems: 'flex-end',
+    gap: 3,
+    flexShrink: 1,
+  },
+  servicePanel: {
+    gap: 10,
+    padding: 10,
+    borderRadius: 9,
+    backgroundColor: C.background,
+    borderWidth: 1,
+    borderColor: C.line,
+  },
+  schedule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 9,
+    borderTopWidth: 1,
+    borderTopColor: C.line,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  profileIdentity: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  identityText: { flex: 1, minWidth: 0 },
+  profileActions: { alignItems: 'flex-end', gap: 8 },
+});
 export function StudentProfileScreen() {
   const { t } = useTranslation();
   const { params } = useRoute();
@@ -919,61 +962,83 @@ export function StudentProfileScreen() {
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
       <Box>
-        <Heading title={t('Transport services')} />
-        <Choice
-          label={t('Transport service')}
-          value={student.id}
-          onChange={setSelectedServiceId}
-          options={services.map(item => ({
-            value: item.id,
-            label: `${t(
-              transportShifts(data?.settings).find(
-                shift => shift.id === serviceShift(item),
-              )?.name || serviceShift(item),
-            )} · ${item.routeName} · ${t(item.status)}`,
-          }))}
-        />
-        <TransportScheduleSummary
-          service={student}
-          shifts={transportShifts(data?.settings)}
-        />
-        {student.studentId ? (
-          <SmallButton
-            title={t('Add service in another shift')}
-            onPress={() => setAddingService(true)}
-          />
-        ) : null}
-        <View style={s.row}>
-          <StudentPhoto student={student} />
-          <View style={s.flex}>
-            <Text style={s.title}>{student.studentName}</Text>
-            <Text style={s.body}>{student.studentCode || '—'}</Text>
-            <Text style={s.muted}>
-              {t('Class {{className}} | Roll: {{roll}}', {
-                className:
-                  student.className.replace(/^\s*class\s+/i, '') || '—',
-                roll: student.roll || '—',
-              })}
-            </Text>
+        <View style={studentProfileTopStyles.transportHeader}>
+          <Text style={s.heading}>{t('Transport services')}</Text>
+          <View style={studentProfileTopStyles.transportHeaderRight}>
+            <Pill value={student.status} />
+            {student.studentId ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('Add service in another shift')}
+                onPress={() => setAddingService(true)}
+                style={s.linkHit}
+              >
+                <Text style={s.link}>{t('Add service in another shift')}</Text>
+              </Pressable>
+            ) : null}
           </View>
-          <Pill value={student.status} />
+        </View>
+        <View style={studentProfileTopStyles.servicePanel}>
+          <Choice
+            label={t('Transport service')}
+            value={student.id}
+            onChange={setSelectedServiceId}
+            options={services.map(item => ({
+              value: item.id,
+              label: `${t(
+                transportShifts(data?.settings).find(
+                  shift => shift.id === serviceShift(item),
+                )?.name || serviceShift(item),
+              )} · ${item.routeName} · ${t(item.status)}`,
+            }))}
+          />
+          <View style={studentProfileTopStyles.schedule}>
+            <NoorIcon name="calendar" size={18} color={C.green} />
+            <TransportScheduleSummary
+              service={student}
+              shifts={transportShifts(data?.settings)}
+            />
+          </View>
+        </View>
+        <View style={studentProfileTopStyles.profileHeader}>
+          <View style={studentProfileTopStyles.profileIdentity}>
+            <StudentPhoto student={student} />
+            <View style={studentProfileTopStyles.identityText}>
+              <Text style={s.title}>{student.studentName}</Text>
+              <Text style={s.body}>{student.studentCode || '—'}</Text>
+              <Text style={s.muted}>
+                {t('Class {{className}} | Roll: {{roll}}', {
+                  className:
+                    student.className.replace(/^\s*class\s+/i, '') || '—',
+                  roll: student.roll || '—',
+                })}
+              </Text>
+            </View>
+          </View>
+          <View style={studentProfileTopStyles.profileActions}>
+            <ContactActions
+              phone={student.guardianPhone}
+              onEdit={() => setEdit(true)}
+              compact
+            />
+          </View>
         </View>
         <View style={s.line} />
         <Heading title={t('Guardian')} />
         <Text style={s.body}>{student.guardianName}</Text>
         <Detail
-          icon="phone"
+          icon="mobile"
           label={t('Mobile')}
           value={student.guardianPhone}
         />
         <Detail
-          icon="location"
+          icon="address"
           label={t('Address')}
           value={student.pickupAddress || student.stopName}
         />
         <Detail icon="routes" label={t('Route')} value={student.routeName} />
         <Detail
-          icon="location"
+          icon="pin"
           label={t('Boarding stop')}
           value={student.stopName}
         />
@@ -984,12 +1049,12 @@ export function StudentProfileScreen() {
         />
         <Detail icon="drivers" label={t('Driver')} value={student.driverName} />
         <Detail
-          icon="location"
+          icon="dropoff"
           label={t('Drop-off stop')}
           value={student.dropoffStopName || student.dropAddress}
         />
         <Detail
-          icon="phone"
+          icon="emergency"
           label={t('Emergency contact')}
           value={student.emergencyContact}
         />
@@ -1010,10 +1075,6 @@ export function StudentProfileScreen() {
             <Text style={[s.summaryValue, s.red]}>{money(due)}</Text>
           </View>
         </View>
-        <ContactActions
-          phone={student.guardianPhone}
-          onEdit={() => setEdit(true)}
-        />
       </Box>
       <Tabs
         value={tab}
