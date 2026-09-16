@@ -12,8 +12,18 @@ import {
   transportShifts,
   uniqueStudents,
 } from '../../utils/transport';
+import { NoorIcon } from '../../components/Noor';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, Pressable, Text, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import {
   NavigationProp,
   ParamListBase,
@@ -38,6 +48,7 @@ import {
   AdminPage,
   Avatar,
   Box,
+  C,
   Choice,
   ContactActions,
   Detail,
@@ -589,8 +600,11 @@ export function StudentsScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { data, loading, error, refresh } = useManagement();
+  const { data: transport } = useData();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState('ALL');
+  const [vehicleId, setVehicleId] = useState('');
+  const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
   const enrollments = data?.students || [];
   const students = uniqueStudents(enrollments).map(profile => {
@@ -599,6 +613,20 @@ export function StudentsScreen() {
     );
     return services.find(item => item.status === 'ACTIVE') || profile;
   });
+  const vehicleNames: Record<string, string> = {};
+  transport.vehicles.forEach(vehicle => {
+    vehicleNames[vehicle.id] = vehicle.name;
+  });
+  students.forEach(student => {
+    if (student.vehicleId && !vehicleNames[student.vehicleId])
+      vehicleNames[student.vehicleId] = student.vehicleName;
+  });
+  const vehicleOptions = Object.entries(vehicleNames)
+    .sort(([, left], [, right]) => left.localeCompare(right))
+    .map(([id, name]) => ({ value: id, label: name }));
+  const selectedVehicleName =
+    vehicleOptions.find(option => option.value === vehicleId)?.label ||
+    t('All vehicles');
   const canonicalId = (id: string | null) => {
     const service = enrollments.find(item => item.id === id);
     return service ? studentIdentity(service) : id;
@@ -619,6 +647,7 @@ export function StudentsScreen() {
       `${item.studentName} ${item.studentCode} ${item.guardianName} ${item.routeName}`
         .toLowerCase()
         .includes(query.trim().toLowerCase()) &&
+      (!vehicleId || item.vehicleId === vehicleId) &&
       (tab === 'ALL' ||
         (tab === 'ACTIVE' && item.status === 'ACTIVE') ||
         (tab === 'ABSENT' && absent.has(studentIdentity(item))) ||
@@ -626,12 +655,87 @@ export function StudentsScreen() {
   );
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
-      <SearchBar
-        value={query}
-        onChange={setQuery}
-        onAdd={() => setAdding(true)}
-        placeholder={t('Name, ID or guardian...')}
-      />
+      <View style={studentListStyles.toolbar}>
+        {!searching ? (
+          <View style={[studentListStyles.filter, studentListStyles.select]}>
+            <View
+              pointerEvents="none"
+              style={studentListStyles.selectedVehicleLabel}
+            >
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={studentListStyles.selectedVehicleText}
+              >
+                {selectedVehicleName}
+              </Text>
+            </View>
+            <Picker
+              mode="dropdown"
+              selectedValue={vehicleId}
+              onValueChange={item => setVehicleId(String(item))}
+              accessibilityLabel={t('Filter by vehicle')}
+              style={studentListStyles.picker}
+              itemStyle={studentListStyles.pickerItem}
+            >
+              <Picker.Item label={t('All vehicles')} value="" />
+              {vehicleOptions.map(option => (
+                <Picker.Item
+                  key={option.value}
+                  label={option.label}
+                  value={option.value}
+                />
+              ))}
+            </Picker>
+          </View>
+        ) : null}
+        {searching ? (
+          <View style={[s.search, studentListStyles.control, studentListStyles.searchField]}>
+            <NoorIcon name="search" size={18} color={C.muted} />
+            <TextInput
+              autoFocus
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t('Name, ID or guardian...')}
+              placeholderTextColor={C.muted}
+              accessibilityLabel={t('Search students')}
+              style={s.searchInput}
+              autoCorrect={false}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('Close search')}
+              onPress={() => {
+                setSearching(false);
+                setQuery('');
+              }}
+              hitSlop={8}
+            >
+              <NoorIcon name="close" size={20} color={C.muted} />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('Search students')}
+            onPress={() => {
+              setVehicleId('');
+              setSearching(true);
+            }}
+            style={({ pressed }) => [
+              studentListStyles.iconButton,
+              pressed && s.dim,
+            ]}
+          >
+            <NoorIcon name="search" size={20} color={C.green} />
+          </Pressable>
+        )}
+        <SmallButton
+          title={t('Add')}
+          icon="plus"
+          onPress={() => setAdding(true)}
+        />
+      </View>
       <Tabs
         value={tab}
         onChange={setTab}
@@ -725,6 +829,44 @@ export function StudentsScreen() {
     </AdminPage>
   );
 }
+const studentListStyles = StyleSheet.create({
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  filter: { flex: 1, minWidth: 0 },
+  control: { height: 40, minHeight: 40 },
+  select: {
+    height: 40,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 7,
+    backgroundColor: C.white,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  picker: { height: 40, width: '100%', color: C.text },
+  pickerItem: { color: C.text, fontSize: 13 },
+  selectedVehicleLabel: {
+    position: 'absolute',
+    left: 11,
+    right: 28,
+    height: 40,
+    justifyContent: 'center',
+    backgroundColor: C.white,
+    zIndex: 2,
+    elevation: 2,
+  },
+  selectedVehicleText: { color: C.text, fontSize: 13 },
+  searchField: { paddingLeft: 9, paddingRight: 9 },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 export function StudentProfileScreen() {
   const { t } = useTranslation();
   const { params } = useRoute();

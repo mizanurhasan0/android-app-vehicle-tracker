@@ -358,6 +358,50 @@ it('creates a linked student with the selected stop and integer poisha, and rese
   );
   expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('guardianName');
 });
+it('filters the student list by the selected vehicle', async () => {
+  mockManagement.students[1] = {
+    ...student('student-2', 'Student Two'),
+    routeId: 'route-2',
+    routeName: 'North road',
+    stopId: 'stop-2',
+    stopName: 'North gate',
+    vehicleId: 'bus-2',
+    vehicleName: 'Bus 2',
+  };
+  await render(StudentsScreen);
+  const vehicleFilter = () =>
+    screen.root
+      .findAllByType(Picker)
+      .find(item => item.props.accessibilityLabel === 'Filter by vehicle')!;
+  expect(vehicleFilter().props.selectedValue).toBe('');
+  expect(
+    screen.root.findAllByType(Picker.Item).map(item => item.props.label),
+  ).toEqual(expect.arrayContaining(['All vehicles', 'Bus 1', 'Bus 2']));
+  await act(async () => vehicleFilter().props.onValueChange('bus-2'));
+  expect(textContent()).toContain('Bus 2');
+  expect(textContent()).toContain('Student Two');
+  expect(textContent()).not.toContain('Student One');
+  await act(async () => vehicleFilter().props.onValueChange(''));
+  expect(textContent()).toContain('Student One');
+});
+it('shows search inline and hides the vehicle filter while searching', async () => {
+  await render(StudentsScreen);
+  await pressAccessible('button', 'Search students');
+  expect(
+    screen.root
+      .findAllByType(Picker)
+      .some(item => item.props.accessibilityLabel === 'Filter by vehicle'),
+  ).toBe(false);
+  expect(screen.root.findByType(TextInput).props.accessibilityLabel).toBe(
+    'Search students',
+  );
+  await pressAccessible('button', 'Close search');
+  expect(
+    screen.root
+      .findAllByType(Picker)
+      .some(item => item.props.accessibilityLabel === 'Filter by vehicle'),
+  ).toBe(true);
+});
 it.each([
   ['en', true],
   ['bn', true],
