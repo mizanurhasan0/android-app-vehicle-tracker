@@ -1442,13 +1442,24 @@ export function ParentTrackingScreen({ route, navigation }: Props<'LiveTracking'
               ].map(([icon, label, color]) => <Pressable key={label} accessibilityRole="button" accessibilityLabel={t(label)} style={parent.trackingControl}><TrackingIcon name={icon as TrackingIconName} size={23} color={color} /></Pressable>)}
             </View>
           </View>
-          <View style={parent.plateBar}><Text style={parent.plateText}>{vehicle.plate}</Text></View>
-          <View style={parent.telemetryRow}>
-            <View style={parent.metricColumn}><TrackingMetric icon="route" label={t('Today KM')} /><TrackingMetric icon="route" label={t('Moving')} /></View>
-            <SpeedGauge speed={currentSpeed} />
-            <View style={parent.metricColumn}><TrackingMetric icon="engine" label={t('Engine')} /><TrackingMetric icon="speed" label={t('Top Speed')} /></View>
+          <View style={parent.liveHeader}>
+            <View style={parent.addressLink}>
+              <NoorIcon name="pin" size={14} color="#4E6B70" />
+              <Text style={parent.addressText}>{t('See Address')}</Text>
+            </View>
+            <Text style={parent.speedHeader}>{currentSpeed == null ? '— KM/H' : `${currentSpeed} KM/H`}</Text>
+            <View style={parent.vehicleMark}>
+              <NoorIcon name="vehicle" size={38} color="#78BC2C" />
+            </View>
           </View>
-          <View style={parent.trackingStatus}><View style={[parent.idleDot, fresh && parent.liveDot]} /><Text style={[parent.idlePill, fresh && parent.livePill]}>{fresh ? t('Moving') : t('Idle')}</Text><Text style={parent.trackingFresh}>{fresh ? t('Live now') : t('Last known')}</Text></View>
+          <View style={parent.statisticsSection}>
+            <Text style={parent.statisticsTitle}>{t("Today's Statistics")}</Text>
+            <View style={parent.statisticsRow}>
+              <LiveStat icon="odometer" label={t('Odometer')} value="—" unit={t('km')} color="#3B9BBF" />
+              <LiveStat icon="route" label={t('Route length')} value="—" unit={t('km')} color="#208BC0" />
+              <LiveStat icon="duration" label={t('Move duration')} value="—" unit="" color="#1596C6" />
+            </View>
+          </View>
           <View style={parent.locationRow}><NoorIcon name="pin" size={22} color="#879294" /><View style={parent.locationCopy}><Text style={parent.locationTitle}>{t('Current location')}</Text><Text selectable style={parent.locationText}>{location?.latitude != null && location.longitude != null ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : '—'}</Text>{location?.lastSeen ? <Text style={parent.locationUpdated}>{t('Last updated: {{time}}', { time: dateLabel(location.lastSeen) })}</Text> : null}{location && !fresh ? <Text style={local.stale}>{t('Showing an older location. Waiting for a new GPS update.')}</Text> : null}</View></View>
           <VehicleCard vehicle={vehicle} location={location} busy={action.busy} onOpenURL={url => action.run(() => Linking.openURL(url), '')} />
           {data.vehicles.length > 1 ? <View style={parent.vehiclePicker}><Select label={t('Select vehicle')} value={vehicle.id} onChange={setSelectedId} options={data.vehicles.map(item => ({ value: item.id, label: item.name }))} /></View> : null}
@@ -1459,13 +1470,30 @@ export function ParentTrackingScreen({ route, navigation }: Props<'LiveTracking'
   );
 }
 
-function TrackingMetric({ icon, label }: { icon: TrackingIconName; label: string }) {
-  return <View style={parent.metricCard}><TrackingIcon name={icon} size={20} color="#EDA91F" /><View style={parent.metricCopy}><Text style={parent.metricLabel}>{label}</Text><Text style={parent.metricValue}>—</Text></View></View>;
-}
-
-function SpeedGauge({ speed }: { speed?: number }) {
-  const safeSpeed = speed == null ? 0 : speed;
-  return <View style={parent.speedGauge}><View style={parent.gaugeArc}><View style={parent.gaugeTicks} /><View style={[parent.gaugeNeedle, { transform: [{ rotate: `${-130 + (Math.min(safeSpeed, 140) / 140) * 260}deg` }] }]} /><View style={parent.gaugeCenter} /></View><Text style={parent.speedNumber}>{speed == null ? '—' : numberLabel(speed)}</Text><Text style={parent.speedUnit}>{speed == null ? '' : 'km/h'}</Text></View>;
+function LiveStat({
+  icon,
+  label,
+  value,
+  unit,
+  color,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  unit: string;
+  color: string;
+}) {
+  return (
+    <View style={parent.statCard}>
+      <View style={[parent.statIcon, { backgroundColor: `${color}18` }]}>
+        <NoorIcon name={icon} size={17} color={color} />
+      </View>
+      <View style={parent.statCopy}>
+        <Text numberOfLines={1} style={parent.statLabel}>{label}</Text>
+        <Text numberOfLines={1} style={parent.statValue}>{value}{unit ? ` ${unit}` : ''}</Text>
+      </View>
+    </View>
+  );
 }
 
 const local = StyleSheet.create({
