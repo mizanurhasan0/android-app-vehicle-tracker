@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParams } from '../navigation/types';
 import { Vehicle } from '../api/types';
@@ -94,6 +94,29 @@ export function NoorVehiclesScreen({
     <Page loading={loading} error={error} refresh={refresh}>
       <View style={f.toolbar}>
         <Text style={styles.heading}>{t('Vehicle list')}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('Live location map')}
+          onPress={() => navigation.navigate('FleetMap')}
+          style={({ pressed }) => [f.mapButton, pressed && f.pressed]}
+        >
+          <NoorIcon name="pin" size={19} color={colors.primary} />
+        </Pressable>
+      </View>
+      <View style={f.searchToolbar}>
+        <View style={f.searchBox}>
+          <NoorIcon name="search" size={18} color={colors.muted} />
+          <TextInput
+            accessibilityLabel={t('Search vehicles')}
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('Search name, plate or driver')}
+            placeholderTextColor={colors.muted}
+            autoCorrect={false}
+            returnKeyType="search"
+            style={f.searchInput}
+          />
+        </View>
         {session?.user.role === 'ADMIN' ? (
           <Button
             title={t('+ Add')}
@@ -101,12 +124,6 @@ export function NoorVehiclesScreen({
           />
         ) : null}
       </View>
-      <Field
-        label={t('Search vehicles')}
-        value={query}
-        onChangeText={setQuery}
-        placeholder={t('Search name, plate or driver')}
-      />
       <NoorCard style={f.list}>
         {vehicles.map(vehicle => (
           <Pressable
@@ -141,11 +158,6 @@ export function NoorVehiclesScreen({
           }
         />
       ) : null}
-      <Button
-        title={t('Live location map')}
-        secondary
-        onPress={() => navigation.navigate('FleetMap')}
-      />
     </Page>
   );
 }
@@ -497,7 +509,7 @@ export function NoorRoutesScreen({
                     : money(r.monthlyAmount)}
                 </Text>
               </View>
-              <Text style={f.arrow}>›</Text>
+              <NoorIcon name="chevron" size={20} color={colors.muted} />
             </NoorCard>
           </Pressable>
         ))}
@@ -767,7 +779,7 @@ function ScheduleEditor({
                 );
               }}
             >
-              <Text style={f.remove}>×</Text>
+              <NoorIcon name="close" size={20} color={colors.muted} />
             </Pressable>
           </View>
         </View>
@@ -829,6 +841,42 @@ const f = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
+  searchToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchBox: {
+    flex: 1,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingLeft: 12,
+    paddingRight: 4,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  searchInput: {
+    flex: 1,
+    minHeight: 42,
+    paddingVertical: 8,
+    color: colors.ink,
+    fontSize: 14,
+  },
+  mapButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.mint,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  pressed: { opacity: 0.8, transform: [{ scale: 0.96 }] },
   list: { padding: 0, overflow: 'hidden' },
   vehicleRow: {
     flexDirection: 'row',

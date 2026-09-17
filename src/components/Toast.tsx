@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { i18n, translateMessage, useTranslation } from '../i18n';
+import { Icon } from './Icon';
 
 export type ToastKind = 'error' | 'warning' | 'success' | 'info';
 type Toast = { id: number; message: string; kind: ToastKind };
@@ -128,9 +129,11 @@ export function ToastHost({ modal = false }: { modal?: boolean }) {
       style={[s.overlay, { top: insets.top + 12 }]}
     >
       <View testID="feedback-toast" style={[s.toast, s[toast.kind]]}>
-        <Text accessible={false} style={s.icon}>
-          {toast.kind === 'success' ? '✓' : toast.kind === 'info' ? 'i' : '!'}
-        </Text>
+        <Icon
+          name={toast.kind === 'success' ? 'check' : toast.kind === 'info' ? 'info' : 'emergency'}
+          size={20}
+          color="#20394B"
+        />
         <View style={s.copy}>
           <Text style={s.title}>{title}</Text>
           <Text style={s.message}>{message}</Text>
@@ -144,7 +147,7 @@ export function ToastHost({ modal = false }: { modal?: boolean }) {
           hitSlop={4}
           style={s.dismiss}
         >
-          <Text style={s.close}>×</Text>
+          <Icon name="close" size={22} color="#20394B" />
         </Pressable>
       </View>
     </View>
@@ -179,14 +182,6 @@ const s = StyleSheet.create({
   warning: { backgroundColor: '#FFF8E8', borderColor: '#956100' },
   success: { backgroundColor: '#EDFAF2', borderColor: '#006A45' },
   info: { backgroundColor: '#F0F7FF', borderColor: '#2465A2' },
-  icon: {
-    width: 24,
-    height: 24,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#20394B',
-  },
   copy: { flex: 1, gap: 3 },
   title: { fontSize: 14, fontWeight: '700', color: '#20394B' },
   message: { fontSize: 13, lineHeight: 20, color: '#20394B' },
@@ -196,5 +191,4 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  close: { fontSize: 26, color: '#20394B' },
 });

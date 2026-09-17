@@ -596,7 +596,7 @@ export function CommunicationScreen() {
         <NoorIcon name={icon} size={18} color={C.white} />
       </View>
       <Text style={[s.body, s.flex]}>{t(title)}</Text>
-      <Text style={s.muted}>›</Text>
+      <NoorIcon name="chevron" size={18} color={C.muted} />
     </Pressable>
   );
   return (
@@ -873,7 +873,7 @@ export function SettingsScreen() {
                   ? t('My profile')
                   : t(item.title)}
               </Text>
-              <Text style={s.muted}>›</Text>
+                      <NoorIcon name="chevron" size={18} color={C.muted} />
             </Pressable>
           ))}
       </Box>

@@ -123,7 +123,7 @@ export function NoorMenuScreen({
                     <NoorIcon name={icon} color="#FFFFFF" size={20} />
                   </View>
                   <Text style={m.cellText}>{t(title)}</Text>
-                  <Text style={m.chevron}>›</Text>
+                  <NoorIcon name="chevron" size={20} color={colors.muted} />
                 </Pressable>
               ))}
             </View>

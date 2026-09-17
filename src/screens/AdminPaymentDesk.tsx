@@ -6,6 +6,7 @@ import { TransportShift } from '../api/management';
 import { DEFAULT_SHIFTS } from '../utils/transport';
 import { paymentShiftLabel } from '../utils/paymentShift';
 import { ReviewActions } from '../components/ReviewActions';
+import { NoorIcon } from '../components/Noor';
 import {
   Badge,
   Button,
@@ -127,7 +128,7 @@ function SubmissionCard({
               : 'View details',
           )}
         </Text>
-        <Text style={desk.link}>{expanded ? '−' : '+'}</Text>
+        <NoorIcon name={expanded ? 'minus' : 'plus'} size={20} color={colors.primary} />
       </Pressable>
       {expanded ? (
         <View style={styles.section}>
@@ -396,7 +397,7 @@ export function AdminPaymentDesk({
           <Text style={desk.link}>
             {t(showFilters ? 'Close filters' : 'Filter by month and status')}
           </Text>
-          <Text style={desk.link}>{showFilters ? '−' : '+'}</Text>
+          <NoorIcon name={showFilters ? 'minus' : 'plus'} size={20} color={colors.primary} />
         </Pressable>
         <View
           style={[desk.filterFields, !showFilters && desk.hidden]}

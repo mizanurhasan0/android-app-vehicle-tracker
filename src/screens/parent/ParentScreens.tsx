@@ -21,18 +21,23 @@ import {
 import { journeyFare, journeyDestinations } from '../../utils/routeFares';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Keyboard,
   Linking,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteSchedule } from '../../api/management';
 import { ServiceRequest } from '../../api/types';
 import { FleetMap } from '../../components/FleetMap';
 import { VehicleCard } from '../../components/VehicleCard';
+import { TrackingIcon, TrackingIconName } from '../../components/TrackingIcon';
 import { NoorBadge, NoorCard, NoorIcon, NoorRow } from '../../components/Noor';
 import {
   Button,
@@ -1404,103 +1409,63 @@ export function ParentContactScreen() {
   );
 }
 
-export function ParentTrackingScreen({ route }: Props<'LiveTracking'>) {
+export function ParentTrackingScreen({ route, navigation }: Props<'LiveTracking'>) {
   const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
   const action = useAction();
+  const { width } = useWindowDimensions();
   const [selectedId, setSelectedId] = useState(route.params?.vehicleId || '');
   const vehicle =
     data.vehicles.find(item => item.id === selectedId) ||
     (!selectedId ? data.vehicles[0] : undefined);
   const location = data.locations.find(item => item.imei === vehicle?.imei);
-  const service = data.subscriptions.find(
-    item => item.vehicleId === vehicle?.id && item.status === 'ACTIVE',
-  );
   const fresh =
     location?.status === 'live' &&
     Date.now() - Date.parse(location.lastSeen) < 180_000;
+  const mapHeight = Math.max(520, Math.min(935, width * 1.53));
+  const currentSpeed = location?.speed == null ? undefined : Math.round(location.speed);
   return (
-    <Page loading={loading} refresh={refresh} error={error}>
-      <Notice text={action.error} kind="error" />
-      {data.vehicles.length > 1 ? (
-        <Select
-          label={t('Select vehicle')}
-          value={vehicle?.id || ''}
-          onChange={setSelectedId}
-          options={data.vehicles.map(item => ({
-            value: item.id,
-            label: item.name,
-          }))}
-        />
+    <SafeAreaView style={parent.trackingScreen} edges={['left', 'right', 'bottom']}>
+      {loading ? <View style={parent.trackingLoading}><ActivityIndicator color={colors.primary} /><Text style={styles.muted}>{t('Loading')}</Text></View> : null}
+      {!loading && !vehicle ? (
+        <View style={parent.trackingEmpty}><Notice text={error || action.error} kind="error" /><Empty title={t('No vehicle to track')} detail={t("The assigned vehicle's location will appear after transport service is approved.")} /></View>
       ) : null}
-      {!vehicle ? (
-        <Empty
-          title={t('No vehicle to track')}
-          detail={t(
-            "The assigned vehicle's location will appear after transport service is approved.",
-          )}
-        />
-      ) : (
-        <>
-          <NoorCard>
-            <View style={parent.identity}>
-              <View style={local.vehicleIcon}>
-                <NoorIcon name="vehicle" size={28} color="#FFFFFF" />
-              </View>
-              <View style={parent.grow}>
-                <Text style={styles.heading}>{vehicle.name}</Text>
-                <Text style={styles.muted}>
-                  {t('Driver: {{name}}', { name: vehicle.driverName || '—' })}
-                </Text>
-                <Text style={styles.muted}>
-                  {t('Route: {{name}}', { name: service?.routeName || '—' })}
-                </Text>
-              </View>
-              <NoorBadge
-                label={readable(fresh ? 'live' : 'lastKnown')}
-                tone={fresh ? 'green' : 'gray'}
-              />
+      {!loading && vehicle ? (
+        <ScrollView contentContainerStyle={parent.trackingScroll} refreshControl={undefined}>
+          <Notice text={error || action.error} kind="error" />
+          <View style={[parent.trackingMap, { height: mapHeight }]}>
+            <FleetMap vehicles={[vehicle]} locations={location ? [location] : []} selectedId={vehicle.id} onSelect={setSelectedId} style={parent.trackingMapWeb} />
+            <Pressable accessibilityRole="button" accessibilityLabel={t('Back')} onPress={() => navigation.goBack()} style={parent.trackingBack}><NoorIcon name="back" size={31} color="#172225" /></Pressable>
+            <View style={parent.trackingControls}>
+              {[
+                ['target', 'Center map', '#36A0AA'], ['layers', 'Map layers', '#45A956'], ['traffic', 'Traffic', '#EF5A5D'], ['play', 'Replay', '#F49A14'], ['compass', 'Direction', '#9638B3'], ['share', 'Share', '#2C68D0'], ['lock', 'Secure', '#EC5360'],
+              ].map(([icon, label, color]) => <Pressable key={label} accessibilityRole="button" accessibilityLabel={t(label)} style={parent.trackingControl}><TrackingIcon name={icon as TrackingIconName} size={23} color={color} /></Pressable>)}
             </View>
-          </NoorCard>
-          <FleetMap
-            vehicles={[vehicle]}
-            locations={location ? [location] : []}
-            selectedId={vehicle.id}
-            onSelect={setSelectedId}
-            style={parent.map}
-          />
-          <NoorCard>
-            <Text style={styles.heading}>{t('Current location')}</Text>
-            <Text style={styles.body}>
-              {location?.latitude != null && location.longitude != null
-                ? `${location.latitude.toFixed(
-                    5,
-                  )}, ${location.longitude.toFixed(5)}`
-                : t('No location received from the tracker.')}
-            </Text>
-            {location?.lastSeen ? (
-              <Text style={styles.muted}>
-                {t('Last updated: {{time}}', {
-                  time: dateLabel(location.lastSeen),
-                })}
-              </Text>
-            ) : null}
-            {location && !fresh ? (
-              <Text style={local.stale}>
-                {t('Showing an older location. Waiting for a new GPS update.')}
-              </Text>
-            ) : null}
-          </NoorCard>
-          <VehicleCard
-            vehicle={vehicle}
-            location={location}
-            busy={action.busy}
-            onOpenURL={url => action.run(() => Linking.openURL(url), '')}
-          />
-        </>
-      )}
-    </Page>
+          </View>
+          <View style={parent.plateBar}><Text style={parent.plateText}>{vehicle.plate}</Text></View>
+          <View style={parent.telemetryRow}>
+            <View style={parent.metricColumn}><TrackingMetric icon="route" label={t('Today KM')} /><TrackingMetric icon="route" label={t('Moving')} /></View>
+            <SpeedGauge speed={currentSpeed} />
+            <View style={parent.metricColumn}><TrackingMetric icon="engine" label={t('Engine')} /><TrackingMetric icon="speed" label={t('Top Speed')} /></View>
+          </View>
+          <View style={parent.trackingStatus}><View style={[parent.idleDot, fresh && parent.liveDot]} /><Text style={[parent.idlePill, fresh && parent.livePill]}>{fresh ? t('Moving') : t('Idle')}</Text><Text style={parent.trackingFresh}>{fresh ? t('Live now') : t('Last known')}</Text></View>
+          <View style={parent.locationRow}><NoorIcon name="pin" size={22} color="#879294" /><View style={parent.locationCopy}><Text style={parent.locationTitle}>{t('Current location')}</Text><Text selectable style={parent.locationText}>{location?.latitude != null && location.longitude != null ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : '—'}</Text>{location?.lastSeen ? <Text style={parent.locationUpdated}>{t('Last updated: {{time}}', { time: dateLabel(location.lastSeen) })}</Text> : null}{location && !fresh ? <Text style={local.stale}>{t('Showing an older location. Waiting for a new GPS update.')}</Text> : null}</View></View>
+          <VehicleCard vehicle={vehicle} location={location} busy={action.busy} onOpenURL={url => action.run(() => Linking.openURL(url), '')} />
+          {data.vehicles.length > 1 ? <View style={parent.vehiclePicker}><Select label={t('Select vehicle')} value={vehicle.id} onChange={setSelectedId} options={data.vehicles.map(item => ({ value: item.id, label: item.name }))} /></View> : null}
+          <Pressable accessibilityRole="button" onPress={refresh} style={parent.refreshTracking}><Text style={parent.refreshTrackingText}>{t('Refresh location')}</Text></Pressable>
+        </ScrollView>
+      ) : null}
+    </SafeAreaView>
   );
+}
+
+function TrackingMetric({ icon, label }: { icon: TrackingIconName; label: string }) {
+  return <View style={parent.metricCard}><TrackingIcon name={icon} size={20} color="#EDA91F" /><View style={parent.metricCopy}><Text style={parent.metricLabel}>{label}</Text><Text style={parent.metricValue}>—</Text></View></View>;
+}
+
+function SpeedGauge({ speed }: { speed?: number }) {
+  const safeSpeed = speed == null ? 0 : speed;
+  return <View style={parent.speedGauge}><View style={parent.gaugeArc}><View style={parent.gaugeTicks} /><View style={[parent.gaugeNeedle, { transform: [{ rotate: `${-130 + (Math.min(safeSpeed, 140) / 140) * 260}deg` }] }]} /><View style={parent.gaugeCenter} /></View><Text style={parent.speedNumber}>{speed == null ? '—' : numberLabel(speed)}</Text><Text style={parent.speedUnit}>{speed == null ? '' : 'km/h'}</Text></View>;
 }
 
 const local = StyleSheet.create({

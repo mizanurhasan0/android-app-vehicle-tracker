@@ -23,6 +23,7 @@ import {
 import { numberLabel } from '../utils/format';
 import { HistoryMap } from './HistoryMap';
 import { Button, Empty, Field, Notice } from './ui';
+import { Icon } from './Icon';
 
 export function RecordedJourney({
   vehicle,
@@ -114,7 +115,7 @@ export function RecordedJourney({
                   onPress={() => changeDay(shiftPeriod(day, 'day', -1))}
                   style={local.arrow}
                 >
-                  <Text style={local.arrowText}>‹</Text>
+                  <Icon name="chevronLeft" size={24} color={colors.primary} />
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -138,7 +139,7 @@ export function RecordedJourney({
                   onPress={() => changeDay(shiftPeriod(day, 'day', 1))}
                   style={[local.arrow, day >= dhakaDate() && local.disabled]}
                 >
-                  <Text style={local.arrowText}>›</Text>
+                  <Icon name="chevron" size={24} color={colors.primary} />
                 </Pressable>
               </View>
               {dateOpen ? (

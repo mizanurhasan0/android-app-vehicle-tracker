@@ -8,54 +8,10 @@ import {
   ViewStyle,
   StyleProp,
 } from 'react-native';
-import { AppIcon, AppIconKind } from './AppIcon';
+import { Icon } from './Icon';
 import { colors } from '../theme';
 import { useTranslation } from '../i18n';
 
-const iconMap: Record<string, AppIconKind> = {
-  student: 'students',
-  students: 'students',
-  driver: 'user',
-  drivers: 'user',
-  vehicle: 'vehicles',
-  vehicles: 'vehicles',
-  bus: 'vehicles',
-  trip: 'routes',
-  route: 'routes',
-  routes: 'routes',
-  payment: 'payments',
-  payments: 'payments',
-  wallet: 'payments',
-  income: 'payments',
-  expense: 'payments',
-  investment: 'payments',
-  money: 'payments',
-  school: 'students',
-  notice: 'bell',
-  bell: 'bell',
-  notification: 'bell',
-  notifications: 'bell',
-  request: 'applications',
-  requests: 'applications',
-  admission: 'applications',
-  report: 'bills',
-  reports: 'bills',
-  receipt: 'bills',
-  document: 'bills',
-  bills: 'bills',
-  due: 'due',
-  user: 'user',
-  profile: 'user',
-  lock: 'lock',
-  eye: 'eye',
-  back: 'back',
-  attendance: 'applications',
-  calendar: 'applications',
-  history: 'due',
-  clock: 'due',
-  maintenance: 'routes',
-  fuel: 'payments',
-};
 export function NoorIcon({
   name,
   size = 24,
@@ -65,198 +21,7 @@ export function NoorIcon({
   size?: number;
   color?: string;
 }) {
-  if (iconMap[name])
-    return <AppIcon kind={iconMap[name]} size={size} color={color} />;
-  if (name === 'mobile')
-    return (
-      <View
-        accessible={false}
-        style={[n.symbolBox, { width: size, height: size }]}
-      >
-        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
-          <View style={[n.mobileFrame, { borderColor: color }]}>
-            <View style={[n.mobileScreen, { borderColor: color }]} />
-            <View style={[n.mobileSpeaker, { backgroundColor: color }]} />
-            <View style={[n.mobileButton, { backgroundColor: color }]} />
-          </View>
-        </View>
-      </View>
-    );
-  if (name === 'address')
-    return (
-      <View
-        accessible={false}
-        style={[n.symbolBox, { width: size, height: size }]}
-      >
-        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
-          <View style={[n.addressRoof, { borderColor: color }]} />
-          <View style={[n.addressBody, { borderColor: color }]} />
-          <View style={[n.addressDoor, { backgroundColor: color }]} />
-        </View>
-      </View>
-    );
-  if (name === 'emergency')
-    return (
-      <View
-        accessible={false}
-        style={[n.symbolBox, { width: size, height: size }]}
-      >
-        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
-          <View style={[n.handsetCurve, { borderColor: color }]} />
-          <View style={[n.handsetTop, { backgroundColor: color }]} />
-          <View style={[n.handsetBottom, { backgroundColor: color }]} />
-          <View style={[n.alertBadge, { borderColor: color }]}>
-            <View style={[n.alertBar, { backgroundColor: color }]} />
-            <View style={[n.alertDot, { backgroundColor: color }]} />
-          </View>
-        </View>
-      </View>
-    );
-  if (name === 'dropoff')
-    return (
-      <View
-        accessible={false}
-        style={[n.symbolBox, { width: size, height: size }]}
-      >
-        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
-          <View style={[n.flagPole, { backgroundColor: color }]} />
-          <View style={[n.flag, { borderColor: color }]}>
-            <View style={[n.flagLine, { backgroundColor: color }]} />
-          </View>
-          <View style={[n.flagBase, { backgroundColor: color }]} />
-        </View>
-      </View>
-    );
-  if (name === 'location' || name === 'pin')
-    return (
-      <View
-        accessible={false}
-        style={[n.symbolBox, { width: size, height: size }]}
-      >
-        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
-          <View style={[n.pin, { borderColor: color }]}>
-            <View style={[n.pinDot, { backgroundColor: color }]} />
-          </View>
-        </View>
-      </View>
-    );
-  if (
-    [
-      'phone',
-      'call',
-      'contact',
-      'communication',
-      'whatsapp',
-      'sms',
-      'mail',
-    ].includes(name)
-  ) {
-    const envelope = name === 'sms' || name === 'mail';
-    return (
-      <View
-        accessible={false}
-        style={[n.symbolBox, { width: size, height: size }]}
-      >
-        <View style={[n.symbolCanvas, { transform: [{ scale: size / 24 }] }]}>
-          {name === 'whatsapp' ? (
-            <View style={[n.whatsappCircle, { borderColor: color }]}>
-              <NoorIcon name="phone" size={14} color={color} />
-              <View style={[n.whatsappTail, { borderLeftColor: color }]} />
-            </View>
-          ) : envelope ? (
-            <>
-              <View style={[n.envelope, { borderColor: color }]} />
-              <View style={[n.envelopeLeft, { backgroundColor: color }]} />
-              <View style={[n.envelopeRight, { backgroundColor: color }]} />
-            </>
-          ) : (
-            <>
-              <View style={[n.handsetCurve, { borderColor: color }]} />
-              <View style={[n.handsetTop, { backgroundColor: color }]} />
-              <View style={[n.handsetBottom, { backgroundColor: color }]} />
-            </>
-          )}
-        </View>
-      </View>
-    );
-  }
-  const glyph: Record<string, string> = {
-    phone: '☎',
-    call: '☎',
-    whatsapp: '◉',
-    sms: '✉',
-    mail: '✉',
-    contact: '☎',
-    communication: '☎',
-    settings: '⚙︎',
-    more: '☰',
-    menu: '☰',
-    plus: '+',
-    add: '+',
-    close: '×',
-    check: '✓',
-    search: '⌕',
-    edit: '✎',
-    chevron: '›',
-    download: '↓',
-    logout: '↪',
-    emergency: '!',
-    shield: '✓',
-  };
-  if (name === 'home')
-    return (
-      <View style={{ width: size, height: size }} accessible={false}>
-        <View
-          style={[
-            n.homeRoof,
-            {
-              width: size * 0.57,
-              height: size * 0.57,
-              backgroundColor: color,
-              left: size * 0.22,
-              top: size * 0.08,
-            },
-          ]}
-        />
-        <View
-          style={[
-            n.homeBody,
-            {
-              width: size * 0.67,
-              height: size * 0.57,
-              backgroundColor: color,
-              left: size * 0.17,
-            },
-          ]}
-        />
-        <View
-          style={[
-            n.homeDoor,
-            {
-              width: size * 0.18,
-              height: size * 0.36,
-              left: size * 0.42,
-            },
-          ]}
-        />
-      </View>
-    );
-  return (
-    <Text
-      accessible={false}
-      style={[
-        n.glyph,
-        {
-          fontSize: size,
-          lineHeight: size + 4,
-          color,
-          width: size + 3,
-        },
-      ]}
-    >
-      {glyph[name] || '▤'}
-    </Text>
-  );
+  return <Icon name={name} size={size} color={color} />;
 }
 
 export function NoorLogo({
@@ -473,7 +238,7 @@ export function NoorRow({
         <Text style={n.rowTitle}>{title}</Text>
         {subtitle ? <Text style={n.rowSub}>{subtitle}</Text> : null}
       </View>
-      {trailing || (onPress ? <Text style={n.chevron}>›</Text> : null)}
+      {trailing || (onPress ? <Icon name="chevron" size={20} color={colors.muted} /> : null)}
     </Pressable>
   );
 }

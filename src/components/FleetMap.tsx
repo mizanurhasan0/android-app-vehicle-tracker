@@ -12,6 +12,7 @@ import { WebView } from 'react-native-webview';
 import { Location, Vehicle } from '../api/types';
 import { useTranslation } from '../i18n';
 import { colors } from '../theme';
+import { Icon } from './Icon';
 
 export interface FleetMapProps {
   vehicles: Vehicle[];
@@ -243,23 +244,23 @@ export function FleetMap({
           <View style={local.controls}>
             <MapControl
               label={t('Zoom in')}
-              symbol="+"
+              icon="plus"
               onPress={() => action('in')}
             />
             <MapControl
               label={t('Zoom out')}
-              symbol="−"
+              icon="minus"
               onPress={() => action('out')}
             />
             <MapControl
               label={t('Fit all vehicles')}
-              symbol="⊞"
+              icon="fit"
               onPress={() => action('fit')}
             />
             {positioned ? (
               <MapControl
                 label={t('Recenter vehicle')}
-                symbol="◎"
+                icon="locate"
                 onPress={() => action('focus')}
               />
             ) : null}
@@ -286,11 +287,11 @@ export function FleetMap({
 
 function MapControl({
   label,
-  symbol,
+  icon,
   onPress,
 }: {
   label: string;
-  symbol: string;
+  icon: string;
   onPress: () => void;
 }) {
   return (
@@ -300,9 +301,7 @@ function MapControl({
       onPress={onPress}
       style={({ pressed }) => [local.control, pressed && local.pressed]}
     >
-      <Text accessible={false} style={local.controlText}>
-        {symbol}
-      </Text>
+      <Icon name={icon} size={20} color={colors.primary} />
     </Pressable>
   );
 }

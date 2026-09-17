@@ -13,6 +13,7 @@ import { Location, Vehicle } from '../api/types';
 import { colors, styles } from '../theme';
 import { dateLabel, numberLabel, readable } from '../utils/format';
 import { Badge, Card } from './ui';
+import { Icon } from './Icon';
 interface VehicleCardProps {
   vehicle: Vehicle;
   location?: Location;
@@ -110,7 +111,9 @@ export function VehicleCard({
                   ],
                 },
               ]}
-            />
+            >
+              <Icon name="chevron" size={22} color={colors.muted} />
+            </Animated.View>
           </Pressable>
           {onHistory || driverPhone ? (
             <View style={local.quickActions}>
@@ -209,17 +212,6 @@ export function VehicleCard({
     </Card>
   );
 }
-function HistoryIcon() {
-  return (
-    <View accessible={false} style={local.historyIcon}>
-      <View style={local.clockFace}>
-        <View style={local.clockHour} />
-        <View style={local.clockMinute} />
-      </View>
-      <View style={local.historyArrow} />
-    </View>
-  );
-}
 function VehicleAction({
   title,
   icon,
@@ -251,19 +243,17 @@ function VehicleAction({
         (pressed || disabled) && local.dimmed,
       ]}
     >
-      {icon === 'history' ? (
-        <HistoryIcon />
+      {icon ? (
+        <Icon name={icon === 'history' ? 'history' : 'phone'} size={24} color={colors.primary} />
       ) : (
         <Text
           accessible={false}
-          allowFontScaling={!icon}
           style={[
             local.actionText,
-            icon && local.icon,
             primary && local.primaryActionText,
           ]}
         >
-          {icon === 'call' ? '☎' : title}
+          {title}
         </Text>
       )}
     </Pressable>
@@ -386,59 +376,6 @@ const local = StyleSheet.create({
     flexGrow: 0,
     paddingHorizontal: 0,
     alignItems: 'center',
-  },
-  icon: {
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: '400',
-  },
-  historyIcon: {
-    width: 24,
-    height: 24,
-  },
-  clockFace: {
-    position: 'absolute',
-    top: 2,
-    right: 1,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderLeftColor: 'transparent',
-  },
-  clockHour: {
-    position: 'absolute',
-    left: 7,
-    top: 3,
-    width: 2,
-    height: 6,
-    borderRadius: 1,
-    backgroundColor: colors.primary,
-  },
-  clockMinute: {
-    position: 'absolute',
-    left: 7,
-    top: 8,
-    width: 5,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: colors.primary,
-    transform: [
-      {
-        rotate: '30deg',
-      },
-    ],
-  },
-  historyArrow: {
-    position: 'absolute',
-    left: 1,
-    top: 3,
-    width: 7,
-    height: 7,
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: colors.primary,
   },
   primaryAction: {
     backgroundColor: colors.primary,

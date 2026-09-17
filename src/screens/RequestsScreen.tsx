@@ -33,6 +33,7 @@ import {
   Page,
   Select,
 } from '../components/ui';
+import { NoorIcon } from '../components/Noor';
 import { ReviewActions } from '../components/ReviewActions';
 import { RequestIconKind, RequestTabIcon } from '../components/RequestTabIcon';
 import { useAuth } from '../context/AuthContext';
@@ -111,7 +112,7 @@ function RequestActions({
         <Text style={local.link}>
           {t(expanded ? 'Hide details' : 'View details')}
         </Text>
-        <Text style={local.link}>{expanded ? '−' : '+'}</Text>
+        <NoorIcon name={expanded ? 'minus' : 'plus'} size={20} color={colors.primary} />
       </Pressable>
       <View
         style={[local.actionFields, !expanded && local.hidden]}

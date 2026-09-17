@@ -19,6 +19,7 @@ import { VehicleListRow } from '../components/VehicleListRow';
 import { VehicleEditSheet } from '../components/VehicleEditSheet';
 import { RecordedJourney } from '../components/RecordedJourney';
 import { Vehicle } from '../api/types';
+import { Icon } from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
@@ -218,7 +219,7 @@ export function VehiclesScreen({
                         onPress={() => setQuery('')}
                         style={local.clear}
                       >
-                        <Text style={local.clearText}>×</Text>
+                        <Icon name="close" size={20} color={colors.muted} />
                       </Pressable>
                     ) : null}
                   </View>

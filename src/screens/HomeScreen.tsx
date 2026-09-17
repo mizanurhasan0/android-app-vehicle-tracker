@@ -406,7 +406,7 @@ export function HomeScreen({
                           : ''}
                       </Text>
                     </View>
-                    <Text style={h.arrow}>›</Text>
+                    <NoorIcon name="chevron" size={20} color={colors.muted} />
                   </NoorCard>
                 </Pressable>
               ) : (
@@ -593,7 +593,7 @@ function AlertRow({
     <Pressable accessibilityRole="button" onPress={onPress} style={h.alertRow}>
       <View style={[h.dot, { backgroundColor: color }]} />
       <Text style={h.alertText}>{text}</Text>
-      <Text style={h.arrow}>›</Text>
+      <NoorIcon name="chevron" size={20} color={colors.muted} />
     </Pressable>
   );
 }
