@@ -62,6 +62,7 @@ import {
   CommunicationScreen,
   ReportsScreen,
   SettingsScreen,
+  BannersScreen,
 } from './src/screens/admin';
 import {
   AdmissionScreen,
@@ -307,6 +308,11 @@ export function Navigator() {
                 name="Notices"
                 component={NoticesScreen}
                 options={{ title: t('Notices') }}
+              />
+              <Stack.Screen
+                name="Banners"
+                component={BannersScreen}
+                options={{ title: t('Dashboard banners') }}
               />
               <Stack.Screen
                 name="OperationalRequests"

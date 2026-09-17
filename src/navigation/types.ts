@@ -25,6 +25,7 @@ export type HomeStackParams = {
   Maintenance: { vehicleId?: string } | undefined;
   Accounts: { tab?: 'INCOME' | 'EXPENSE' | 'INVESTMENT' } | undefined;
   Notices: undefined;
+  Banners: undefined;
   OperationalRequests: { id?: string } | undefined;
   Communication: undefined;
   Reports: undefined;

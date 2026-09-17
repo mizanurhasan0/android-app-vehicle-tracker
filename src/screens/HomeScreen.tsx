@@ -18,6 +18,8 @@ import {
   NoorCard,
   NoorSection,
 } from '../components/Noor';
+import { BannerCarousel, BannerItem } from '../components/BannerCarousel';
+import { BannerRoute } from '../api/management';
 import { ProfileDrawer } from '../components/ProfileDrawer';
 import { Notice } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
@@ -123,6 +125,21 @@ export function HomeScreen({
   };
   const go = (screen: keyof HomeStackParams) =>
     navigation.navigate(screen as 'Fleet');
+  const banners: BannerItem[] = (extra?.banners || [])
+    .filter(
+      banner =>
+        (banner.active === true || banner.active === 1) &&
+        !!banner.imageUrl &&
+        !!banner.redirectRoute,
+    )
+    .map(banner => ({
+      id: banner.id,
+      imageUrl: banner.imageUrl,
+      redirectRoute: banner.redirectRoute,
+      sliderDuration: banner.sliderDuration,
+    }));
+  const openBanner = (banner: BannerItem) =>
+    navigation.navigate(banner.redirectRoute as BannerRoute);
   return (
     <SafeAreaView style={h.safe} edges={['top', 'left', 'right']}>
       <View style={h.header}>
@@ -169,6 +186,7 @@ export function HomeScreen({
       >
         <View style={h.content}>
           <Notice text={core.error || management.error} kind="error" />
+          <BannerCarousel banners={banners} onPress={openBanner} />
           {admin ? (
             <>
               <View style={h.dateRow}>

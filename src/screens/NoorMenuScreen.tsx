@@ -51,6 +51,7 @@ const groups: {
     items: [
       ['sms', 'এসএমএস', 'Communication'],
       ['bell', 'নোটিশ', 'Notices'],
+      ['notice', 'ব্যানার', 'Banners'],
       ['whatsapp', 'হোয়াটসঅ্যাপ', 'Communication'],
       ['bell', 'নোটিফিকেশন', 'Inbox'],
     ],

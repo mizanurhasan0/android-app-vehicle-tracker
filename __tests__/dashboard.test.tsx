@@ -75,7 +75,33 @@ const mockData = {
 };
 const initialBills = mockData.bills;
 const mockManagement = {
-  data: { students: [], attendance: [], maintenance: [], requests: [] },
+  data: {
+    students: [],
+    attendance: [],
+    maintenance: [],
+    requests: [],
+    banners: [
+      {
+        id: 'b1',
+        imageUrl: 'https://example.com/banner.png',
+        redirectRoute: 'Bills',
+        sliderDuration: 8,
+        sortOrder: 10,
+        active: 1,
+        createdAt: '',
+        updatedAt: '',
+      },
+      {
+        id: 'b2',
+        imageUrl: 'https://example.com/tracking.png',
+        redirectRoute: 'LiveTracking',
+        sortOrder: 20,
+        active: 1,
+        createdAt: '',
+        updatedAt: '',
+      },
+    ],
+  },
   loading: false,
   error: '',
   refresh: jest.fn(),
@@ -178,6 +204,29 @@ it('connects the four admin quick actions and unread inbox', async () => {
   expect(mockNavigate).toHaveBeenLastCalledWith('Accounts', { tab: 'EXPENSE' });
   await act(async () => button('Notifications, 1 unread').props.onPress());
   expect(mockNavigate).toHaveBeenLastCalledWith('Inbox');
+});
+it('renders API banners as slider pages and follows the configured app route', async () => {
+  await render();
+  expect(
+    screen.root.findAll(
+      node =>
+        node.props.accessibilityLabel === 'Open dashboard banner' &&
+        typeof node.props.onPress === 'function',
+      { deep: false },
+    ),
+  ).toHaveLength(2);
+  expect(
+    screen.root.findAll(node => node.props.accessibilityLabel === 'Banner pages', {
+      deep: false,
+    }),
+  ).toHaveLength(1);
+  await act(async () =>
+    screen.root.findAll(
+      node => node.props.accessibilityLabel === 'Open dashboard banner',
+      { deep: false },
+    )[0].props.onPress(),
+  );
+  expect(mockNavigate).toHaveBeenLastCalledWith('Bills');
 });
 it.each(['loading', 'error'])(
   'does not display zero financial balances when initial fetch is %s',

@@ -160,6 +160,29 @@ export interface NoticeInput {
   audience: Notice['audience'];
   targetId?: string;
 }
+export interface Banner {
+  id: string;
+  imageUrl: string;
+  redirectRoute: BannerRoute;
+  sortOrder: number;
+  sliderDuration?: number | null;
+  active: number | boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+export const bannerRoutes = [
+  'Fleet', 'Vehicles', 'FleetMap', 'Routes', 'Bills', 'DueList',
+  'Requested', 'Complaints', 'StopRequests', 'PaymentAccounts', 'Inbox',
+  'Settings', 'Emergency', 'LiveTracking',
+] as const;
+export type BannerRoute = (typeof bannerRoutes)[number];
+export interface BannerInput {
+  imageUrl: string;
+  redirectRoute: BannerRoute;
+  sortOrder?: number;
+  sliderDuration?: number | null;
+  active?: boolean;
+}
 export interface ManagementRequest {
   id: string;
   userId: string;
@@ -218,6 +241,7 @@ export interface ManagementOverview {
   maintenance: Maintenance[];
   ledger: LedgerEntry[];
   notices: Notice[];
+  banners?: Banner[];
   requests: ManagementRequest[];
   settings: BusinessSettings;
   schedules: RouteSchedule[];
@@ -245,7 +269,8 @@ export interface ManagementReport {
  * POST /admin/drivers; PATCH /admin/drivers/:id with Partial<DriverInput>
  * PUT /admin/attendance {entries: AttendanceInput[]} (atomic batch)
  * POST /admin/maintenance; PATCH /admin/maintenance/:id with Partial<MaintenanceInput>
- * POST /admin/ledger; POST /admin/notices
+ * POST /admin/ledger; POST/PATCH/DELETE /admin/banners
+ * POST /admin/notices
  * POST /management/requests
  * PATCH /admin/management-requests/:id/decision {decision:'APPROVED'|'REJECTED',note?:string}
  * PATCH /admin/settings with Partial<BusinessSettings>
