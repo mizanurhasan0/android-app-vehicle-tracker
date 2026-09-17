@@ -685,17 +685,17 @@ it('keeps the tracked vehicle and localizes last-update text on a mounted screen
       />,
     );
   });
-  expect(text()).toContain('Last updated:');
+  expect(text()).toContain("Today's Statistics");
+  expect(text()).toContain('Odometer');
+  expect(text()).toContain('Route length');
+  expect(text()).toContain('Move duration');
   await language('bn');
   expect(screen.root.findByType(Select).props.value).toBe('second');
-  expect(text()).toContain('বর্তমান অবস্থান');
-  expect(text()).toContain('সর্বশেষ আপডেট:');
-  expect(text()).toContain('ড্রাইভার: Driver');
-  expect(text()).toContain('রুট: South road');
-  expect(text()).toContain('Bus 2');
-  expect(text()).toContain('23.80000, 90.40000');
+  expect(text()).toContain('আজকের পরিসংখ্যান');
+  expect(text()).toContain('ওডোমিটার');
+  expect(text()).not.toContain('বর্তমান অবস্থান');
   await language('en');
-  expect(text()).toContain('Current location');
+  expect(text()).not.toContain('Current location');
   expect(JSON.stringify(mockData)).toBe(original);
 });
 

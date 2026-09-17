@@ -1409,7 +1409,7 @@ export function ParentContactScreen() {
   );
 }
 
-export function ParentTrackingScreen({ route, navigation }: Props<'LiveTracking'>) {
+export function ParentTrackingScreen({ route }: Props<'LiveTracking'>) {
   const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
   const action = useAction();
@@ -1419,9 +1419,6 @@ export function ParentTrackingScreen({ route, navigation }: Props<'LiveTracking'
     data.vehicles.find(item => item.id === selectedId) ||
     (!selectedId ? data.vehicles[0] : undefined);
   const location = data.locations.find(item => item.imei === vehicle?.imei);
-  const fresh =
-    location?.status === 'live' &&
-    Date.now() - Date.parse(location.lastSeen) < 180_000;
   const mapHeight = Math.max(520, Math.min(935, width * 1.53));
   const currentSpeed = location?.speed == null ? undefined : Math.round(location.speed);
   return (
@@ -1435,7 +1432,6 @@ export function ParentTrackingScreen({ route, navigation }: Props<'LiveTracking'
           <Notice text={error || action.error} kind="error" />
           <View style={[parent.trackingMap, { height: mapHeight }]}>
             <FleetMap vehicles={[vehicle]} locations={location ? [location] : []} selectedId={vehicle.id} onSelect={setSelectedId} style={parent.trackingMapWeb} />
-            <Pressable accessibilityRole="button" accessibilityLabel={t('Back')} onPress={() => navigation.goBack()} style={parent.trackingBack}><NoorIcon name="back" size={31} color="#172225" /></Pressable>
             <View style={parent.trackingControls}>
               {[
                 ['target', 'Center map', '#36A0AA'], ['layers', 'Map layers', '#45A956'], ['traffic', 'Traffic', '#EF5A5D'], ['play', 'Replay', '#F49A14'], ['compass', 'Direction', '#9638B3'], ['share', 'Share', '#2C68D0'], ['lock', 'Secure', '#EC5360'],
@@ -1460,7 +1456,6 @@ export function ParentTrackingScreen({ route, navigation }: Props<'LiveTracking'
               <LiveStat icon="duration" label={t('Move duration')} value="—" unit="" color="#1596C6" />
             </View>
           </View>
-          <View style={parent.locationRow}><NoorIcon name="pin" size={22} color="#879294" /><View style={parent.locationCopy}><Text style={parent.locationTitle}>{t('Current location')}</Text><Text selectable style={parent.locationText}>{location?.latitude != null && location.longitude != null ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : '—'}</Text>{location?.lastSeen ? <Text style={parent.locationUpdated}>{t('Last updated: {{time}}', { time: dateLabel(location.lastSeen) })}</Text> : null}{location && !fresh ? <Text style={local.stale}>{t('Showing an older location. Waiting for a new GPS update.')}</Text> : null}</View></View>
           <VehicleCard vehicle={vehicle} location={location} busy={action.busy} onOpenURL={url => action.run(() => Linking.openURL(url), '')} />
           {data.vehicles.length > 1 ? <View style={parent.vehiclePicker}><Select label={t('Select vehicle')} value={vehicle.id} onChange={setSelectedId} options={data.vehicles.map(item => ({ value: item.id, label: item.name }))} /></View> : null}
           <Pressable accessibilityRole="button" onPress={refresh} style={parent.refreshTracking}><Text style={parent.refreshTrackingText}>{t('Refresh location')}</Text></Pressable>
