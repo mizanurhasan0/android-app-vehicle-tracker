@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParams } from '../../navigation/types';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useManagement } from '../../context/ManagementContext';
 import { NoorIcon, NoorCard, NoorSection } from '../../components/Noor';
@@ -21,7 +21,7 @@ export function VehicleDetailsScreen({
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'VehicleDetails'>) {
   const { t } = useTranslation();
-  const core = useData(),
+  const core = useCoreData(),
     management = useManagement(),
     { session } = useAuth();
   const [editing, setEditing] = useState(false),

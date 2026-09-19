@@ -4,7 +4,7 @@ import { useRoute } from '@react-navigation/native';
 import { LedgerEntry } from '../../../api/management';
 import { NoorIcon } from '../../../components/Noor';
 import { useManagement } from '../../../context/ManagementContext';
-import { useData } from '../../../context/DataContext';
+import { useCoreData } from '../../../context/DataContext';
 import { useTranslation } from '../../../i18n';
 import { currentMonth, money } from '../../../utils/format';
 import { monthInDhaka } from '../reportUtils';
@@ -28,7 +28,7 @@ export function AccountsScreen() {
   const { params } = useRoute();
   const { tab: initialTab } = (params || {}) as { tab?: LedgerEntry['type'] };
   const { data, loading, error, refresh } = useManagement();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const [tab, setTab] = useState<LedgerEntry['type']>(initialTab || 'INCOME');
   useEffect(() => {
     if (initialTab) setTab(initialTab);

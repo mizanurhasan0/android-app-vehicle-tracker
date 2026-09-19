@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Text } from 'react-native';
 import { LedgerEntry, LedgerInput } from '../../../api/management';
 import { useManagement } from '../../../context/ManagementContext';
-import { useData } from '../../../context/DataContext';
+import { useCoreData } from '../../../context/DataContext';
 import { useTranslation } from '../../../i18n';
 import { toPoisha } from '../../../utils/format';
 import { ValidationError, isValidDate } from '../../../utils/validation';
@@ -20,7 +20,7 @@ export function LedgerForm({
 }) {
   const { t } = useTranslation();
   const { data, mutate } = useManagement();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const action = useAction();
   const [form, setForm] = useState({
     type: initialType,

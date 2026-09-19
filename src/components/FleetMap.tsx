@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -10,6 +16,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Location, Vehicle } from '../api/types';
+import { useDeadline } from '../hooks/useDeadline';
 import { useTranslation } from '../i18n';
 import { colors } from '../theme';
 import { Icon } from './Icon';
@@ -86,16 +93,18 @@ html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:#e8efe
 var items=${scriptData(markers)},selected=${scriptData(
     selectedId || null,
   )},zoom=14,cx=0.5,cy=0.5,initialized=false,tileError=false;
-var map=document.getElementById('map'),tiles=document.getElementById('tiles'),layer=document.getElementById('markers');
+var map=document.getElementById('map'),tiles=document.getElementById('tiles'),layer=document.getElementById('markers'),markerNodes=new Map();
 function send(type,id){if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify({type:type,id:id}));}
 function project(p){var lat=Math.max(-85.0511,Math.min(85.0511,p.latitude))*Math.PI/180;return [(p.longitude+180)/360,(1-Math.log(Math.tan(lat)+1/Math.cos(lat))/Math.PI)/2];}
 function selectedItem(){return items.find(function(p){return p.id===selected;});}
 function fit(){if(!items.length){draw();return;}var ps=items.map(project),xs=ps.map(function(p){return p[0];}),ys=ps.map(function(p){return p[1];});var l=Math.min.apply(null,xs),r=Math.max.apply(null,xs),t=Math.min.apply(null,ys),b=Math.max.apply(null,ys);cx=(l+r)/2;cy=(t+b)/2;zoom=Math.max(1,Math.min(16,Math.floor(Math.log2(Math.min(Math.max(1,map.clientWidth-120)/(256*Math.max(r-l,0.00001)),Math.max(1,map.clientHeight-150)/(256*Math.max(b-t,0.00001)))))));initialized=true;draw();}
 function focus(){var p=selectedItem();if(!p){fit();return;}var q=project(p);cx=q[0];cy=q[1];zoom=16;initialized=true;draw();}
-function draw(){if(!items.length){tiles.replaceChildren();layer.replaceChildren();return;}var count=Math.pow(2,zoom),scale=256*count,left=cx*scale-map.clientWidth/2,top=cy*scale-map.clientHeight/2,used={};
+function drawMarker(p){var scale=256*Math.pow(2,zoom),q=project(p),dx=q[0]-cx;dx-=Math.round(dx);var px=dx*scale+map.clientWidth/2,py=(q[1]-cy)*scale+map.clientHeight/2,button=markerNodes.get(p.id);var offscreen=px<-160||px>map.clientWidth+160||py<-70||py>map.clientHeight+70;if(offscreen&&!button)return;if(!button){button=document.createElement('button');button.dataset.vehicleId=p.id;button.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8"/><path d="M7 14h.01M17 14h.01"/><rect width="18" height="8" x="3" y="10" rx="2"/><path d="M5 18v2M19 18v2"/></svg>';button.onclick=function(){selected=p.id;focus();send('select',p.id);};markerNodes.set(p.id,button);layer.appendChild(button);}button.style.display=offscreen?'none':'';button.className='marker'+(p.live?' live':'')+(p.id===selected?' selected':'');button.style.left=px+'px';button.style.top=py+'px';button.setAttribute('aria-label',p.label||p.name);button.setAttribute('aria-pressed',String(p.id===selected));var name=button.querySelector('span');if(p.id===selected){if(!name){name=document.createElement('span');button.appendChild(name);}if(name.textContent!==p.name)name.textContent=p.name;}else if(name)name.remove();}
+function draw(){if(!items.length){tiles.replaceChildren();layer.replaceChildren();markerNodes.clear();return;}var count=Math.pow(2,zoom),scale=256*count,left=cx*scale-map.clientWidth/2,top=cy*scale-map.clientHeight/2,used={};
 for(var x=Math.floor(left/256);x<=Math.floor((left+map.clientWidth)/256);x++)for(var y=Math.floor(top/256);y<=Math.floor((top+map.clientHeight)/256);y++){if(y<0||y>=count)continue;var key='tile-'+zoom+'-'+x+'-'+y;used[key]=true;var im=document.getElementById(key);if(!im){im=document.createElement('img');im.id=key;im.alt='';im.draggable=false;im.onerror=function(){if(!tileError){tileError=true;send('tileError');}};im.src='https://tile.openstreetmap.org/'+zoom+'/'+((x%count+count)%count)+'/'+y+'.png';tiles.appendChild(im);}im.style.left=(x*256-left)+'px';im.style.top=(y*256-top)+'px';}
-Array.from(tiles.children).forEach(function(e){if(!used[e.id])e.remove();});layer.replaceChildren();items.forEach(function(p){var q=project(p),dx=q[0]-cx;dx-=Math.round(dx);var px=dx*scale+map.clientWidth/2,py=(q[1]-cy)*scale+map.clientHeight/2;if(px<-160||px>map.clientWidth+160||py<-70||py>map.clientHeight+70)return;var button=document.createElement('button');button.className='marker'+(p.live?' live':'')+(p.id===selected?' selected':'');button.dataset.vehicleId=p.id;button.style.left=px+'px';button.style.top=py+'px';button.setAttribute('aria-label',p.label||p.name);button.setAttribute('aria-pressed',String(p.id===selected));button.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8"/><path d="M7 14h.01M17 14h.01"/><rect width="18" height="8" x="3" y="10" rx="2"/><path d="M5 18v2M19 18v2"/></svg>';if(p.id===selected){var name=document.createElement('span');name.textContent=p.name;button.appendChild(name);}button.onclick=function(){selected=p.id;focus();send('select',p.id);};layer.appendChild(button);});}
-window.setFleetData=function(next,id){var changed=selected!==id;items=next;selected=id;if(!initialized||changed){if(selectedItem())focus();else fit();}else draw();};
+Array.from(tiles.children).forEach(function(e){if(!used[e.id])e.remove();});items.forEach(drawMarker);}
+window.updateFleet=function(update){var previous=selected,wasEmpty=!items.length,byId=new Map(update.reset?[]:items.map(function(p){return [p.id,p];}));(update.remove||[]).forEach(function(id){byId.delete(id);});(update.upsert||[]).forEach(function(p){byId.set(p.id,p);});items=Array.from(byId.values());markerNodes.forEach(function(button,id){if(!byId.has(id)){button.remove();markerNodes.delete(id);}});if(Object.prototype.hasOwnProperty.call(update,'selectedId'))selected=update.selectedId;if(update.labels)window.setFleetLabels(update.labels);if(!initialized||previous!==selected){if(selectedItem())focus();else fit();}else if(update.reset||wasEmpty||!items.length)draw();else (update.upsert||[]).forEach(drawMarker);};
+window.setFleetData=function(next,id){window.updateFleet({reset:true,upsert:next,selectedId:id});};
 window.setFleetLabels=function(labels){document.documentElement.lang=labels.language;document.getElementById('contributors').textContent=labels.contributors;};
 window.fleetAction=function(action){if(action==='fit')fit();else if(action==='focus')focus();else{zoom=Math.max(1,Math.min(19,zoom+(action==='in'?1:-1)));draw();}};
 var pointers=new Map(),drag=null,pinch=null;
@@ -118,33 +127,102 @@ export function FleetMap({
   const [failed, setFailed] = useState(false);
   const [tileError, setTileError] = useState(false);
   const [revision, setRevision] = useState(0);
+  const ready = useRef(false);
+  // Compare map-visible fields; telemetry-only changes never cross the bridge.
+  // Discard this baseline on reload so the new document gets a full snapshot.
+  const sent = useRef<{
+    markers: Map<
+      string,
+      ReturnType<typeof fleetMapMarkers>[number] & { label: string }
+    >;
+    selectedId: string | null;
+    labels: string;
+  } | null>(null);
+  const deadlines = useMemo(() => {
+    const imeis = new Set(vehicles.map(vehicle => vehicle.imei));
+    return locations
+      .filter(
+        location =>
+          imeis.has(location.imei) &&
+          hasMapPosition(location) &&
+          location.status === 'live',
+      )
+      .map(location => Date.parse(location.lastSeen) + 180_000)
+      .filter(Number.isFinite);
+  }, [vehicles, locations]);
+  const now = Date.now();
+  const nextDeadline = deadlines.reduce<number | undefined>(
+    (next, deadline) =>
+      deadline > now && (next === undefined || deadline < next)
+        ? deadline
+        : next,
+    undefined,
+  );
+  const freshnessRevision = useDeadline(nextDeadline);
   const markers = useMemo(
     () => fleetMapMarkers(vehicles, locations),
-    [vehicles, locations],
+    // These invalidate Date.now()-derived status on expiry/resume, not data edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [vehicles, locations, freshnessRevision, nextDeadline],
   );
   const source = useMemo(
     () => ({ html: fleetMapHtml(), baseUrl: 'https://pathsathi.local/' }),
     [],
   );
   const positioned = markers.some(marker => marker.id === selectedId);
-  const update = () => {
+  const update = useCallback(() => {
+    if (!ready.current || !web.current) return;
     const labelled = markers.map(marker => ({
       ...marker,
       label: t('Select {{name}}', { name: marker.name }),
     }));
-    web.current?.injectJavaScript(
-      `window.setFleetData && window.setFleetData(${scriptData(
-        labelled,
-      )},${scriptData(
-        selectedId || null,
-      )});window.setFleetLabels && window.setFleetLabels(${scriptData({
-        language: i18n.language,
-        contributors: t('contributors'),
+    const labels = {
+      language: i18n.language,
+      contributors: t('contributors'),
+    };
+    const previous = sent.current;
+    const next = {
+      markers: new Map(labelled.map(marker => [marker.id, marker])),
+      selectedId: selectedId || null,
+      labels: scriptData(labels),
+    };
+    const upsert = labelled.filter(marker => {
+      const before = previous?.markers.get(marker.id);
+      return (
+        !before ||
+        before.latitude !== marker.latitude ||
+        before.longitude !== marker.longitude ||
+        before.name !== marker.name ||
+        before.live !== marker.live ||
+        before.label !== marker.label
+      );
+    });
+    const remove = previous
+      ? [...previous.markers.keys()].filter(id => !next.markers.has(id))
+      : [];
+    const selectionChanged =
+      !previous || previous.selectedId !== next.selectedId;
+    const labelsChanged = !previous || previous.labels !== next.labels;
+    if (!upsert.length && !remove.length && !selectionChanged && !labelsChanged)
+      return;
+    web.current.injectJavaScript(
+      `window.updateFleet && window.updateFleet(${scriptData({
+        ...(!previous ? { reset: true } : {}),
+        ...(upsert.length ? { upsert } : {}),
+        ...(remove.length ? { remove } : {}),
+        ...(selectionChanged ? { selectedId: next.selectedId } : {}),
+        ...(labelsChanged ? { labels } : {}),
       })});true;`,
     );
+    sent.current = next;
+  }, [markers, selectedId, i18n.language, t]);
+  useEffect(update, [update]);
+  const resetBridge = () => {
+    ready.current = false;
+    sent.current = null;
   };
-  useEffect(update, [markers, selectedId, i18n.language, t]);
   const retry = () => {
+    resetBridge();
     setLoading(true);
     setFailed(false);
     setTileError(false);
@@ -167,7 +245,11 @@ export function FleetMap({
           request.url === 'about:blank' ||
           request.url === 'https://pathsathi.local/'
         }
-        onLoadEnd={update}
+        onLoadStart={resetBridge}
+        onLoadEnd={() => {
+          ready.current = true;
+          update();
+        }}
         onError={() => {
           setLoading(false);
           setFailed(true);
@@ -181,6 +263,9 @@ export function FleetMap({
           try {
             const message = JSON.parse(event.nativeEvent.data);
             if (message.type === 'ready') {
+              // A new document needs a snapshot even if load-start was missed.
+              sent.current = null;
+              ready.current = true;
               setLoading(false);
               update();
             }

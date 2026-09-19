@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Vehicle } from '../../api/types';
-import { useData } from '../../context/DataContext';
+import { useDataActions } from '../../context/DataContext';
 import { useAction } from '../../hooks/useAction';
 import { NoorCard } from '../../components/Noor';
 import { Button, Field, Select, Notice } from '../../components/ui';
@@ -14,7 +14,7 @@ export function VehicleMetadata({
   onDone: () => void;
 }) {
   const { t } = useTranslation();
-  const { mutate } = useData();
+  const { mutate } = useDataActions();
   const action = useAction();
   const [model, setModel] = useState(vehicle.model || ''),
     [purchaseDate, setPurchaseDate] = useState(vehicle.purchaseDate || ''),

@@ -123,6 +123,14 @@ it('renders actual vehicle positions, selects pins, and updates without evaluati
     dom.window.eval('window.setFleetData([], null)');
     expect(document.querySelectorAll('.marker')).toHaveLength(0);
     expect(document.querySelectorAll('#tiles img')).toHaveLength(0);
+    dom.window.eval(
+      `window.updateFleet({upsert:${JSON.stringify(
+        fleetMapMarkers(vehicles, locations),
+      )}})`,
+    );
+    expect(document.querySelectorAll('#tiles img').length).toBeGreaterThan(0);
+    dom.window.eval('window.fleetAction("fit")');
+    expect(document.querySelectorAll('.marker')).toHaveLength(2);
     expect(errors).toEqual([]);
   } finally {
     dom.window.close();

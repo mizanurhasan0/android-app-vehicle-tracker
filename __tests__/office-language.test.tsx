@@ -56,9 +56,10 @@ jest.mock('../src/context/AuthContext', () => ({
     expire: mockExpire,
   }),
 }));
-jest.mock('../src/context/DataContext', () => ({
-  useData: () => ({ data: mockTransport }),
-}));
+jest.mock('../src/context/DataContext', () => {
+  const useData = () => ({ data: mockTransport });
+  return { useData, useCoreData: useData, useDataActions: useData };
+});
 jest.mock('../src/context/ManagementContext', () => ({
   useManagement: () => ({ data: mockManagement, mutate: mockMutate }),
 }));

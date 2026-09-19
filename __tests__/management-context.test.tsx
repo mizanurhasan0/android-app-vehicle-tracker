@@ -1,6 +1,6 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { AppState, Text } from 'react-native';
+import { AppState, AppStateStatus, Text } from 'react-native';
 import { api, ApiError } from '../src/api/client';
 import { ManagementOverview } from '../src/api/management';
 import {
@@ -23,11 +23,14 @@ jest.mock('../src/context/AuthContext', () => ({
   }),
 }));
 jest.mock('../src/context/DataContext', () => ({
-  useData: () => ({ refresh: mockRefreshCore }),
+  useDataActions: () => ({ refresh: mockRefreshCore }),
 }));
 let screen: TestRenderer.ReactTestRenderer;
 let current: ReturnType<typeof useManagement>;
+let renders = 0;
+let appStateChanged: (state: AppStateStatus) => void;
 function Probe() {
+  renders++;
   current = useManagement();
   return <Text>{current.data?.settings.businessName || ''}</Text>;
 }
@@ -74,12 +77,16 @@ async function render() {
 beforeEach(() => {
   jest.useFakeTimers();
   mockToken = 'first-token';
+  renders = 0;
   mockExpire.mockReset().mockResolvedValue(undefined);
   mockRefreshCore.mockReset().mockResolvedValue(undefined);
   jest.mocked(api).mockReset().mockResolvedValue(overview('First school'));
   jest
     .spyOn(AppState, 'addEventListener')
-    .mockReturnValue({ remove: jest.fn() });
+    .mockImplementation((_event, handler) => {
+      appStateChanged = handler;
+      return { remove: jest.fn() };
+    });
   Object.defineProperty(AppState, 'currentState', {
     configurable: true,
     value: 'active',
@@ -230,4 +237,95 @@ it('does not load or mutate without an authenticated session', async () => {
     'Please sign in again.',
   );
   expect(api).not.toHaveBeenCalled();
+});
+
+it('retains equal JSON references and renders zero times on unchanged polls', async () => {
+  await render();
+  const previous = current;
+  const before = renders;
+  jest.mocked(api).mockImplementation(async () => overview('First school'));
+  for (let i = 0; i < 3; i++) {
+    await act(async () => {
+      jest.advanceTimersByTime(20_000);
+    });
+  }
+  expect(api).toHaveBeenCalledTimes(4);
+  expect(current).toBe(previous);
+  expect(renders).toBe(before);
+  jest.mocked(api).mockResolvedValueOnce(overview('Changed'));
+  await act(async () => {
+    jest.advanceTimersByTime(20_000);
+  });
+  expect(current.data?.settings.businessName).toBe('Changed');
+  expect(current.data?.students).toBe(previous.data?.students);
+  expect(current.data?.settings).not.toBe(previous.data?.settings);
+});
+
+it('deduplicates pending polls, including the initial load', async () => {
+  const first = deferred<ManagementOverview>();
+  jest.mocked(api).mockReturnValueOnce(first.promise);
+  await render();
+  await act(async () => {
+    jest.advanceTimersByTime(60_000);
+  });
+  expect(api).toHaveBeenCalledTimes(1);
+  await act(async () => first.resolve(overview('Loaded')));
+  expect(current.loading).toBe(false);
+  expect(current.data?.settings.businessName).toBe('Loaded');
+});
+
+it('post-write refresh bypasses pending reads and keeps the latest result', async () => {
+  await render();
+  const old = deferred<ManagementOverview>();
+  jest.mocked(api).mockReturnValueOnce(old.promise);
+  await act(async () => {
+    jest.advanceTimersByTime(20_000);
+  });
+  jest
+    .mocked(api)
+    .mockResolvedValueOnce({ id: 'saved' })
+    .mockResolvedValueOnce(overview('Saved'));
+  await act(async () => current.mutate('/admin/notices', {}));
+  await act(async () => old.resolve(overview('Old')));
+  expect(current.data?.settings.businessName).toBe('Saved');
+  expect(mockRefreshCore).toHaveBeenCalledTimes(1);
+});
+
+it('suspends background polling and refreshes once per foreground transition', async () => {
+  await render();
+  jest.mocked(api).mockClear();
+  await act(async () => appStateChanged('active'));
+  expect(api).not.toHaveBeenCalled();
+  AppState.currentState = 'background';
+  await act(async () => {
+    appStateChanged('background');
+    jest.advanceTimersByTime(60_000);
+  });
+  expect(api).not.toHaveBeenCalled();
+  AppState.currentState = 'active';
+  await act(async () => appStateChanged('active'));
+  await act(async () => appStateChanged('active'));
+  expect(api).toHaveBeenCalledTimes(1);
+});
+
+it('clears old data immediately on session replacement and rejects retained mutation callbacks', async () => {
+  await render();
+  const previous = current;
+  mockToken = 'replacement-token';
+  const replacement = deferred<ManagementOverview>();
+  jest.mocked(api).mockReturnValueOnce(replacement.promise);
+  await act(async () =>
+    screen.update(
+      <ManagementProvider>
+        <Probe />
+      </ManagementProvider>,
+    ),
+  );
+  expect(current.data).toBeNull();
+  expect(current.loading).toBe(true);
+  await expect(previous.mutate('/admin/notices', {})).rejects.toThrow(
+    'Please sign in again.',
+  );
+  await act(async () => replacement.resolve(overview('New school')));
+  expect(current.data?.settings.businessName).toBe('New school');
 });

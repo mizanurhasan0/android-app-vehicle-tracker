@@ -4,7 +4,7 @@ import { HomeStackParams } from '../../navigation/types';
 import { useData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { isServiceScheduled } from '../../utils/transport';
-import { dhakaDate } from '../../utils/historyDates';
+import { useDhakaDate } from '../../hooks/useDhakaDate';
 
 export type HomeNavigation = NativeStackScreenProps<
   HomeStackParams,
@@ -16,7 +16,7 @@ export function useDashboardData() {
   const management = useManagement();
   const data = core.data;
   const extra = management.data;
-  const today = dhakaDate(),
+  const today = useDhakaDate(),
     month = today.slice(0, 7);
   const monthBills = data.bills.filter(b => b.month === month);
   const expected = monthBills.reduce((s, b) => s + b.amount, 0);

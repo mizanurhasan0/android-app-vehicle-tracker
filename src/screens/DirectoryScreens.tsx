@@ -4,7 +4,7 @@ import { Card, Empty, Page } from '../components/ui';
 import { AppIcon } from '../components/AppIcon';
 import { AccountForm, VehicleForm } from '../components/setup/SetupForms';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
+import { useCoreData } from '../context/DataContext';
 import { useTranslation } from '../i18n';
 import { styles } from '../theme';
 
@@ -20,7 +20,7 @@ export function CreateVehicleScreen() {
 export function PaymentAccountsScreen() {
   const { t } = useTranslation();
   const { session } = useAuth();
-  const { data, loading, error, refresh } = useData();
+  const { data, loading, error, refresh } = useCoreData();
   return (
     <Page loading={loading} refresh={refresh} error={error}>
       {session?.user.role === 'ADMIN' ? (

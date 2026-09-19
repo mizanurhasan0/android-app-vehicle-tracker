@@ -4,14 +4,14 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useRef,
-  useState,
 } from 'react';
 import { AppState } from 'react-native';
 import { api, ApiError } from '../api/client';
 import { ManagementOverview } from '../api/management';
+import { useRefreshResource } from '../hooks/useRefreshResource';
+import { useCredentialScope } from '../hooks/useCredentialScope';
 import { useAuth } from './AuthContext';
-import { useData } from './DataContext';
+import { useDataActions } from './DataContext';
 
 interface ManagementValue {
   data: ManagementOverview | null;
@@ -21,73 +21,60 @@ interface ManagementValue {
   mutate: <T>(path: string, body?: unknown, method?: string) => Promise<T>;
 }
 const ManagementContext = createContext<ManagementValue | null>(null);
+const selectOverview = (snapshot: ManagementOverview | null) => snapshot;
 export function ManagementProvider({ children }: React.PropsWithChildren) {
   const { session, baseUrl, expire } = useAuth();
-  const { refresh: refreshCore } = useData();
-  const [data, setData] = useState<ManagementOverview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const generation = useRef(0);
-  const live = useRef(true);
   const token = session?.token;
-  const credentials = useRef({ token, baseUrl });
-  credentials.current = { token, baseUrl };
-  const isCurrent = useCallback(
+  const isAuthenticated = useCredentialScope(baseUrl, token);
+  return (
+    <ManagementScope
+      key={JSON.stringify([baseUrl, token])}
+      baseUrl={baseUrl}
+      token={token}
+      expire={expire}
+      isAuthenticated={isAuthenticated}
+    >
+      {children}
+    </ManagementScope>
+  );
+}
+interface ScopeProps extends React.PropsWithChildren {
+  baseUrl: string;
+  token?: string;
+  expire: () => Promise<void>;
+  isAuthenticated: () => boolean;
+}
+function ManagementScope({
+  children,
+  baseUrl,
+  token,
+  expire,
+  isAuthenticated,
+}: ScopeProps) {
+  const { refresh: refreshCore } = useDataActions();
+  const fetchSnapshot = useCallback(
     () =>
-      live.current &&
-      credentials.current.token === token &&
-      credentials.current.baseUrl === baseUrl,
-    [token, baseUrl],
+      token
+        ? api<ManagementOverview>(baseUrl, '/management/overview', token)
+        : Promise.resolve(null),
+    [baseUrl, token],
   );
-  const load = useCallback(
-    async (showLoading = false) => {
-      if (!token || !isCurrent()) return;
-      const request = ++generation.current;
-      if (showLoading) setLoading(true);
-      try {
-        const result = await api<ManagementOverview>(
-          baseUrl,
-          '/management/overview',
-          token,
-        );
-        if (isCurrent() && request === generation.current) {
-          setData(result);
-          setError('');
-        }
-      } catch (problem) {
-        if (
-          isCurrent() &&
-          problem instanceof ApiError &&
-          problem.status === 401
-        )
-          await expire();
-        if (isCurrent() && request === generation.current)
-          setError(
-            problem instanceof Error
-              ? problem.message
-              : 'Could not load data. Please try again.',
-          );
-      } finally {
-        if (isCurrent() && request === generation.current) setLoading(false);
-      }
-    },
-    [baseUrl, token, expire, isCurrent],
-  );
-  const refresh = useCallback(() => load(true), [load]);
+  const { data, loading, error, load, refresh, isCurrent } = useRefreshResource<
+    ManagementOverview | null,
+    ManagementOverview | null
+  >(null, fetchSnapshot, selectOverview, expire, isAuthenticated);
   useEffect(() => {
-    live.current = true;
-    setData(null);
-    setError('');
-    setLoading(!!token);
     load(true);
+    if (!token) return;
     const timer = setInterval(() => {
       if (AppState.currentState === 'active') load();
-    }, 20000);
+    }, 20_000);
+    let previousState = AppState.currentState;
     const listener = AppState.addEventListener('change', state => {
-      if (state === 'active') load();
+      if (state === 'active' && previousState !== 'active') load(false, true);
+      previousState = state;
     });
     return () => {
-      live.current = false;
       clearInterval(timer);
       listener.remove();
     };
@@ -97,7 +84,7 @@ export function ManagementProvider({ children }: React.PropsWithChildren) {
       if (!token || !isCurrent()) throw new Error('Please sign in again.');
       try {
         const result = await api<T>(baseUrl, path, token, body, method);
-        if (isCurrent()) await Promise.all([load(), refreshCore()]);
+        if (isCurrent()) await Promise.all([load(false, true), refreshCore()]);
         return result;
       } catch (problem) {
         if (
@@ -111,8 +98,6 @@ export function ManagementProvider({ children }: React.PropsWithChildren) {
     },
     [baseUrl, token, expire, load, refreshCore, isCurrent],
   );
-  // Live-location updates rerender this provider through DataContext. Keep
-  // management-only consumers stable until their own data or actions change.
   const value = useMemo(
     () => ({ data, loading, error, refresh, mutate }),
     [data, loading, error, refresh, mutate],

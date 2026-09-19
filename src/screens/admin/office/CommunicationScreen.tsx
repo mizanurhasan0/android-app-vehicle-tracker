@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { NoorIcon } from '../../../components/Noor';
-import { useData } from '../../../context/DataContext';
+import { useCoreData } from '../../../context/DataContext';
 import { useManagement } from '../../../context/ManagementContext';
 import { useTranslation } from '../../../i18n';
 import { ValidationError } from '../../../utils/validation';
@@ -23,7 +23,7 @@ import { templateLabels } from './messageTemplates';
 export function CommunicationScreen() {
   const { t } = useTranslation();
   const { data, loading, error, refresh } = useManagement();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const action = useAction();
   const [composer, setComposer] = useState<'whatsapp' | 'sms' | 'call'>();
   const [group, setGroup] = useState('GUARDIAN');

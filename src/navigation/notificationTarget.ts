@@ -12,7 +12,10 @@ type Destination = {
 export function notificationTarget(
   notification: Notification,
   role: User['role'],
-  data: DashboardData,
+  data: Pick<
+    DashboardData,
+    'payments' | 'bills' | 'requests' | 'complaints' | 'stops'
+  >,
   management: ManagementOverview | null,
 ): Destination {
   const id = notification.entityId;

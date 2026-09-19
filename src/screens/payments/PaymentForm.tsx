@@ -6,7 +6,7 @@ import { ValidationError } from '../../utils/validation';
 import { translateMessage, useTranslation } from '../../i18n';
 import { paymentShiftLabel } from '../../utils/paymentShift';
 import { Button, Card, Field, Notice, Select } from '../../components/ui';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { useAction } from '../../hooks/useAction';
 import { styles } from '../../theme';
 import { money, readable } from '../../utils/format';
@@ -27,7 +27,7 @@ export function PaymentForm({
   onBusyChange: (busy: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const { data, mutate } = useData();
+  const { data, mutate } = useCoreData();
   const [method, setMethod] = useState('');
   const [senderNumber, setSender] = useState('');
   const [account, setAccount] = useState<PaymentAccount>();

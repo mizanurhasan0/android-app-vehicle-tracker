@@ -125,8 +125,35 @@ automatically on startup and preserves existing routes and subscriptions.
 - `src/hooks`: asynchronous action feedback and duplicate-press protection
 - `src/utils`: exact money conversion, shared Dhaka dates and display formatting
 - `src/i18n`: shared and domain translation catalogs, language persistence
-- `scripts`: read-only local maintenance tools
+- `scripts`: local audits and performance diagnostics (device measurement restarts the app)
 - `android`: native Android project; iOS native files have not been restored
+
+### Performance conventions
+
+- Use `useCoreData()` for ordinary screens, `useDataActions()` for commands, and
+  `useLocations()` / `useData()` only where live GPS data is needed. Location events
+  do not invalidate billing/forms. Equal HTTP snapshots retain object identities.
+- Foreground polling remains 20 seconds. Only route/fares and payment-account
+  configuration use a 60-second in-memory cache; manual, resume and post-write
+  refresh bypass it. Account/server changes discard the entire cache.
+- Time-derived UI must not depend on polling rerenders: use `useDeadline` for GPS
+  expiry and `useDhakaDate` for current-day/month summaries. Timers pause in the
+  background and recheck on resume; user-selected form dates remain unchanged.
+- Large directories use `VirtualizedPage` (one FlatList, no surrounding ScrollView).
+  Keep forms outside virtualized rows so offscreen recycling cannot erase drafts.
+- Import shared icons from `components/icons`; importing the full Lucide runtime
+  barrel pulls thousands of unused icons into Metro. Navigator routes use
+  `getComponent` to retain lazy module initialization.
+- `react-native-screens` is pinned to 4.28.0 for the Android mounting-delegate race
+  fix. After `npm ci`, rebuild/reinstall the native APK; Metro reload is insufficient.
+
+Run `node scripts/measure-bundle.js` to create a temporary minified bundle report.
+For an unlocked USB device, `node scripts/measure-android.js SERIAL 5` restarts the
+installed app five times without deleting data. It reports native first-frame,
+crash and memory samples—not fully usable startup time or scrolling FPS. Run with
+source edits/builds stopped, record build type/account, and discard sleep/crash or
+implausible timing samples. Keep the original device sleep setting if changing it
+for a test. Never publish debug-signed test APKs as production releases.
 
 See [architecture and cleanup audit](docs/architecture.md) for module boundaries,
 import-graph evidence and the limits of automated cleanup checks.

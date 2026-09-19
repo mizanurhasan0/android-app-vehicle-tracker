@@ -4,18 +4,21 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useRef,
-  useState,
+  useSyncExternalStore,
 } from 'react';
 import { AppState } from 'react-native';
 import { io } from 'socket.io-client';
 import { api, ApiError } from '../api/client';
 import { DashboardData, Location } from '../api/types';
-import { loadDashboard } from '../api/dashboard';
+import { createDashboardLoader } from '../api/dashboard';
+import { useRefreshResource } from '../hooks/useRefreshResource';
+import { useCredentialScope } from '../hooks/useCredentialScope';
+import { createLocationStore } from './locationStore';
 import { useAuth } from './AuthContext';
-const empty: DashboardData = {
+
+type CoreData = Omit<DashboardData, 'locations'>;
+const empty: CoreData = {
   vehicles: [],
-  locations: [],
   routes: [],
   subscriptions: [],
   bills: [],
@@ -26,111 +29,121 @@ const empty: DashboardData = {
   stops: [],
   notifications: [],
 };
-interface DataValue {
-  data: DashboardData;
-  loading: boolean;
-  error: string;
+interface DataActions {
   refresh: () => Promise<void>;
   mutate: <T>(path: string, body?: unknown, method?: string) => Promise<T>;
 }
-const DataContext = createContext<DataValue | null>(null);
+interface CoreValue extends DataActions {
+  data: CoreData;
+  loading: boolean;
+  error: string;
+}
+const CoreContext = createContext<CoreValue | null>(null);
+const ActionsContext = createContext<DataActions | null>(null);
+const LocationsContext = createContext<ReturnType<
+  typeof createLocationStore
+> | null>(null);
+
 export function DataProvider({ children }: React.PropsWithChildren) {
   const { session, baseUrl, expire } = useAuth();
-  const token = session!.token;
-  const [data, setData] = useState(empty);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const generation = useRef(0);
-  const live = useRef(true);
-  const credentials = useRef({ token, baseUrl });
-  credentials.current = { token, baseUrl };
-  const isCurrent = useCallback(
-    () =>
-      live.current &&
-      credentials.current.token === token &&
-      credentials.current.baseUrl === baseUrl,
-    [token, baseUrl],
+  const token = session?.token;
+  const isAuthenticated = useCredentialScope(baseUrl, token);
+  // Remount before rendering another account/server: no data, socket, callbacks
+  // or cached configuration may cross a credential boundary.
+  return (
+    <DataScope
+      key={JSON.stringify([baseUrl, token])}
+      baseUrl={baseUrl}
+      token={token}
+      expire={expire}
+      isAuthenticated={isAuthenticated}
+    >
+      {children}
+    </DataScope>
   );
-  useEffect(() => {
-    live.current = true;
-    return () => {
-      live.current = false;
-    };
-  }, []);
-  const load = useCallback(
-    async (showLoading: boolean) => {
-      if (!isCurrent()) return;
-      const request = ++generation.current;
-      if (showLoading) setLoading(true);
-      try {
-        const snapshot = await loadDashboard(baseUrl, token);
-        if (isCurrent() && request === generation.current) {
-          setData(snapshot);
-          setError('');
-        }
-      } catch (problem) {
-        if (
-          isCurrent() &&
-          problem instanceof ApiError &&
-          problem.status === 401
-        )
-          await expire();
-        if (isCurrent() && request === generation.current)
-          setError(
-            problem instanceof Error
-              ? problem.message
-              : 'Could not refresh data.',
-          );
-      } finally {
-        if (isCurrent() && request === generation.current) setLoading(false);
-      }
+}
+interface ScopeProps extends React.PropsWithChildren {
+  baseUrl: string;
+  token?: string;
+  expire: () => Promise<void>;
+  isAuthenticated: () => boolean;
+}
+function DataScope({
+  children,
+  baseUrl,
+  token,
+  expire,
+  isAuthenticated,
+}: ScopeProps) {
+  const locations = useMemo(createLocationStore, []);
+  const loader = useMemo(
+    () => createDashboardLoader(baseUrl, token || ''),
+    [baseUrl, token],
+  );
+  const fetchSnapshot = useCallback(
+    async (force: boolean) => {
+      const revision = locations.getRevision();
+      const snapshot = token
+        ? await loader(force)
+        : { ...empty, locations: [] };
+      return { snapshot, revision };
     },
-    [baseUrl, token, expire, isCurrent],
+    [loader, locations, token],
   );
-  const refresh = useCallback(() => load(true), [load]);
+  const select = useCallback(
+    ({ snapshot, revision }: Awaited<ReturnType<typeof fetchSnapshot>>) => {
+      const { locations: points, ...core } = snapshot;
+      locations.replace(points, revision);
+      return core;
+    },
+    [locations],
+  );
+  const { data, loading, error, load, refresh, isCurrent } = useRefreshResource(
+    empty,
+    fetchSnapshot,
+    select,
+    expire,
+    isAuthenticated,
+  );
   useEffect(() => {
     load(true);
+    if (!token) return;
     const timer = setInterval(() => {
-      if (AppState.currentState === 'active') load(false);
+      if (AppState.currentState === 'active') load();
     }, 20_000);
     let previousState = AppState.currentState;
     const listener = AppState.addEventListener('change', state => {
-      if (state === 'active' && previousState !== 'active') load(false);
+      if (state === 'active' && previousState !== 'active') load(false, true);
       previousState = state;
     });
-    // HTTPS deployments proxy /socket.io on the same origin; local development uses port 3001.
     const socketUrl = new URL(baseUrl);
     const liveUrl =
       socketUrl.protocol === 'http:' && socketUrl.port === '3000'
-        ? `http://${socketUrl.hostname}:3001`
+        ? 'http://' + socketUrl.hostname + ':3001'
         : socketUrl.origin;
     const socket = io(liveUrl, {
       auth: { token },
       transports: ['websocket'],
       reconnectionDelayMax: 10_000,
     });
+    let connected = true;
     socket.on('location:update', (location: Location) => {
-      if (AppState.currentState !== 'active') return;
-      setData(current => ({
-        ...current,
-        locations: [
-          ...current.locations.filter(item => item.imei !== location.imei),
-          location,
-        ],
-      }));
+      if (connected && isCurrent() && AppState.currentState === 'active')
+        locations.update(location);
     });
     return () => {
+      connected = false;
       clearInterval(timer);
       listener.remove();
       socket.disconnect();
     };
-  }, [baseUrl, token, load]);
+  }, [baseUrl, token, load, locations, isCurrent]);
   const mutate = useCallback(
     async <T,>(path: string, body?: unknown, method = 'POST'): Promise<T> => {
-      if (!isCurrent()) throw new Error('Please sign in again.');
+      if (!token || !isCurrent()) throw new Error('Please sign in again.');
       try {
         const result = await api<T>(baseUrl, path, token, body, method);
-        if (isCurrent()) await load(false);
+        if (isCurrent()) await load(false, true);
         return result;
       } catch (problem) {
         if (
@@ -144,14 +157,50 @@ export function DataProvider({ children }: React.PropsWithChildren) {
     },
     [baseUrl, token, load, expire, isCurrent],
   );
+  const actions = useMemo(() => ({ refresh, mutate }), [refresh, mutate]);
   const value = useMemo(
-    () => ({ data, loading, error, refresh, mutate }),
-    [data, loading, error, refresh, mutate],
+    () => ({ data, loading, error, ...actions }),
+    [data, loading, error, actions],
   );
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  return (
+    <ActionsContext.Provider value={actions}>
+      <CoreContext.Provider value={value}>
+        <LocationsContext.Provider value={locations}>
+          {children}
+        </LocationsContext.Provider>
+      </CoreContext.Provider>
+    </ActionsContext.Provider>
+  );
 }
-export function useData() {
-  const value = useContext(DataContext);
+
+/** Migrate non-tracking screens here; data deliberately excludes locations. */
+export function useCoreData() {
+  const value = useContext(CoreContext);
   if (!value) throw new Error('DataProvider is required');
   return value;
+}
+/** For command-only consumers; neither polling nor GPS subscribes them to data. */
+export function useDataActions() {
+  const value = useContext(ActionsContext);
+  if (!value) throw new Error('DataProvider is required');
+  return value;
+}
+export function useLocations() {
+  const store = useContext(LocationsContext);
+  if (!store) throw new Error('DataProvider is required');
+  return useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot,
+  );
+}
+/** Backwards-compatible API: tracking consumers continue receiving live locations. */
+export function useData() {
+  const core = useCoreData();
+  const locations = useLocations();
+  const data = useMemo(
+    () => ({ ...core.data, locations }),
+    [core.data, locations],
+  );
+  return useMemo(() => ({ ...core, data }), [core, data]);
 }

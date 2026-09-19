@@ -114,15 +114,16 @@ jest.mock('../src/context/AuthContext', () => ({
     signOut: jest.fn(),
   }),
 }));
-jest.mock('../src/context/DataContext', () => ({
-  useData: () => ({
+jest.mock('../src/context/DataContext', () => {
+  const useData = () => ({
     data: mockData,
     loading: mockLoading,
     error: mockError,
     refresh: jest.fn(),
     mutate: mockMutate,
-  }),
-}));
+  });
+  return { useData, useCoreData: useData, useDataActions: useData };
+});
 jest.mock('../src/context/ManagementContext', () => ({
   useManagement: () => mockManagement,
 }));

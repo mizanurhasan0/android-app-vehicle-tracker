@@ -2,7 +2,7 @@ import { ValidationError } from '../utils/validation';
 import { useTranslation } from '../i18n';
 import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
-import { useData } from '../context/DataContext';
+import { useDataActions } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
 import { styles } from '../theme';
 import { Button, Field, Notice } from './ui';
@@ -16,7 +16,7 @@ export function ReviewActions({
   resolve?: boolean;
 }) {
   const { t } = useTranslation();
-  const { mutate } = useData();
+  const { mutate } = useDataActions();
   const [note, setNote] = useState('');
   const action = useAction();
   function decide(approved: boolean) {

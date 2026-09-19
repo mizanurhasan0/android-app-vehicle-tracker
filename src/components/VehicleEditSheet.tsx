@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Vehicle } from '../api/types';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
+import { useDataActions } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
 import { useTranslation } from '../i18n';
 import { colors, styles } from '../theme';
@@ -51,7 +51,7 @@ function VehicleEditor({
   onSaved,
 }: Omit<VehicleEditSheetProps, 'vehicle'> & { vehicle: Vehicle }) {
   const { t } = useTranslation();
-  const { mutate } = useData();
+  const { mutate } = useDataActions();
   const action = useAction();
   const [name, setName] = useState(vehicle.name);
   const [plate, setPlate] = useState(vehicle.plate);

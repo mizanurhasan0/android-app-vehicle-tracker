@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Attendance, AttendanceInput } from '../../../api/management';
 import { useManagement } from '../../../context/ManagementContext';
-import { useData } from '../../../context/DataContext';
+import { useCoreData } from '../../../context/DataContext';
 import { useTranslation } from '../../../i18n';
 import { numberLabel } from '../../../utils/format';
 import { ValidationError, isValidDate } from '../../../utils/validation';
@@ -32,7 +32,7 @@ import {
 export function AttendanceScreen() {
   const { t } = useTranslation();
   const { data, loading, error, refresh, mutate } = useManagement();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const action = useAction();
   const [tab, setTab] = useState('STUDENT');
   const [date, setDate] = useState(today);

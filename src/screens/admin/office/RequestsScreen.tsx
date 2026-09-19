@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { ManagementRequest } from '../../../api/management';
 import { NoorIcon } from '../../../components/Noor';
-import { useData } from '../../../context/DataContext';
+import { useCoreData } from '../../../context/DataContext';
 import { useManagement } from '../../../context/ManagementContext';
 import { useTranslation } from '../../../i18n';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -41,7 +41,7 @@ export function RequestsScreen({
 > = {}) {
   const { t } = useTranslation();
   const { data, loading, error, refresh, mutate } = useManagement();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const action = useAction();
   const [focusedId, setFocusedId] = useState(route?.params?.id);
   const [tab, setTab] = useState<string>(

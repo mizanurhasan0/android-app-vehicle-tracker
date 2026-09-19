@@ -1,0 +1,53 @@
+// Public per-icon exports keep Metro from including Lucide's entire icon barrel.
+// https://lucide.dev/guide/react-native/advanced/optimizations
+// Keep these names aligned with the installed package's barrel aliases.
+export type { LucideIcon } from 'lucide-react-native';
+export { default as ArrowLeft } from 'lucide-react-native/icons/arrow-left';
+export { default as Bell } from 'lucide-react-native/icons/bell';
+export { default as Bus } from 'lucide-react-native/icons/bus';
+export { default as CalendarDays } from 'lucide-react-native/icons/calendar-days';
+export { default as Check } from 'lucide-react-native/icons/check';
+export { default as ChevronLeft } from 'lucide-react-native/icons/chevron-left';
+export { default as ChevronRight } from 'lucide-react-native/icons/chevron-right';
+export { default as CircleAlert } from 'lucide-react-native/icons/circle-alert';
+// CircleHelp is Lucide's alias for CircleQuestionMark, not a circle-help module.
+export { default as CircleHelp } from 'lucide-react-native/icons/circle-question-mark';
+export { default as CircleStop } from 'lucide-react-native/icons/circle-stop';
+export { default as Clock3 } from 'lucide-react-native/icons/clock-3';
+export { default as Compass } from 'lucide-react-native/icons/compass';
+export { default as Download } from 'lucide-react-native/icons/download';
+export { default as Eye } from 'lucide-react-native/icons/eye';
+export { default as FilePlus } from 'lucide-react-native/icons/file-plus';
+export { default as FileText } from 'lucide-react-native/icons/file-text';
+export { default as Flag } from 'lucide-react-native/icons/flag';
+export { default as Gauge } from 'lucide-react-native/icons/gauge';
+export { default as Globe } from 'lucide-react-native/icons/globe';
+export { default as GraduationCap } from 'lucide-react-native/icons/graduation-cap';
+export { default as House } from 'lucide-react-native/icons/house';
+export { default as Info } from 'lucide-react-native/icons/info';
+export { default as Layers } from 'lucide-react-native/icons/layers';
+export { default as LocateFixed } from 'lucide-react-native/icons/locate-fixed';
+export { default as LockKeyhole } from 'lucide-react-native/icons/lock-keyhole';
+export { default as LogOut } from 'lucide-react-native/icons/log-out';
+export { default as Mail } from 'lucide-react-native/icons/mail';
+export { default as MapPin } from 'lucide-react-native/icons/map-pin';
+export { default as Maximize2 } from 'lucide-react-native/icons/maximize-2';
+export { default as Menu } from 'lucide-react-native/icons/menu';
+export { default as MessageCircle } from 'lucide-react-native/icons/message-circle';
+export { default as Minus } from 'lucide-react-native/icons/minus';
+export { default as Pencil } from 'lucide-react-native/icons/pencil';
+export { default as Phone } from 'lucide-react-native/icons/phone';
+export { default as Play } from 'lucide-react-native/icons/play';
+export { default as Plus } from 'lucide-react-native/icons/plus';
+export { default as ReceiptText } from 'lucide-react-native/icons/receipt-text';
+export { default as Route } from 'lucide-react-native/icons/route';
+export { default as Search } from 'lucide-react-native/icons/search';
+export { default as Settings } from 'lucide-react-native/icons/settings';
+export { default as Share2 } from 'lucide-react-native/icons/share-2';
+export { default as ShieldCheck } from 'lucide-react-native/icons/shield-check';
+export { default as Smartphone } from 'lucide-react-native/icons/smartphone';
+export { default as Target } from 'lucide-react-native/icons/target';
+export { default as UserRound } from 'lucide-react-native/icons/user-round';
+export { default as Wallet } from 'lucide-react-native/icons/wallet';
+export { default as Wrench } from 'lucide-react-native/icons/wrench';
+export { default as X } from 'lucide-react-native/icons/x';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Route, RouteFare } from '../api/types';
-import { useData } from '../context/DataContext';
+import { useDataActions } from '../context/DataContext';
 import { useTranslation } from '../i18n';
 import { money, toPoisha } from '../utils/format';
 import { Button, Card, Field, Select } from './ui';
@@ -27,7 +27,7 @@ export function RouteFareManager({
   editable?: boolean;
 }) {
   const { t } = useTranslation();
-  const { mutate } = useData();
+  const { mutate } = useDataActions();
   const action = useAction();
   const [visible, setVisible] = useState(false);
   const [fares, setFares] = useState<FareDraft[]>([]);

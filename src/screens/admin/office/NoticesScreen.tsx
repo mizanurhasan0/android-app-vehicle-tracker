@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { NoticeInput } from '../../../api/management';
 import { NoorIcon } from '../../../components/Noor';
-import { useData } from '../../../context/DataContext';
+import { useCoreData } from '../../../context/DataContext';
 import { useManagement } from '../../../context/ManagementContext';
 import { useTranslation } from '../../../i18n';
 import { ValidationError } from '../../../utils/validation';
@@ -32,7 +32,7 @@ const noticeCategories = [
 export function NoticesScreen() {
   const { t } = useTranslation();
   const { data, loading, error, refresh, mutate } = useManagement();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const action = useAction();
   const [adding, setAdding] = useState(false);
   const blank = () => ({

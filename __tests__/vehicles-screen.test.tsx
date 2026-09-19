@@ -37,14 +37,15 @@ const mockData = {
 jest.mock('../src/context/AuthContext', () => ({
   useAuth: () => ({ session: { user: { role: mockRole } } }),
 }));
-jest.mock('../src/context/DataContext', () => ({
-  useData: () => ({
+jest.mock('../src/context/DataContext', () => {
+  const useData = () => ({
     data: mockData,
     loading: false,
     error: '',
     refresh: jest.fn(),
-  }),
-}));
+  });
+  return { useData, useCoreData: useData, useDataActions: useData };
+});
 jest.mock('../src/components/FleetMap', () => ({ FleetMap: () => null }));
 jest.mock('../src/components/RecordedJourney', () => ({
   RecordedJourney: () => null,

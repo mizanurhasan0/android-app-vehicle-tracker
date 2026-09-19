@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, LogOut, Pencil, X } from 'lucide-react-native';
+import { Globe, LogOut, Pencil, X } from './icons';
 import { colors } from '../theme';
 
 export function ProfileMenuIcon({

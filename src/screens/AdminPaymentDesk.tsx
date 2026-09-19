@@ -4,7 +4,7 @@ import { Bill } from '../api/types';
 import { TransportShift } from '../api/management';
 import { DEFAULT_SHIFTS } from '../utils/transport';
 import { Button, Empty, Page } from '../components/ui';
-import { useData } from '../context/DataContext';
+import { useCoreData } from '../context/DataContext';
 import { useTranslation } from '../i18n';
 import { colors, styles } from '../theme';
 import { money, numberLabel } from '../utils/format';
@@ -29,7 +29,7 @@ export function AdminPaymentDesk({
   paymentId?: string;
 } = {}) {
   const { t } = useTranslation();
-  const { data, loading, error, refresh } = useData();
+  const { data, loading, error, refresh } = useCoreData();
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(
     null,
   );

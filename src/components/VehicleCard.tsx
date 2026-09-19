@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Location, Vehicle } from '../api/types';
+import { useDeadline } from '../hooks/useDeadline';
 import { colors, styles } from '../theme';
 import { dateLabel, numberLabel, readable } from '../utils/format';
 import { Badge, Card } from './ui';
@@ -74,6 +75,11 @@ export function VehicleCard({
     setExpanded(current => !current);
   };
   const hasPosition = location?.latitude != null && location.longitude != null;
+  useDeadline(
+    location && location.status !== 'offline'
+      ? Date.parse(location.lastSeen) + 180_000
+      : undefined,
+  );
   const stale =
     location && Date.now() - Date.parse(location.lastSeen) >= 180_000;
   const status = stale ? 'offline' : location?.status || 'waiting';

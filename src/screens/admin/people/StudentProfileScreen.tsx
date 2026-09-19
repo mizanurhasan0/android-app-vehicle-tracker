@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { useManagement } from '../../../context/ManagementContext';
-import { useData } from '../../../context/DataContext';
+import { useCoreData } from '../../../context/DataContext';
 import { locale, useTranslation } from '../../../i18n';
 import { money } from '../../../utils/format';
 import {
@@ -78,7 +78,7 @@ export function StudentProfileScreen() {
   const { params } = useRoute();
   const { id } = (params || {}) as { id?: string };
   const { data, loading, error, refresh } = useManagement();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const [edit, setEdit] = useState(false);
   const [addingService, setAddingService] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string>();

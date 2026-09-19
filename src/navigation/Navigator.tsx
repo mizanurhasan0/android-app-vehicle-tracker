@@ -63,6 +63,7 @@ import { adminTabs, parentTabs } from './tabs';
 import { HomeStackParams } from './types';
 
 const Stack = createNativeStackNavigator<HomeStackParams>();
+// getComponent keeps Metro's inline requires lazy until a route is first visited.
 const navigationRef = createNavigationContainerRef<HomeStackParams>();
 const navigationTheme = {
   ...DefaultTheme,
@@ -105,164 +106,164 @@ export function Navigator() {
         >
           <Stack.Screen
             name="Fleet"
-            component={HomeScreen}
+            getComponent={() => HomeScreen}
             options={{ headerShown: false }}
           />
           <Stack.Screen
             name="More"
-            component={NoorMenuScreen}
+            getComponent={() => NoorMenuScreen}
             options={{ title: t(admin ? 'NOOR TRANSPORT · Admin' : 'More') }}
           />
           <Stack.Screen
             name="Vehicles"
-            component={NoorVehiclesScreen}
+            getComponent={() => NoorVehiclesScreen}
             options={{ title: t('Vehicle list') }}
           />
           <Stack.Screen
             name="VehicleDetails"
-            component={VehicleDetailsScreen}
+            getComponent={() => VehicleDetailsScreen}
             options={{ title: t('Vehicle profile') }}
           />
           <Stack.Screen
             name="FleetMap"
-            component={FleetMapScreen}
+            getComponent={() => FleetMapScreen}
             options={{ title: t('Live location') }}
           />
           <Stack.Screen
             name="Routes"
-            component={NoorRoutesScreen}
+            getComponent={() => NoorRoutesScreen}
             options={{ title: t('Routes') }}
           />
           <Stack.Screen
             name="RouteDetails"
-            component={RouteDetailsScreen}
+            getComponent={() => RouteDetailsScreen}
             options={{ title: t('Route and schedule') }}
           />
           <Stack.Screen
             name="Bills"
-            component={BillsScreen}
+            getComponent={() => BillsScreen}
             options={{ title: t('Payment') }}
           />
           <Stack.Screen
             name="DueList"
-            component={DueScreen}
+            getComponent={() => DueScreen}
             options={{ title: t('Due list') }}
           />
           <Stack.Screen
             name="Requested"
-            component={RequestedScreen}
+            getComponent={() => RequestedScreen}
             options={{ title: t('Admission applications') }}
           />
           <Stack.Screen
             name="Complaints"
-            component={ComplaintsScreen}
+            getComponent={() => ComplaintsScreen}
             options={{ title: t('Complaints') }}
           />
           <Stack.Screen
             name="StopRequests"
-            component={StopScreen}
+            getComponent={() => StopScreen}
             options={{ title: t('Stop service requests') }}
           />
           <Stack.Screen
             name="PaymentAccounts"
-            component={PaymentAccountsScreen}
+            getComponent={() => PaymentAccountsScreen}
             options={{ title: t('Payment accounts') }}
           />
           <Stack.Screen
             name="Inbox"
-            component={NotificationsScreen}
+            getComponent={() => NotificationsScreen}
             options={{ title: t('Notifications') }}
           />
           <Stack.Screen
             name="NotificationDetails"
-            component={NotificationDetailsScreen}
+            getComponent={() => NotificationDetailsScreen}
             options={{ title: t('Notifications') }}
           />
           <Stack.Screen
             name="Settings"
-            component={SettingsScreen}
+            getComponent={() => SettingsScreen}
             options={{ title: t('Settings') }}
           />
           <Stack.Screen
             name="Emergency"
-            component={EmergencyScreen}
+            getComponent={() => EmergencyScreen}
             options={{ title: t('Emergency help') }}
           />
           <Stack.Screen
             name="LiveTracking"
-            component={ParentTrackingScreen}
+            getComponent={() => ParentTrackingScreen}
             options={{ title: t('Live Tracking') }}
           />
           {admin ? (
             <>
               <Stack.Screen
                 name="CreateVehicle"
-                component={CreateVehicleScreen}
+                getComponent={() => CreateVehicleScreen}
                 options={{ title: t('Add vehicle') }}
               />
               <Stack.Screen
                 name="VehicleHistory"
-                component={VehicleHistoryScreen}
+                getComponent={() => VehicleHistoryScreen}
                 options={{ title: t('Travel history') }}
               />
               <Stack.Screen
                 name="Students"
-                component={StudentsScreen}
+                getComponent={() => StudentsScreen}
                 options={{ title: t('Student list') }}
               />
               <Stack.Screen
                 name="StudentDetails"
-                component={StudentProfileScreen}
+                getComponent={() => StudentProfileScreen}
                 options={{ title: t('Student profile') }}
               />
               <Stack.Screen
                 name="Drivers"
-                component={DriversScreen}
+                getComponent={() => DriversScreen}
                 options={{ title: t('Driver list') }}
               />
               <Stack.Screen
                 name="DriverDetails"
-                component={DriverProfileScreen}
+                getComponent={() => DriverProfileScreen}
                 options={{ title: t('Driver profile') }}
               />
               <Stack.Screen
                 name="Attendance"
-                component={AttendanceScreen}
+                getComponent={() => AttendanceScreen}
                 options={{ title: t('Attendance') }}
               />
               <Stack.Screen
                 name="Maintenance"
-                component={MaintenanceScreen}
+                getComponent={() => MaintenanceScreen}
                 options={{ title: t('Maintenance') }}
               />
               <Stack.Screen
                 name="Accounts"
-                component={AccountsScreen}
+                getComponent={() => AccountsScreen}
                 options={{ title: t('Income and expenses') }}
               />
               <Stack.Screen
                 name="Notices"
-                component={NoticesScreen}
+                getComponent={() => NoticesScreen}
                 options={{ title: t('Notices') }}
               />
               <Stack.Screen
                 name="Banners"
-                component={BannersScreen}
+                getComponent={() => BannersScreen}
                 options={{ title: t('Dashboard banners') }}
               />
               <Stack.Screen
                 name="OperationalRequests"
-                component={OperationalRequestsScreen}
+                getComponent={() => OperationalRequestsScreen}
                 options={{ title: t('Requests') }}
               />
               <Stack.Screen
                 name="Communication"
-                component={CommunicationScreen}
+                getComponent={() => CommunicationScreen}
                 options={{ title: t('Communication') }}
               />
               <Stack.Screen
                 name="Reports"
-                component={ReportsScreen}
+                getComponent={() => ReportsScreen}
                 options={{ title: t('Reports') }}
               />
             </>
@@ -270,32 +271,32 @@ export function Navigator() {
             <>
               <Stack.Screen
                 name="Receipts"
-                component={ReceiptsScreen}
+                getComponent={() => ReceiptsScreen}
                 options={{ title: t('Receipts') }}
               />
               <Stack.Screen
                 name="ParentProfile"
-                component={ParentStudentScreen}
+                getComponent={() => ParentStudentScreen}
                 options={{ title: t('Student profile') }}
               />
               <Stack.Screen
                 name="Admission"
-                component={AdmissionScreen}
+                getComponent={() => AdmissionScreen}
                 options={{ title: t('Online admission form') }}
               />
               <Stack.Screen
                 name="ApplicationStatus"
-                component={ApplicationStatusScreen}
+                getComponent={() => ApplicationStatusScreen}
                 options={{ title: t('Application status') }}
               />
               <Stack.Screen
                 name="TodayJourney"
-                component={ParentJourneyScreen}
+                getComponent={() => ParentJourneyScreen}
                 options={{ title: t("Today's journey") }}
               />
               <Stack.Screen
                 name="Contact"
-                component={ParentContactScreen}
+                getComponent={() => ParentContactScreen}
                 options={{ title: t('Contact') }}
               />
             </>

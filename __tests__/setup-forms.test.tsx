@@ -12,15 +12,16 @@ const mockMutate = jest.fn();
 const mockAddVehicle = jest.fn();
 let mockData: DashboardData;
 
-jest.mock('../src/context/DataContext', () => ({
-  useData: () => ({
+jest.mock('../src/context/DataContext', () => {
+  const useData = () => ({
     data: mockData,
     loading: false,
     error: '',
     refresh: jest.fn(),
     mutate: mockMutate,
-  }),
-}));
+  });
+  return { useData, useCoreData: useData, useDataActions: useData };
+});
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
   const { View: NativeView } = require('react-native');

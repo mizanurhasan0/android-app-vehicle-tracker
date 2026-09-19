@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { LucideIcon } from 'lucide-react-native';
+import type { LucideIcon } from './icons';
 import {
   ArrowLeft,
   Bell,
@@ -42,7 +42,7 @@ import {
   Wallet,
   Wrench,
   X,
-} from 'lucide-react-native';
+} from './icons';
 import { colors } from '../theme';
 
 export type IconName =

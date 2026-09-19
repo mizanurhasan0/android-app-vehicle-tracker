@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Location, Vehicle } from '../api/types';
+import { useDeadline } from '../hooks/useDeadline';
 import { useTranslation } from '../i18n';
 import { colors } from '../theme';
 import { numberLabel, readable } from '../utils/format';
@@ -30,6 +31,11 @@ export function VehicleListRow({
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const compact = width < 380;
+  useDeadline(
+    location && location.status !== 'offline'
+      ? Date.parse(location.lastSeen) + 180_000
+      : undefined,
+  );
   const stale =
     location != null && Date.now() - Date.parse(location.lastSeen) >= 180_000;
   const status = stale ? 'offline' : location?.status || 'waiting';

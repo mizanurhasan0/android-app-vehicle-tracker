@@ -3,7 +3,8 @@ import { Text, View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { useManagement } from '../../../context/ManagementContext';
 import { useTranslation } from '../../../i18n';
-import { currentMonth, money } from '../../../utils/format';
+import { money } from '../../../utils/format';
+import { useDhakaDate } from '../../../hooks/useDhakaDate';
 import {
   AdminPage,
   Avatar,
@@ -21,6 +22,7 @@ import { DriverForm } from './DriverForm';
 
 export function DriverProfileScreen() {
   const { t } = useTranslation();
+  const month = useDhakaDate().slice(0, 7);
   const { params } = useRoute();
   const { id } = (params || {}) as { id?: string };
   const { data, loading, error, refresh } = useManagement();
@@ -45,7 +47,7 @@ export function DriverProfileScreen() {
       item.category === 'SALARY',
   );
   const salaryPaidThisMonth = salaries
-    .filter(item => item.date.startsWith(currentMonth()))
+    .filter(item => item.date.startsWith(month))
     .reduce((sum, item) => sum + item.amount, 0);
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>

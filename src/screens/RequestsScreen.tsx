@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Notice, Page } from '../components/ui';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
+import { useCoreData } from '../context/DataContext';
 import { useManagement } from '../context/ManagementContext';
 import { useAction } from '../hooks/useAction';
 import { useTranslation } from '../i18n';
@@ -21,7 +21,7 @@ export function RequestsScreen({
 }: { section?: RequestTab; targetId?: string } = {}) {
   const { t } = useTranslation();
   const { session } = useAuth();
-  const { data, loading, error, refresh } = useData();
+  const { data, loading, error, refresh } = useCoreData();
   const management = useManagement();
   const admin = session!.user.role === 'ADMIN';
   const [tab, setTab] = useState<RequestTab>(

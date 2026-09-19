@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParams } from '../../navigation/types';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useManagement } from '../../context/ManagementContext';
 import { NoorCard } from '../../components/Noor';
@@ -15,7 +15,7 @@ import {
   transportShifts,
   uniqueStudents,
 } from '../../utils/transport';
-import { dhakaDate } from '../../utils/historyDates';
+import { useDhakaDate } from '../../hooks/useDhakaDate';
 import { useTranslation } from '../../i18n';
 import { f } from './styles';
 import { VehicleMark } from './FleetUI';
@@ -27,7 +27,8 @@ export function RouteDetailsScreen({
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'RouteDetails'>) {
   const { t } = useTranslation();
-  const { data } = useData();
+  const today = useDhakaDate();
+  const { data } = useCoreData();
   const { session } = useAuth();
   const management = useManagement();
   const [editing, setEditing] = useState(false);
@@ -55,7 +56,7 @@ export function RouteDetailsScreen({
     student =>
       isServiceScheduled(
         student,
-        dhakaDate(),
+        today,
         management.data?.settings.operatingDays,
       ) &&
       (!shiftId || serviceShift(student) === shiftId),

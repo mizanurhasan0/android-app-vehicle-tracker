@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Empty, Notice, Page } from '../components/ui';
 import { NoorIcon } from '../components/Noor';
-import { useData } from '../context/DataContext';
+import { useCoreData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { useManagement } from '../context/ManagementContext';
 import { notificationTarget } from '../navigation/notificationTarget';
@@ -17,7 +17,7 @@ export function NotificationsScreen({
   navigation,
 }: NativeStackScreenProps<HomeStackParams, 'Inbox'>) {
   const { t } = useTranslation();
-  const { data, loading, error, refresh, mutate } = useData();
+  const { data, loading, error, refresh, mutate } = useCoreData();
   const { session } = useAuth();
   const { data: management } = useManagement();
   const action = useAction();
@@ -153,7 +153,7 @@ export function NotificationDetailsScreen({
   route,
 }: NativeStackScreenProps<HomeStackParams, 'NotificationDetails'>) {
   const { t } = useTranslation();
-  const { data, loading, error, refresh, mutate } = useData();
+  const { data, loading, error, refresh, mutate } = useCoreData();
   const action = useAction();
   const item = data.notifications.find(
     notification => notification.id === route.params.id,

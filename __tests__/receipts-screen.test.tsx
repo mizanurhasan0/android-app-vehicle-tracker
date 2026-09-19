@@ -48,14 +48,15 @@ const approvedPayment: Payment = {
   note: '',
   createdAt: '2026-09-10T04:30:00Z',
 };
-jest.mock('../src/context/DataContext', () => ({
-  useData: () => ({
+jest.mock('../src/context/DataContext', () => {
+  const useData = () => ({
     data: mockData,
     loading: false,
     error: '',
     refresh: mockRefresh,
-  }),
-}));
+  });
+  return { useData, useCoreData: useData, useDataActions: useData };
+});
 jest.mock('../src/context/ManagementContext', () => ({
   useManagement: () => ({
     data: { settings: business },

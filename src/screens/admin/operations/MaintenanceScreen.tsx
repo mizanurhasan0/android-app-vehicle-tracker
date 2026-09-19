@@ -4,7 +4,7 @@ import { useRoute } from '@react-navigation/native';
 import { Maintenance } from '../../../api/management';
 import { NoorIcon } from '../../../components/Noor';
 import { useManagement } from '../../../context/ManagementContext';
-import { useData } from '../../../context/DataContext';
+import { useCoreData } from '../../../context/DataContext';
 import { useTranslation } from '../../../i18n';
 import { money } from '../../../utils/format';
 import {
@@ -27,7 +27,7 @@ export function MaintenanceScreen() {
   const { params } = useRoute();
   const initial = (params || {}) as { vehicleId?: string };
   const { data, loading, error, refresh } = useManagement();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const [vehicle, setVehicle] = useState(initial.vehicleId || '');
   const [editing, setEditing] = useState<Maintenance | null | undefined>();
   const records = (data?.maintenance || [])

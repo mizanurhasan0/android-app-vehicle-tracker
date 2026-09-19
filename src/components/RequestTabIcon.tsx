@@ -1,5 +1,5 @@
 import React from 'react';
-import { CircleStop, FilePlus, FileText, MessageCircle } from 'lucide-react-native';
+import { CircleStop, FilePlus, FileText, MessageCircle } from './icons';
 import { colors } from '../theme';
 
 export type RequestIconKind = 'form' | 'applications' | 'complaints' | 'stop';

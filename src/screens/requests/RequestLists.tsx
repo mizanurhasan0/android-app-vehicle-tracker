@@ -20,7 +20,7 @@ export function RequestLists({
   targetId,
   shifts,
 }: {
-  data: DashboardData;
+  data: Pick<DashboardData, 'requests' | 'complaints' | 'stops'>;
   admin: boolean;
   tab: RequestTab;
   focusedId?: string;

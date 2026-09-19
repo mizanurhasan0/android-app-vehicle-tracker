@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Text } from 'react-native';
 import { Button, Card, Field, Notice, Select } from '../../components/ui';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useAction } from '../../hooks/useAction';
 import { useTranslation } from '../../i18n';
@@ -16,7 +16,7 @@ export function ServiceSupportForm({
   action: ReturnType<typeof useAction>;
 }) {
   const { t } = useTranslation();
-  const { data, mutate } = useData();
+  const { data, mutate } = useCoreData();
   const management = useManagement();
   const shifts = transportShifts(management.data?.settings);
   const [subscriptionId, setSubscriptionId] = useState('');

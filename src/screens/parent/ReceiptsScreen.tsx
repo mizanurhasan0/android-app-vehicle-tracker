@@ -4,7 +4,7 @@ import { BusinessSettings } from '../../api/management';
 import { Bill, Payment } from '../../api/types';
 import { NoorBadge, NoorCard, NoorIcon, NoorLogo } from '../../components/Noor';
 import { Button, Empty, Notice, Page } from '../../components/ui';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useAction } from '../../hooks/useAction';
 import { i18n, locale, useTranslation } from '../../i18n';
@@ -111,7 +111,7 @@ export function receiptDocument(
 
 export function ReceiptsScreen() {
   const { t } = useTranslation();
-  const { data, loading, error, refresh } = useData();
+  const { data, loading, error, refresh } = useCoreData();
   const management = useManagement();
   const action = useAction();
   const [selectedId, setSelectedId] = useState<string | null>(null);

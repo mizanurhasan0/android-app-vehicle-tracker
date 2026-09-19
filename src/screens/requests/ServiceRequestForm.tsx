@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Text } from 'react-native';
 import { Button, Card, Field, Select } from '../../components/ui';
 import { TransportSchedule } from '../../components/TransportSchedule';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useAction } from '../../hooks/useAction';
 import { useTranslation } from '../../i18n';
@@ -25,7 +25,7 @@ export function ServiceRequestForm({
   action: ReturnType<typeof useAction>;
 }) {
   const { t } = useTranslation();
-  const { data, mutate } = useData();
+  const { data, mutate } = useCoreData();
   const management = useManagement();
   const shifts = transportShifts(management.data?.settings);
   const [selectedStudentId, setSelectedStudentId] = useState('');

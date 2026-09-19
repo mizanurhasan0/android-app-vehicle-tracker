@@ -2,7 +2,7 @@ import { ValidationError } from '../../utils/validation';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PaymentAccount } from '../../api/types';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { useAction } from '../../hooks/useAction';
 import { useTranslation } from '../../i18n';
 import { colors, styles } from '../../theme';
@@ -25,7 +25,7 @@ function FormHeading({ title, detail }: { title: string; detail: string }) {
 
 export function AccountForm() {
   const { t } = useTranslation();
-  const { data, mutate } = useData();
+  const { data, mutate } = useCoreData();
   const [method, setMethod] = useState<Wallet>('BKASH');
   // Only edited wallets have overrides, so refreshes still populate untouched forms.
   const [drafts, setDrafts] = useState<Partial<Record<Wallet, AccountDraft>>>(
@@ -174,7 +174,7 @@ export function AccountForm() {
 
 export function VehicleForm() {
   const { t } = useTranslation();
-  const { mutate } = useData();
+  const { mutate } = useCoreData();
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
   const [imei, setImei] = useState('');
@@ -290,7 +290,7 @@ export function VehicleForm() {
 
 export function RouteForm({ onAddVehicle }: { onAddVehicle: () => void }) {
   const { t } = useTranslation();
-  const { data, mutate, loading } = useData();
+  const { data, mutate, loading } = useCoreData();
   const [name, setName] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [amount, setAmount] = useState('');

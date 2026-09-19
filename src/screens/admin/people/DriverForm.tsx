@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Driver, DriverInput } from '../../../api/management';
 import { useManagement } from '../../../context/ManagementContext';
-import { useData } from '../../../context/DataContext';
+import { useCoreData } from '../../../context/DataContext';
 import { useTranslation } from '../../../i18n';
 import { ValidationError } from '../../../utils/validation';
 import { Choice, FormModal, Input, today, useAction } from '../AdminUi';
@@ -17,7 +17,7 @@ export function DriverForm({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const { mutate } = useManagement();
   const action = useAction();
   const [form, setForm] = useState({

@@ -23,7 +23,7 @@ import {
   Select,
 } from '../../components/ui';
 import { useAuth } from '../../context/AuthContext';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useAction } from '../../hooks/useAction';
 import { ValidationError } from '../../utils/validation';
@@ -48,7 +48,7 @@ export function AdmissionScreen({
 }: Props<'Admission'>) {
   const { t } = useTranslation();
   const { session } = useAuth();
-  const { data, loading, error, refresh, mutate } = useData();
+  const { data, loading, error, refresh, mutate } = useCoreData();
   const management = useManagement();
   const action = useAction();
   const [step, setStep] = useState(0);

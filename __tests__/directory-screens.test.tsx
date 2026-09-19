@@ -18,15 +18,16 @@ jest.mock('../src/context/AuthContext', () => ({
     session: mockRole ? { user: { role: mockRole } } : null,
   }),
 }));
-jest.mock('../src/context/DataContext', () => ({
-  useData: () => ({
+jest.mock('../src/context/DataContext', () => {
+  const useData = () => ({
     data: { accounts: mockAccounts },
     loading: false,
     error: '',
     refresh: jest.fn(),
     mutate: mockMutate,
-  }),
-}));
+  });
+  return { useData, useCoreData: useData, useDataActions: useData };
+});
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
   const Picker = (props: object) =>

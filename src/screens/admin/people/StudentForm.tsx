@@ -17,7 +17,7 @@ import {
   StudentInput,
 } from '../../../api/management';
 import { useManagement } from '../../../context/ManagementContext';
-import { useData } from '../../../context/DataContext';
+import { useCoreData } from '../../../context/DataContext';
 import { useTranslation } from '../../../i18n';
 import { money } from '../../../utils/format';
 import { journeyFare, journeyDestinations } from '../../../utils/routeFares';
@@ -90,7 +90,7 @@ export function StudentForm({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const { mutate, data: management } = useManagement();
   const shifts = transportShifts(management?.settings);
   const profiles = uniqueStudents(

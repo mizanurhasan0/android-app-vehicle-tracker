@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from '../../i18n';
 import { TransportShift } from '../../api/management';
 import { Button, Empty, Page, Select } from '../../components/ui';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { GuardianBillCard } from './GuardianBillCard';
 import { GuardianSubmissionCard } from './GuardianSubmissionCard';
 import { GuardianPaymentSummary } from './GuardianPaymentSummary';
@@ -23,7 +23,7 @@ export function GuardianPaymentsScreen({
   paymentId?: string;
 }) {
   const { t } = useTranslation();
-  const { data, loading, error, refresh } = useData();
+  const { data, loading, error, refresh } = useCoreData();
   const [selectedBill, setSelectedBill] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [tab, setTab] = useState<PaymentTab>(

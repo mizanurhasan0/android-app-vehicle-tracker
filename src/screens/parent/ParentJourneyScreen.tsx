@@ -12,8 +12,8 @@ import { Button, Empty, Page, Select } from '../../components/ui';
 import { useManagement } from '../../context/ManagementContext';
 import { useTranslation } from '../../i18n';
 import { styles } from '../../theme';
+import { useDhakaDate } from '../../hooks/useDhakaDate';
 import {
-  dhakaDate,
   parentDateLabel,
   scheduleTimeLabel,
   studentSchedule,
@@ -23,6 +23,7 @@ import { Props } from './types';
 
 export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
   const { t } = useTranslation();
+  const today = useDhakaDate();
   const { data, loading, error, refresh } = useManagement();
   const [selectedId, setSelectedId] = useState('');
   const [period, setPeriod] = useState<RouteSchedule['period']>('MORNING');
@@ -33,7 +34,7 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
   const student =
     students.find(item => item.id === selectedId) ||
     students.find(item =>
-      journeyServiceScheduled(item, dhakaDate(), data?.settings.operatingDays),
+      journeyServiceScheduled(item, today, data?.settings.operatingDays),
     ) ||
     students[0];
   const selectedShift = student
@@ -43,14 +44,14 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
     !!student && journeyServiceShift(student) === 'MORNING';
   const scheduledToday =
     !!student &&
-    journeyServiceScheduled(student, dhakaDate(), data?.settings.operatingDays);
+    journeyServiceScheduled(student, today, data?.settings.operatingDays);
   const entries =
     student && scheduledToday && hasLegacyTimetable
       ? studentSchedule(data?.schedules || [], student, period)
       : [];
   const attendance = student
     ? data?.attendance.find(
-        item => item.studentId === student.id && item.date === dhakaDate(),
+        item => item.studentId === student.id && item.date === today,
       )
     : undefined;
   return (
@@ -89,7 +90,7 @@ export function ParentJourneyScreen({ navigation }: Props<'TodayJourney'>) {
           <NoorCard>
             <View style={styles.between}>
               <Text style={styles.heading}>{student.studentName}</Text>
-              <Text style={styles.muted}>{parentDateLabel(dhakaDate())}</Text>
+              <Text style={styles.muted}>{parentDateLabel(today)}</Text>
             </View>
             <Text style={styles.muted}>
               {student.routeName} · {student.vehicleName}

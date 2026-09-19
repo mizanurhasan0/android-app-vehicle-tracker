@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Keyboard, Linking, Pressable, Text, View } from 'react-native';
 import { Button, Field, Notice } from '../../components/ui';
 import { NoorIcon } from '../../components/Noor';
-import { useData } from '../../context/DataContext';
+import { useDataActions } from '../../context/DataContext';
 import { useTranslation } from '../../i18n';
 import { useAction } from '../../hooks/useAction';
 import { ValidationError } from '../../utils/validation';
@@ -52,7 +52,7 @@ export function RequestActions({
 
 export function CallGuardian({ id, phone }: { id: string; phone: string }) {
   const { t } = useTranslation();
-  const { mutate } = useData();
+  const { mutate } = useDataActions();
   const action = useAction();
   const [note, setNote] = useState('');
   return (

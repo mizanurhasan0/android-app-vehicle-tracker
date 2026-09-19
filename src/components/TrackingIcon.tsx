@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Bus, Compass, Gauge, Layers, LockKeyhole, Play, Route, Share2, Target, Wrench,
-} from 'lucide-react-native';
+} from './icons';
 
 export type TrackingIconName =
   | 'target' | 'layers' | 'traffic' | 'play' | 'compass'

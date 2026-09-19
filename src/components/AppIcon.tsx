@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Bus, Plus } from 'lucide-react-native';
+import { Bus, Plus } from './icons';
 import { colors } from '../theme';
 import { Icon } from './Icon';
 

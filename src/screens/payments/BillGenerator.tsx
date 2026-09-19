@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Text } from 'react-native';
 import { ValidationError } from '../../utils/validation';
 import { Button, Card, Field, Notice } from '../../components/ui';
-import { useData } from '../../context/DataContext';
+import { useDataActions } from '../../context/DataContext';
 import { useAction } from '../../hooks/useAction';
 import { useTranslation } from '../../i18n';
 import { styles } from '../../theme';
 import { currentMonth } from '../../utils/format';
 export function BillGenerator() {
   const { t } = useTranslation();
-  const { mutate } = useData();
+  const { mutate } = useDataActions();
   const [month, setMonth] = useState(currentMonth());
   const action = useAction();
   return (

@@ -48,15 +48,16 @@ jest.mock('../src/context/AuthContext', () => ({
     },
   }),
 }));
-jest.mock('../src/context/DataContext', () => ({
-  useData: () => ({
+jest.mock('../src/context/DataContext', () => {
+  const useData = () => ({
     data: mockData,
     loading: false,
     error: '',
     refresh: mockRefresh,
     mutate: mockMutate,
-  }),
-}));
+  });
+  return { useData, useCoreData: useData, useDataActions: useData };
+});
 jest.mock('../src/context/ManagementContext', () => ({
   useManagement: () => ({
     data: mockManagement,

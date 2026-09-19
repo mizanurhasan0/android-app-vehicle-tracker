@@ -4,7 +4,7 @@ import { api, ApiError } from '../../api/client';
 import { ManagementReport } from '../../api/management';
 import { NoorIcon } from '../../components/Noor';
 import { useAuth } from '../../context/AuthContext';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useTranslation } from '../../i18n';
 import { currentMonth, money } from '../../utils/format';
@@ -53,7 +53,7 @@ export function ReportsScreen() {
     error: managementError,
     refresh: refreshManagement,
   } = useManagement();
-  const { data: transport } = useData();
+  const { data: transport } = useCoreData();
   const { baseUrl, session, expire } = useAuth();
   const [month, setMonth] = useState(currentMonth);
   const [date, setDate] = useState(today);

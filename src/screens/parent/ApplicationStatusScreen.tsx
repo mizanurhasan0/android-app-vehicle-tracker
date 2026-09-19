@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 import { ServiceRequest } from '../../api/types';
 import { NoorCard, NoorIcon } from '../../components/Noor';
 import { Button, Empty, Page, Select } from '../../components/ui';
-import { useData } from '../../context/DataContext';
+import { useCoreData } from '../../context/DataContext';
 import { useManagement } from '../../context/ManagementContext';
 import { useTranslation } from '../../i18n';
 import { styles } from '../../theme';
@@ -29,7 +29,7 @@ export function ApplicationStatusScreen({
   const { t } = useTranslation();
   const management = useManagement();
   const shifts = transportShifts(management.data?.settings);
-  const { data, loading, error, refresh } = useData();
+  const { data, loading, error, refresh } = useCoreData();
   const [selectedId, setSelectedId] = useState(route.params?.id || '');
   const requests: Application[] = data.requests;
   const request =

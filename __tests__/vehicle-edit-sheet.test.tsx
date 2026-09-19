@@ -14,9 +14,10 @@ let mockRole = 'ADMIN';
 jest.mock('../src/context/AuthContext', () => ({
   useAuth: () => ({ session: { user: { role: mockRole } } }),
 }));
-jest.mock('../src/context/DataContext', () => ({
-  useData: () => ({ mutate: mockMutate }),
-}));
+jest.mock('../src/context/DataContext', () => {
+  const useData = () => ({ mutate: mockMutate });
+  return { useData, useCoreData: useData, useDataActions: useData };
+});
 jest.mock('@react-native-picker/picker', () => {
   const ReactModule = require('react');
   const { View: NativeView } = require('react-native');
