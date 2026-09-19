@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -18,6 +19,7 @@ import { colors, styles } from '../theme';
 import { normalizeDigits, readable } from '../utils/format';
 import { translateMessage, useTranslation } from '../i18n';
 import { ToastKind, ToastMessage } from './Toast';
+import { Icon } from './Icon';
 export function Page({
   title,
   subtitle,
@@ -186,6 +188,7 @@ export function Select({
   onChange,
   disabled = false,
   error,
+  compact = false,
 }: {
   label: string;
   value: string;
@@ -193,8 +196,92 @@ export function Select({
   onChange: (value: string) => void;
   disabled?: boolean;
   error?: string;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  if (compact) {
+    const selectedLabel =
+      options.find(option => option.value === value)?.label ||
+      t('Select an option');
+    return (
+      <View style={[ui.field, ui.compactField]}>
+        <Text style={[ui.fieldLabel, ui.compactFieldLabel]}>{label}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityValue={{ text: selectedLabel }}
+          accessibilityState={{ disabled, expanded: optionsOpen }}
+          disabled={disabled}
+          onPress={() => setOptionsOpen(true)}
+          style={({ pressed }) => [
+            ui.compactSelect,
+            !!error && ui.invalid,
+            disabled && ui.disabled,
+            pressed && ui.pressed,
+          ]}
+        >
+          <Text style={ui.compactValue}>{selectedLabel}</Text>
+          <View style={ui.selectChevron}>
+            <Icon name="chevron" size={16} color={colors.muted} />
+          </View>
+        </Pressable>
+        {error ? (
+          <Text style={ui.errorText}>{translateMessage(error)}</Text>
+        ) : null}
+        {optionsOpen ? (
+          <Modal
+            transparent
+            animationType="fade"
+            onRequestClose={() => setOptionsOpen(false)}
+          >
+            <View style={ui.selectOverlay}>
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                accessibilityRole="button"
+                accessibilityLabel={t('Cancel')}
+                onPress={() => setOptionsOpen(false)}
+              />
+              <View style={ui.selectDialog} accessibilityViewIsModal>
+                <Text accessibilityRole="header" style={ui.selectTitle}>
+                  {label}
+                </Text>
+                <ScrollView keyboardShouldPersistTaps="handled">
+                  {options.map(option => (
+                    <Pressable
+                      key={option.value}
+                      accessibilityRole="radio"
+                      accessibilityLabel={option.label}
+                      accessibilityState={{ checked: option.value === value }}
+                      onPress={() => {
+                        setOptionsOpen(false);
+                        onChange(option.value);
+                      }}
+                      style={({ pressed }) => [
+                        ui.selectOption,
+                        option.value === value && ui.selectOptionActive,
+                        pressed && ui.pressed,
+                      ]}
+                    >
+                      <Text style={ui.selectOptionText}>{option.label}</Text>
+                      {option.value === value ? (
+                        <Icon name="check" size={18} />
+                      ) : null}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+                <Button
+                  title={t('Cancel')}
+                  secondary
+                  onPress={() => setOptionsOpen(false)}
+                />
+              </View>
+            </View>
+          </Modal>
+        ) : null}
+      </View>
+    );
+  }
   return (
     <View style={ui.field}>
       <Text style={ui.fieldLabel}>{label}</Text>
@@ -327,6 +414,8 @@ const ui = StyleSheet.create({
   secondaryText: { color: colors.primary },
   field: { gap: 5 },
   fieldLabel: { fontSize: 12, color: colors.ink, fontWeight: '600' },
+  compactField: { gap: 3 },
+  compactFieldLabel: { fontSize: 11 },
   input: {
     minHeight: 44,
     borderWidth: 1,
@@ -349,6 +438,47 @@ const ui = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   picker: { color: colors.ink, minHeight: 44 },
+  compactSelect: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 6,
+    backgroundColor: colors.surface,
+  },
+  compactValue: { flex: 1, fontSize: 13, color: colors.ink, fontWeight: '500' },
+  selectChevron: { transform: [{ rotate: '90deg' }] },
+  selectOverlay: {
+    flex: 1,
+    backgroundColor: '#00000066',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  selectDialog: {
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '75%',
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+  },
+  selectTitle: { fontSize: 17, fontWeight: '700', color: colors.ink },
+  selectOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 48,
+    padding: 12,
+    borderRadius: 6,
+  },
+  selectOptionActive: { backgroundColor: colors.mint },
+  selectOptionText: { flex: 1, fontSize: 15, color: colors.ink },
   notice: { padding: 10, borderRadius: 7, backgroundColor: colors.mint },
   error: { backgroundColor: '#FBEAEC' },
   errorText: { color: colors.danger },

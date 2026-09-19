@@ -1,7 +1,7 @@
 import React from 'react';
 import { ToastHost } from '../src/components/Toast';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, StyleSheet, Text, View } from 'react-native';
 import { PaymentsScreen } from '../src/screens/PaymentsScreen';
 import { ReviewActions } from '../src/components/ReviewActions';
 import { Button, Empty, Field, Select } from '../src/components/ui';
@@ -270,15 +270,12 @@ function pressTab(screen: TestRenderer.ReactTestRenderer, title: string) {
     .props.onPress();
 }
 
-function openFilters(screen: TestRenderer.ReactTestRenderer) {
+function openSearch(screen: TestRenderer.ReactTestRenderer) {
   screen.root
     .findAll(
       node =>
         node.props.accessibilityRole === 'button' &&
-        node.props.accessibilityState?.expanded === false &&
-        node
-          .findAllByType(Text)
-          .some(text => text.props.children === 'Filter by month and status'),
+        node.props.accessibilityLabel === 'Search records',
       { deep: false },
     )[0]
     .props.onPress();
@@ -459,6 +456,7 @@ it('searches transaction IDs and separates reviewed history from the pending que
   await act(async () => {
     screen = TestRenderer.create(<PaymentsScreen />);
   });
+  await act(async () => openSearch(screen));
   await act(async () => {
     screen.root
       .findAllByType(Field)
@@ -476,10 +474,20 @@ it('searches transaction IDs and separates reviewed history from the pending que
   ).toHaveLength(1);
   await act(async () => {
     screen.root
-      .findAllByType(Button)
-      .find(button => button.props.title === 'Clear filters')!
-      .props.onPress();
+      .findAllByType(Field)
+      .find(field => field.props.label === 'Search records')!
+      .props.onChangeText('');
     pressTab(screen, 'History');
+  });
+  await act(async () => {
+    screen.root
+      .findAll(
+        node =>
+          node.props.accessibilityLabel === 'Close search' &&
+          node.props.accessibilityRole === 'button',
+        { deep: false },
+      )[0]
+      .props.onPress();
   });
   expect(
     screen.root
@@ -490,7 +498,6 @@ it('searches transaction IDs and separates reviewed history from the pending que
         node.props.accessibilityLabel?.startsWith('View details ·'),
       ),
   ).toHaveLength(2);
-  await act(async () => openFilters(screen));
   await act(async () => {
     screen.root
       .findAllByType(Select)
@@ -562,7 +569,6 @@ it('opens the submission linked to a bill and clears the billing month filter', 
   await act(async () => {
     pressTab(screen, 'Monthly bills');
   });
-  await act(async () => openFilters(screen));
   await act(async () => {
     screen.root
       .findAllByType(Select)
@@ -586,16 +592,17 @@ it('opens the submission linked to a bill and clears the billing month filter', 
   expect(
     screen.root
       .findAllByType(Field)
-      .find(field => field.props.label === 'Search records')!.props.value,
-  ).toBe('');
+      .some(field => field.props.label === 'Search records'),
+  ).toBe(false);
   await act(async () => screen.unmount());
 });
 
 it('opens a pending bill by payment ID with an empty search and restores the queue through its tab', async () => {
   seedAdminPayments();
   // Distinct submissions may share searchable text; only identity should select one.
-  mockData.payments.find(payment => payment.id === 'pending-old')!.transactionId =
-    'NEW123456';
+  mockData.payments.find(
+    payment => payment.id === 'pending-old',
+  )!.transactionId = 'NEW123456';
   let screen!: TestRenderer.ReactTestRenderer;
   await act(async () => {
     screen = TestRenderer.create(<PaymentsScreen />);
@@ -604,7 +611,7 @@ it('opens a pending bill by payment ID with an empty search and restores the que
     pressTab(screen, 'Monthly bills');
   });
   // Closed filters must be absent from the native layout, not display:none.
-  expect(screen.root.findAllByType(Select)).toHaveLength(0);
+  expect(screen.root.findAllByType(Select)).toHaveLength(2);
   const pendingRow = screen.root.findAll(
     node =>
       node.props.accessibilityLabel === 'Review payment · Student One' &&
@@ -612,20 +619,22 @@ it('opens a pending bill by payment ID with an empty search and restores the que
     { deep: false },
   )[0];
   await act(async () => pendingRow.props.onPress());
-  expect(screen.root.findAllByType(Select)).toHaveLength(0);
+  expect(screen.root.findAllByType(Select)).toHaveLength(2);
   expect(screen.root.findByType(ReviewActions).props.path).toBe(
     '/admin/payments/pending-new/decision',
   );
   expect(
     screen.root
       .findAllByType(Field)
-      .find(field => field.props.label === 'Search records')!.props.value,
-  ).toBe('');
-  const disclosures = () => screen.root.findAll(
-    node => node.props.accessibilityRole === 'button' &&
-      node.props.accessibilityLabel?.includes(' · NEW123456'),
-    { deep: false },
-  );
+      .some(field => field.props.label === 'Search records'),
+  ).toBe(false);
+  const disclosures = () =>
+    screen.root.findAll(
+      node =>
+        node.props.accessibilityRole === 'button' &&
+        node.props.accessibilityLabel?.includes(' · NEW123456'),
+      { deep: false },
+    );
   expect(disclosures()).toHaveLength(1);
   expect(disclosures()[0].props.accessibilityState.expanded).toBe(true);
   expect(mockMutate).not.toHaveBeenCalled();
@@ -633,6 +642,62 @@ it('opens a pending bill by payment ID with an empty search and restores the que
     pressTab(screen, 'To review · 2');
   });
   expect(disclosures()).toHaveLength(2);
+  await act(async () => screen.unmount());
+});
+
+it('selects compact month and status options and displays their labels after closing', async () => {
+  seedAdminPayments();
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(<PaymentsScreen initialTab="bills" />);
+  });
+  const control = (label: string, role = 'button') => screen.root.findAll(
+    node => node.props.accessibilityRole === role &&
+      node.props.accessibilityLabel === label,
+    { deep: false },
+  )[0];
+  expect(control('Billing month').props.accessibilityValue.text).toBe('All months');
+  await act(async () => control('Billing month').props.onPress());
+  expect(screen.root.findAllByType(Modal)).toHaveLength(1);
+  await act(async () => control('2026-09', 'radio').props.onPress());
+  expect(screen.root.findAllByType(Modal)).toHaveLength(0);
+  expect(control('Billing month').props.accessibilityValue.text).toBe('2026-09');
+  await act(async () => control('Status').props.onPress());
+  await act(async () => control('Due', 'radio').props.onPress());
+  expect(control('Status').props.accessibilityValue.text).toBe('Due');
+  expect(screen.root.findAllByType(Modal)).toHaveLength(0);
+  await act(async () => control('Status').props.onPress());
+  await act(async () => screen.root.findByType(Modal).props.onRequestClose());
+  expect(control('Status').props.accessibilityValue.text).toBe('Due');
+  expect(mockMutate).not.toHaveBeenCalled();
+  await act(async () => screen.unmount());
+});
+
+it('opens search mode from the icon and hides the filter dropdowns', async () => {
+  seedAdminPayments();
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(<PaymentsScreen />);
+  });
+  expect(screen.root.findAllByType(Select)).toHaveLength(2);
+  await act(async () => openSearch(screen));
+  expect(screen.root.findAllByType(Select)).toHaveLength(0);
+  expect(
+    screen.root
+      .findAllByType(Field)
+      .some(field => field.props.label === 'Search records'),
+  ).toBe(true);
+  await act(async () => {
+    screen.root
+      .findAll(
+        node =>
+          node.props.accessibilityLabel === 'Close search' &&
+          node.props.accessibilityRole === 'button',
+        { deep: false },
+      )[0]
+      .props.onPress();
+  });
+  expect(screen.root.findAllByType(Select)).toHaveLength(2);
   await act(async () => screen.unmount());
 });
 
