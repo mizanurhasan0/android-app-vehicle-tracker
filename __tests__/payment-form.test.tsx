@@ -587,12 +587,15 @@ it('opens the submission linked to a bill and clears the billing month filter', 
     screen.root
       .findAllByType(Field)
       .find(field => field.props.label === 'Search records')!.props.value,
-  ).toBe('NEW123456');
+  ).toBe('');
   await act(async () => screen.unmount());
 });
 
-it('opens review when a pending bill row is pressed', async () => {
+it('opens a pending bill by payment ID with an empty search and restores the queue through its tab', async () => {
   seedAdminPayments();
+  // Distinct submissions may share searchable text; only identity should select one.
+  mockData.payments.find(payment => payment.id === 'pending-old')!.transactionId =
+    'NEW123456';
   let screen!: TestRenderer.ReactTestRenderer;
   await act(async () => {
     screen = TestRenderer.create(<PaymentsScreen />);
@@ -617,7 +620,19 @@ it('opens review when a pending bill row is pressed', async () => {
     screen.root
       .findAllByType(Field)
       .find(field => field.props.label === 'Search records')!.props.value,
-  ).toBe('NEW123456');
+  ).toBe('');
+  const disclosures = () => screen.root.findAll(
+    node => node.props.accessibilityRole === 'button' &&
+      node.props.accessibilityLabel?.includes(' · NEW123456'),
+    { deep: false },
+  );
+  expect(disclosures()).toHaveLength(1);
+  expect(disclosures()[0].props.accessibilityState.expanded).toBe(true);
+  expect(mockMutate).not.toHaveBeenCalled();
+  await act(async () => {
+    pressTab(screen, 'To review · 2');
+  });
+  expect(disclosures()).toHaveLength(2);
   await act(async () => screen.unmount());
 });
 

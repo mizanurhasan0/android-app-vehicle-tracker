@@ -236,7 +236,9 @@ export function AdminPaymentDesk({
 } = {}) {
   const { t } = useTranslation();
   const { data, loading, error, refresh } = useData();
-  const targetPayment = data.payments.find(item => item.id === paymentId);
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
+  const targetPaymentId = selectedPaymentId || paymentId;
+  const targetPayment = data.payments.find(item => item.id === targetPaymentId);
   const targetBillId = billId || targetPayment?.billId;
   const [focused, setFocused] = useState(!!(billId || paymentId));
   const [tab, setTab] = useState<DeskTab>(
@@ -267,8 +269,8 @@ export function AdminPaymentDesk({
     .filter(
       payment =>
         (!focused ||
-          (paymentId
-            ? payment.id === paymentId
+          (targetPaymentId
+            ? payment.id === targetPaymentId
             : payment.billId === targetBillId)) &&
         (tab === 'review'
           ? payment.status === 'PENDING'
@@ -319,6 +321,10 @@ export function AdminPaymentDesk({
     setTab(value);
     setStatus('');
     setExpandedId(null);
+    if (selectedPaymentId) {
+      setSelectedPaymentId(null);
+      setFocused(false);
+    }
   };
   const openPendingPayment = (bill: Bill) => {
     const submissionId =
@@ -326,21 +332,15 @@ export function AdminPaymentDesk({
       pending.find(payment => payment.billId === bill.id)?.id;
     if (!submissionId) return;
     changeTab('review');
-    const submission = pending.find(payment => payment.id === submissionId);
-    setQuery(submission?.transactionId || bill.studentName);
+    setSelectedPaymentId(submissionId);
+    setFocused(true);
+    setQuery('');
     setMonth('');
     setExpandedId(submissionId);
   };
 
   return (
     <Page loading={loading} refresh={refresh} error={error}>
-      {focused ? (
-        <Button
-          secondary
-          title={t('Show all records')}
-          onPress={() => setFocused(false)}
-        />
-      ) : null}
       <View style={desk.overview}>
         <View style={desk.stat}>
           <Text style={desk.overviewLabel}>{t('Total billed')}</Text>
