@@ -270,6 +270,20 @@ function pressTab(screen: TestRenderer.ReactTestRenderer, title: string) {
     .props.onPress();
 }
 
+function openFilters(screen: TestRenderer.ReactTestRenderer) {
+  screen.root
+    .findAll(
+      node =>
+        node.props.accessibilityRole === 'button' &&
+        node.props.accessibilityState?.expanded === false &&
+        node
+          .findAllByType(Text)
+          .some(text => text.props.children === 'Filter by month and status'),
+      { deep: false },
+    )[0]
+    .props.onPress();
+}
+
 it('shows one guardian tab at a time and preserves payment drafts and history filters', async () => {
   let screen!: TestRenderer.ReactTestRenderer;
   await act(async () => {
@@ -476,6 +490,7 @@ it('searches transaction IDs and separates reviewed history from the pending que
         node.props.accessibilityLabel?.startsWith('View details ·'),
       ),
   ).toHaveLength(2);
+  await act(async () => openFilters(screen));
   await act(async () => {
     screen.root
       .findAllByType(Select)
@@ -547,6 +562,7 @@ it('opens the submission linked to a bill and clears the billing month filter', 
   await act(async () => {
     pressTab(screen, 'Monthly bills');
   });
+  await act(async () => openFilters(screen));
   await act(async () => {
     screen.root
       .findAllByType(Select)
@@ -567,6 +583,36 @@ it('opens the submission linked to a bill and clears the billing month filter', 
       .findAllByType(Select)
       .find(select => select.props.label === 'Billing month')!.props.value,
   ).toBe('ALL');
+  expect(
+    screen.root
+      .findAllByType(Field)
+      .find(field => field.props.label === 'Search records')!.props.value,
+  ).toBe('NEW123456');
+  await act(async () => screen.unmount());
+});
+
+it('opens review when a pending bill row is pressed', async () => {
+  seedAdminPayments();
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(<PaymentsScreen />);
+  });
+  await act(async () => {
+    pressTab(screen, 'Monthly bills');
+  });
+  // Closed filters must be absent from the native layout, not display:none.
+  expect(screen.root.findAllByType(Select)).toHaveLength(0);
+  const pendingRow = screen.root.findAll(
+    node =>
+      node.props.accessibilityLabel === 'Review payment · Student One' &&
+      node.props.accessibilityRole === 'button',
+    { deep: false },
+  )[0];
+  await act(async () => pendingRow.props.onPress());
+  expect(screen.root.findAllByType(Select)).toHaveLength(0);
+  expect(screen.root.findByType(ReviewActions).props.path).toBe(
+    '/admin/payments/pending-new/decision',
+  );
   expect(
     screen.root
       .findAllByType(Field)

@@ -1,7 +1,7 @@
 import { ValidationError } from '../utils/validation';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Payment } from '../api/types';
+import { Bill, Payment } from '../api/types';
 import { TransportShift } from '../api/management';
 import { DEFAULT_SHIFTS } from '../utils/transport';
 import { paymentShiftLabel } from '../utils/paymentShift';
@@ -128,7 +128,11 @@ function SubmissionCard({
               : 'View details',
           )}
         </Text>
-        <NoorIcon name={expanded ? 'minus' : 'plus'} size={20} color={colors.primary} />
+        <NoorIcon
+          name={expanded ? 'minus' : 'plus'}
+          size={20}
+          color={colors.primary}
+        />
       </Pressable>
       {expanded ? (
         <View style={styles.section}>
@@ -316,6 +320,17 @@ export function AdminPaymentDesk({
     setStatus('');
     setExpandedId(null);
   };
+  const openPendingPayment = (bill: Bill) => {
+    const submissionId =
+      bill.pendingSubmissionId ||
+      pending.find(payment => payment.billId === bill.id)?.id;
+    if (!submissionId) return;
+    changeTab('review');
+    const submission = pending.find(payment => payment.id === submissionId);
+    setQuery(submission?.transactionId || bill.studentName);
+    setMonth('');
+    setExpandedId(submissionId);
+  };
 
   return (
     <Page loading={loading} refresh={refresh} error={error}>
@@ -397,46 +412,47 @@ export function AdminPaymentDesk({
           <Text style={desk.link}>
             {t(showFilters ? 'Close filters' : 'Filter by month and status')}
           </Text>
-          <NoorIcon name={showFilters ? 'minus' : 'plus'} size={20} color={colors.primary} />
-        </Pressable>
-        <View
-          style={[desk.filterFields, !showFilters && desk.hidden]}
-          accessibilityElementsHidden={!showFilters}
-          importantForAccessibility={
-            showFilters ? 'auto' : 'no-hide-descendants'
-          }
-        >
-          <Select
-            label={t('Billing month')}
-            value={month || 'ALL'}
-            onChange={value => setMonth(value === 'ALL' ? '' : value)}
-            options={[
-              { value: 'ALL', label: t('All months') },
-              ...months.map(value => ({ value, label: value })),
-            ]}
+          <NoorIcon
+            name={showFilters ? 'minus' : 'plus'}
+            size={20}
+            color={colors.primary}
           />
-          {tab !== 'review' ? (
-            <View style={desk.choices}>
-              {(tab === 'bills'
-                ? ['', 'UNPAID', 'PENDING', 'PAID']
-                : ['', 'APPROVED', 'REJECTED']
-              ).map(value => (
-                <Choice
-                  key={value}
-                  label={t(
-                    value === ''
-                      ? 'All'
-                      : value === 'PENDING'
-                      ? 'Awaiting review'
-                      : readable(value),
-                  )}
-                  selected={status === value}
-                  onPress={() => setStatus(value)}
-                />
-              ))}
-            </View>
-          ) : null}
-        </View>
+        </Pressable>
+        {/* Unmount closed filters: hidden Yoga nodes can crash during tab layout changes. */}
+        {showFilters ? (
+          <View style={desk.filterFields}>
+            <Select
+              label={t('Billing month')}
+              value={month || 'ALL'}
+              onChange={value => setMonth(value === 'ALL' ? '' : value)}
+              options={[
+                { value: 'ALL', label: t('All months') },
+                ...months.map(value => ({ value, label: value })),
+              ]}
+            />
+            {tab !== 'review' ? (
+              <View style={desk.choices}>
+                {(tab === 'bills'
+                  ? ['', 'UNPAID', 'PENDING', 'PAID']
+                  : ['', 'APPROVED', 'REJECTED']
+                ).map(value => (
+                  <Choice
+                    key={value}
+                    label={t(
+                      value === ''
+                        ? 'All'
+                        : value === 'PENDING'
+                        ? 'Awaiting review'
+                        : readable(value),
+                    )}
+                    selected={status === value}
+                    onPress={() => setStatus(value)}
+                  />
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
         {filtered ? (
           <Button
             secondary
@@ -507,40 +523,64 @@ export function AdminPaymentDesk({
           </View>
           {bills.map(bill => (
             <View key={bill.id} style={desk.tableItem}>
-              <View style={desk.billRow}>
-                <View style={desk.columnName}>
-                  <Text style={desk.studentName}>{bill.studentName}</Text>
-                  {bill.shiftId ? (
-                    <Text style={desk.guardianName}>
-                      {paymentShiftLabel(bill, shifts)}
+              {(() => {
+                const pendingSubmissionId =
+                  bill.pendingSubmissionId ||
+                  pending.find(payment => payment.billId === bill.id)?.id;
+                const row = (
+                  <View style={desk.billRow}>
+                    <View style={desk.columnName}>
+                      <Text style={desk.studentName}>{bill.studentName}</Text>
+                      {bill.shiftId ? (
+                        <Text style={desk.guardianName}>
+                          {paymentShiftLabel(bill, shifts)}
+                        </Text>
+                      ) : null}
+                      <Text style={desk.guardianName}>{bill.guardianName}</Text>
+                    </View>
+                    <Text style={[desk.columnMonth, desk.tableText]}>
+                      {bill.month}
                     </Text>
-                  ) : null}
-                  <Text style={desk.guardianName}>{bill.guardianName}</Text>
-                </View>
-                <Text style={[desk.columnMonth, desk.tableText]}>
-                  {bill.month}
-                </Text>
-                <Text style={[desk.columnAmount, desk.tableAmount]}>
-                  {money(bill.amount)}
-                </Text>
-                <View style={desk.columnStatus}>
-                  <Text
-                    accessibilityLabel={readable(
-                      bill.pendingSubmissionId ? 'PENDING' : bill.status,
-                    )}
-                    style={[
-                      desk.billStatus,
-                      bill.status !== 'PAID' && desk.billStatusDue,
+                    <Text style={[desk.columnAmount, desk.tableAmount]}>
+                      {money(bill.amount)}
+                    </Text>
+                    <View style={desk.columnStatus}>
+                      <Text
+                        accessibilityLabel={readable(
+                          pendingSubmissionId ? 'PENDING' : bill.status,
+                        )}
+                        style={[
+                          desk.billStatus,
+                          bill.status !== 'PAID' && desk.billStatusDue,
+                        ]}
+                      >
+                        {bill.status === 'PAID'
+                          ? '✓'
+                          : pendingSubmissionId
+                          ? '◷'
+                          : '!'}
+                      </Text>
+                    </View>
+                  </View>
+                );
+                return pendingSubmissionId ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${t('Review payment')} · ${
+                      bill.studentName
+                    }`}
+                    onPress={() => openPendingPayment(bill)}
+                    style={({ pressed }) => [
+                      desk.pendingRow,
+                      pressed && desk.pressed,
                     ]}
                   >
-                    {bill.status === 'PAID'
-                      ? '✓'
-                      : bill.pendingSubmissionId
-                      ? '◷'
-                      : '!'}
-                  </Text>
-                </View>
-              </View>
+                    {row}
+                  </Pressable>
+                ) : (
+                  row
+                );
+              })()}
               {bill.paidAt ? (
                 <Text style={desk.paidDate}>
                   {t('Paid on ')}
@@ -551,15 +591,7 @@ export function AdminPaymentDesk({
                 <Button
                   secondary
                   title={t('Review payment')}
-                  onPress={() => {
-                    changeTab('review');
-                    const submission = pending.find(
-                      payment => payment.id === bill.pendingSubmissionId,
-                    );
-                    setQuery(submission?.transactionId || bill.studentName);
-                    setMonth('');
-                    setExpandedId(bill.pendingSubmissionId);
-                  }}
+                  onPress={() => openPendingPayment(bill)}
                 />
               ) : null}
             </View>
@@ -590,7 +622,6 @@ const desk = StyleSheet.create({
     minHeight: 36,
   },
   filterFields: { gap: 10 },
-  hidden: { display: 'none' },
   table: {
     borderWidth: 1,
     borderColor: colors.line,
@@ -604,6 +635,7 @@ const desk = StyleSheet.create({
     borderBottomColor: colors.line,
     paddingBottom: 2,
   },
+  pendingRow: { alignSelf: 'stretch' },
   billRow: {
     flexDirection: 'row',
     alignItems: 'center',
