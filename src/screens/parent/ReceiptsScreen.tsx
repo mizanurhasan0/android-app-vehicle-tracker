@@ -301,7 +301,7 @@ export function ReceiptsScreen() {
                 <Text style={r.listAmount}>{money(item.amount)}</Text>
                 <NoorBadge label={readable(item.status)} />
               </View>
-                <NoorIcon name="chevron" size={20} color={colors.primary} />
+              <NoorIcon name="chevron" size={20} color={colors.primary} />
             </Pressable>
           ))}
         </>

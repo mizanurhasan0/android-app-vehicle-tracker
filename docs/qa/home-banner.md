@@ -1,6 +1,14 @@
 # Compact home banner
 
-Asset: `assets/branding/home-banner.jpg` (1200 × 400, approximately 26 KB), bundled locally for offline use. Generated with the built-in imagegen tool, then resized and JPEG-encoded for the app. The banner retains top-only rounded corners and joins Quick Access with straight edges.
+Historical asset: `assets/branding/home-banner.jpg` (1200 × 400, approximately 26 KB).
+This unused source was removed from the working tree during the 2026-09-19 cleanup
+and is no longer bundled. A temporary copy is at
+`/tmp/tracker-unused-assets.Z9rTz2/home-banner.jpg`; the tracked original is also
+recoverable from Git history. This note and the generation prompt are retained
+as historical QA evidence.
+
+The original banner was generated, resized and JPEG-encoded for offline use. It
+had top-only rounded corners and joined Quick Access with straight edges.
 
 ## Generation prompt
 

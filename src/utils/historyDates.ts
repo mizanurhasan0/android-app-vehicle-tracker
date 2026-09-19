@@ -1,8 +1,9 @@
+import { locale } from '../i18n';
+import { DHAKA_OFFSET_MS } from './dates';
+
+export { dhakaDate } from './dates';
 export type HistoryPeriod = 'day' | 'week' | 'month';
 const DAY = 86_400_000;
-const OFFSET = 6 * 60 * 60_000;
-export const dhakaDate = (instant = Date.now()) =>
-  new Date(instant + OFFSET).toISOString().slice(0, 10);
 export function parseDay(day: string): number {
   const value = Date.parse(`${day}T00:00:00.000Z`);
   if (
@@ -22,8 +23,8 @@ export function historyRange(day: string, period: HistoryPeriod) {
   if (period === 'month') date.setUTCMonth(date.getUTCMonth() + 1);
   else date.setUTCDate(date.getUTCDate() + (period === 'week' ? 7 : 1));
   return {
-    from: new Date(start - OFFSET).toISOString(),
-    to: new Date(date.getTime() - OFFSET).toISOString(),
+    from: new Date(start - DHAKA_OFFSET_MS).toISOString(),
+    to: new Date(date.getTime() - DHAKA_OFFSET_MS).toISOString(),
     label: `${new Date(start).toISOString().slice(0, 10)} — ${new Date(
       date.getTime() - DAY,
     )
@@ -59,4 +60,3 @@ export const historyTime = (value: string) =>
     minute: '2-digit',
     second: '2-digit',
   });
-import { locale } from '../i18n';

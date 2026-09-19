@@ -1,5 +1,5 @@
 import React from 'react';
-import { ToastHost } from '../src/components/Toast';
+import { dismissToast, ToastHost } from '../src/components/Toast';
 import TestRenderer, { act } from 'react-test-renderer';
 import { Alert, Modal, StyleSheet, Text, View } from 'react-native';
 import { PaymentsScreen } from '../src/screens/PaymentsScreen';
@@ -291,15 +291,17 @@ it('shows one guardian tab at a time and preserves payment drafts and history fi
   const labels = ['Your bills', 'Payment history', 'Payment form'];
   const expectActive = (active: string) =>
     labels.forEach(label => {
-      expect(panel(label).props.accessibilityElementsHidden).toBe(
-        label !== active,
-      );
-      expect(panel(label).props.importantForAccessibility).toBe(
-        label === active ? 'auto' : 'no-hide-descendants',
-      );
-      expect(StyleSheet.flatten(panel(label).props.style).display).toBe(
-        label === active ? undefined : 'none',
-      );
+      if (label !== active) {
+        expect(
+          screen.root.findAllByProps({ testID: `payment-panel-${label}` }),
+        ).toHaveLength(0);
+        return;
+      }
+      expect(panel(label).props.accessibilityElementsHidden).toBe(false);
+      expect(panel(label).props.importantForAccessibility).toBe('auto');
+      expect(
+        StyleSheet.flatten(panel(label).props.style).display,
+      ).toBeUndefined();
     });
   expectActive('Your bills');
   await act(async () => {
@@ -651,17 +653,23 @@ it('selects compact month and status options and displays their labels after clo
   await act(async () => {
     screen = TestRenderer.create(<PaymentsScreen initialTab="bills" />);
   });
-  const control = (label: string, role = 'button') => screen.root.findAll(
-    node => node.props.accessibilityRole === role &&
-      node.props.accessibilityLabel === label,
-    { deep: false },
-  )[0];
-  expect(control('Billing month').props.accessibilityValue.text).toBe('All months');
+  const control = (label: string, role = 'button') =>
+    screen.root.findAll(
+      node =>
+        node.props.accessibilityRole === role &&
+        node.props.accessibilityLabel === label,
+      { deep: false },
+    )[0];
+  expect(control('Billing month').props.accessibilityValue.text).toBe(
+    'All months',
+  );
   await act(async () => control('Billing month').props.onPress());
   expect(screen.root.findAllByType(Modal)).toHaveLength(1);
   await act(async () => control('2026-09', 'radio').props.onPress());
   expect(screen.root.findAllByType(Modal)).toHaveLength(0);
-  expect(control('Billing month').props.accessibilityValue.text).toBe('2026-09');
+  expect(control('Billing month').props.accessibilityValue.text).toBe(
+    '2026-09',
+  );
   await act(async () => control('Status').props.onPress());
   await act(async () => control('Due', 'radio').props.onPress());
   expect(control('Status').props.accessibilityValue.text).toBe('Due');
@@ -670,6 +678,79 @@ it('selects compact month and status options and displays their labels after clo
   await act(async () => screen.root.findByType(Modal).props.onRequestClose());
   expect(control('Status').props.accessibilityValue.text).toBe('Due');
   expect(mockMutate).not.toHaveBeenCalled();
+  await act(async () => screen.unmount());
+});
+
+it('keeps compact Select labels readable and respects disabled, error and controlled selection states', async () => {
+  const longLabel =
+    'A long payment status label that must remain fully readable';
+  const onChange = jest.fn();
+  const props = {
+    compact: true,
+    label: 'Status',
+    value: 'LONG',
+    options: [
+      { value: 'LONG', label: longLabel },
+      { value: 'PAID', label: 'Paid' },
+    ],
+    onChange,
+  };
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(
+      <Select {...props} disabled error="Choose a status." />,
+    );
+  });
+  const control = (label: string, role = 'button') =>
+    screen.root.findAll(
+      node =>
+        node.props.accessibilityRole === role &&
+        node.props.accessibilityLabel === label,
+      { deep: false },
+    )[0];
+  const triggerStyle = () =>
+    StyleSheet.flatten(control('Status').props.style({ pressed: false }));
+  expect(control('Status').props.disabled).toBe(true);
+  expect(control('Status').props.accessibilityState).toEqual({
+    disabled: true,
+    expanded: false,
+  });
+  expect(control('Status').props.accessibilityValue.text).toBe(longLabel);
+  const label = screen.root
+    .findAllByType(Text)
+    .find(node => node.props.children === longLabel)!;
+  expect(label).toBeDefined();
+  expect(label.props.numberOfLines).toBeUndefined();
+  expect(StyleSheet.flatten(label.props.style)).toMatchObject({
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+  });
+  expect(triggerStyle()).toMatchObject({ borderWidth: 2, opacity: 0.5 });
+  expect(
+    screen.root
+      .findAllByType(Text)
+      .some(node => node.props.children === 'Choose a status.'),
+  ).toBe(true);
+  expect(screen.root.findAllByType(Modal)).toHaveLength(0);
+  expect(onChange).not.toHaveBeenCalled();
+
+  await act(async () => screen.update(<Select {...props} />));
+  expect(control('Status').props.disabled).toBe(false);
+  expect(triggerStyle().borderWidth).toBe(1);
+  await act(async () => control('Status').props.onPress());
+  expect(screen.root.findAllByType(Modal)).toHaveLength(1);
+  expect(control(longLabel, 'radio').props.accessibilityState.checked).toBe(
+    true,
+  );
+  expect(control('Paid', 'radio').props.accessibilityState.checked).toBe(false);
+  await act(async () => control('Paid', 'radio').props.onPress());
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith('PAID');
+  expect(screen.root.findAllByType(Modal)).toHaveLength(0);
+  expect(control('Status').props.accessibilityValue.text).toBe(longLabel);
+  await act(async () => screen.update(<Select {...props} value="PAID" />));
+  expect(control('Status').props.accessibilityValue.text).toBe('Paid');
   await act(async () => screen.unmount());
 });
 
@@ -775,6 +856,17 @@ it('highlights invalid payment fields, clears each corrected field, and submits 
       .findAllByType(View)
       .some(node => node.props.testID === 'feedback-toast'),
   ).toBe(true);
+  await act(async () => dismissToast());
+  await act(async () => pressTab(screen, 'Payment history'));
+  expect(screen.root.findAllByType(Field)).toHaveLength(0);
+  await act(async () => pressTab(screen, 'Payment form'));
+  expect(field('Number you sent money from').props.error).toBeTruthy();
+  expect(field('Transaction ID').props.error).toBeTruthy();
+  expect(
+    screen.root
+      .findAllByType(View)
+      .some(node => node.props.testID === 'feedback-toast'),
+  ).toBe(false);
   await act(async () =>
     field('Number you sent money from').props.onChangeText('01700000002'),
   );

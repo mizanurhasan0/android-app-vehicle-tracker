@@ -3,17 +3,17 @@ export {
   StudentProfileScreen,
   DriversScreen,
   DriverProfileScreen,
-} from './PeopleScreens';
+} from './people';
 export {
   AttendanceScreen,
   MaintenanceScreen,
   AccountsScreen,
-} from './OperationsScreens';
+} from './operations';
 export {
   NoticesScreen,
   RequestsScreen,
   CommunicationScreen,
   SettingsScreen,
-} from './OfficeScreens';
+} from './office';
 export { ReportsScreen } from './ReportsScreen';
 export { BannersScreen } from './BannersScreen';

@@ -51,10 +51,10 @@ for (const module of [
   '../src/screens/RequestsScreen',
   '../src/screens/NotificationsScreen',
   '../src/screens/DirectoryScreens',
-  '../src/screens/NoorFleetScreens',
+  '../src/screens/fleet',
   '../src/screens/NoorMenuScreen',
   '../src/screens/admin',
-  '../src/screens/parent/ParentScreens',
+  '../src/screens/parent',
   '../src/screens/parent/ReceiptsScreen',
 ]) {
   jest.doMock(module, () => ({}));

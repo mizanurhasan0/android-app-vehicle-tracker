@@ -15,7 +15,7 @@ import {
   ParentJourneyScreen,
   ParentStudentScreen,
   ParentTrackingScreen,
-} from '../src/screens/parent/ParentScreens';
+} from '../src/screens/parent';
 import { Segment, StudentAvatar } from '../src/screens/parent/ParentUI';
 import { NoorRow } from '../src/components/Noor';
 import {

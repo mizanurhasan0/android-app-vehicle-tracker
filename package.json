@@ -4,15 +4,16 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "audit:local": "node scripts/audit-local.js",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest --watchman=false",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate": "npm run lint && npm run typecheck && npm test -- --runInBand"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^3.1.1",
     "@react-native-picker/picker": "^2.11.4",
-    "@react-navigation/bottom-tabs": "^7.18.17",
     "@react-navigation/native": "^7.3.17",
     "@react-navigation/native-stack": "^7.18.9",
     "i18next": "^26.4.0",

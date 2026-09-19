@@ -3,13 +3,15 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
 import { AppState } from 'react-native';
 import { io } from 'socket.io-client';
 import { api, ApiError } from '../api/client';
-import { DashboardData, Location, Vehicle } from '../api/types';
+import { DashboardData, Location } from '../api/types';
+import { loadDashboard } from '../api/dashboard';
 import { useAuth } from './AuthContext';
 const empty: DashboardData = {
   vehicles: [],
@@ -61,46 +63,9 @@ export function DataProvider({ children }: React.PropsWithChildren) {
       const request = ++generation.current;
       if (showLoading) setLoading(true);
       try {
-        const get = <T,>(path: string) => api<T>(baseUrl, path, token);
-        const [
-          vehicles,
-          locations,
-          routes,
-          subscriptions,
-          bills,
-          accounts,
-          payments,
-          requests,
-          complaints,
-          stops,
-          notifications,
-        ] = await Promise.all([
-          get<{ vehicles: Vehicle[] }>('/vehicles'),
-          get<{ devices: Location[] }>('/locations'),
-          get<DashboardData['routes']>('/routes'),
-          get<DashboardData['subscriptions']>('/subscriptions'),
-          get<DashboardData['bills']>('/payments/monthly'),
-          get<DashboardData['accounts']>('/payments/accounts'),
-          get<DashboardData['payments']>('/payments/submissions'),
-          get<DashboardData['requests']>('/requests/mine'),
-          get<DashboardData['complaints']>('/complaints'),
-          get<DashboardData['stops']>('/stop-requests'),
-          get<DashboardData['notifications']>('/notifications'),
-        ]);
+        const snapshot = await loadDashboard(baseUrl, token);
         if (isCurrent() && request === generation.current) {
-          setData({
-            vehicles: vehicles.vehicles,
-            locations: locations.devices,
-            routes,
-            subscriptions,
-            bills,
-            accounts,
-            payments,
-            requests,
-            complaints,
-            stops,
-            notifications,
-          });
+          setData(snapshot);
           setError('');
         }
       } catch (problem) {
@@ -179,11 +144,11 @@ export function DataProvider({ children }: React.PropsWithChildren) {
     },
     [baseUrl, token, load, expire, isCurrent],
   );
-  return (
-    <DataContext.Provider value={{ data, loading, error, refresh, mutate }}>
-      {children}
-    </DataContext.Provider>
+  const value = useMemo(
+    () => ({ data, loading, error, refresh, mutate }),
+    [data, loading, error, refresh, mutate],
   );
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
 export function useData() {
   const value = useContext(DataContext);

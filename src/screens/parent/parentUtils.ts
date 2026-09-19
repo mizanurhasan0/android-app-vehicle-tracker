@@ -1,6 +1,8 @@
 import { RouteSchedule, Student } from '../../api/management';
 import { locale } from '../../i18n';
 
+export { dhakaDate } from '../../utils/dates';
+
 /** Only dial a phone number: never allow user content to create another URI. */
 export function contactUrl(phone: string, kind: 'call' | 'sms' | 'whatsapp') {
   const digits = phone.replace(/[\s()-]/g, '');
@@ -30,10 +32,6 @@ export function studentSchedule(
         (!item.stopId || item.stopId === student.stopId),
     )
     .sort((a, b) => a.position - b.position || a.time.localeCompare(b.time));
-}
-
-export function dhakaDate(now = Date.now()) {
-  return new Date(now + 6 * 60 * 60_000).toISOString().slice(0, 10);
 }
 
 export function parentDateLabel(value: string) {

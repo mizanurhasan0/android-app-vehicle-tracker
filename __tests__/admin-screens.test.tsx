@@ -10,19 +10,19 @@ import {
   AttendanceScreen,
   AccountsScreen,
   MaintenanceScreen,
-} from '../src/screens/admin/OperationsScreens';
+} from '../src/screens/admin/operations';
 import {
   StudentsScreen,
   StudentProfileScreen,
   DriversScreen,
   DriverProfileScreen,
-} from '../src/screens/admin/PeopleScreens';
+} from '../src/screens/admin/people';
 import {
   NoticesScreen,
   RequestsScreen,
   CommunicationScreen,
   SettingsScreen,
-} from '../src/screens/admin/OfficeScreens';
+} from '../src/screens/admin/office';
 import {
   Choice,
   Detail,

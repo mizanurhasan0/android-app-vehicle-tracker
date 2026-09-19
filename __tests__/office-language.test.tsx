@@ -17,7 +17,7 @@ import {
   NoticesScreen,
   RequestsScreen,
   SettingsScreen,
-} from '../src/screens/admin/OfficeScreens';
+} from '../src/screens/admin/office';
 import { ReportsScreen } from '../src/screens/admin/ReportsScreen';
 import {
   Choice,

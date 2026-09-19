@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -153,23 +154,31 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
     },
     [expire],
   );
-  return (
-    <AuthContext.Provider
-      value={{
-        session,
-        ready,
-        baseUrl,
-        startupError,
-        signIn,
-        signOut,
-        updateProfile,
-        expire,
-        setServer,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      session,
+      ready,
+      baseUrl,
+      startupError,
+      signIn,
+      signOut,
+      updateProfile,
+      expire,
+      setServer,
+    }),
+    [
+      session,
+      ready,
+      baseUrl,
+      startupError,
+      signIn,
+      signOut,
+      updateProfile,
+      expire,
+      setServer,
+    ],
   );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 export function useAuth() {
   const value = useContext(AuthContext);

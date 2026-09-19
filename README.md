@@ -118,25 +118,50 @@ automatically on startup and preserves existing routes and subscriptions.
 
 ## Project structure
 
-- `src/api`: typed API models, HTTP handling and server URL validation
-- `src/context`: secure auth lifecycle, data refresh and live locations
+- `src/api`: typed API models, HTTP handling, server URL validation and dashboard loading
+- `src/context`: memoized auth/data/management providers, refresh and live locations
 - `src/components`: shared form, status, layout and review components
-- `src/screens`: auth, home, bills, requests, setup and inbox
+- `src/screens`: auth/inbox and feature folders for admin, parent, fleet, home, requests and payments
 - `src/hooks`: asynchronous action feedback and duplicate-press protection
-- `src/utils`: exact money conversion and display formatting
+- `src/utils`: exact money conversion, shared Dhaka dates and display formatting
+- `src/i18n`: shared and domain translation catalogs, language persistence
+- `scripts`: read-only local maintenance tools
 - `android`: native Android project; iOS native files have not been restored
+
+See [architecture and cleanup audit](docs/architecture.md) for module boundaries,
+import-graph evidence and the limits of automated cleanup checks.
+Feature splits preserve runtime behavior, including compact dropdown interactions;
+keep the full test suite as the regression gate when applying cleanup.
+The unused setup screen/icon and copyright footer were retired; live setup forms
+are covered directly by `__tests__/setup-forms.test.tsx`. Unused home/login artwork
+was moved to a temporary backup, and the unused bottom-tabs dependency was removed.
+PathSathi brand PNG/SVG sources, QA documentation/screenshots and native resources remain.
 
 ## Validation
 
 ```sh
-npm run typecheck
-npm run lint
-npm test -- --runInBand
+npm run validate
+# Optional read-only source/assets/dependency candidate report (JSON):
+npm run --silent audit:local
 npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output /tmp/pathsathi.android.bundle --assets-dest /tmp/pathsathi-assets
 cd android
 ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a
 ./gradlew assembleRelease
 ```
+
+`validate` runs lint, TypeScript and the complete Jest suite in sequence, stopping
+on failure. Individual `lint`, `typecheck` and `test` commands remain available.
+TypeScript enables `noUnusedLocals` and `noUnusedParameters` to catch unused imports,
+locals and parameters as part of `typecheck` and `npm run validate`.
+The audit is informational and never deletes files or changes dependencies. It
+returns a failing exit status for unresolved/computed imports or missing installed
+dependency manifests. Review candidates against a complete, consistent source tree.
+
+Cleanup verification (2026-09-19): 35 Jest suites / 287 tests passed, including the
+compact Select regression; lint, strict typecheck and the production JavaScript
+bundle passed. Phone startup of the parent dashboard was visually verified.
+The audit reports zero source candidates and unresolved imports; its only asset
+findings are the two deliberately retained PathSathi brand sources.
 
 The debug APK is `android/app/build/outputs/apk/debug/app-debug.apk` and needs a
 running Metro server. Release builds are deliberately unsigned: configure a
@@ -204,6 +229,11 @@ catalogs. Add new interface copy to the matching dictionary pair with identical
 interpolation placeholders, then use
 `useTranslation` from `src/i18n`. Tests check catalog coverage, language persistence,
 form preservation and localized map controls.
+
+Catalogs merge into one translation namespace, so domain keys must not override
+shared keys with different text. Reuse the shared key for common labels (for
+example, `Pending` → `অপেক্ষমাণ`); give genuinely different domain copy its own
+key. Run `npm test -- --runInBand __tests__/i18n.test.ts` after catalog changes.
 
 ## Noor Transport reference interface
 

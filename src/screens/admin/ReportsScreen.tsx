@@ -30,7 +30,7 @@ import {
   reportCsv,
   validReportMonth,
 } from './reportUtils';
-import { categoryLabels } from './OperationsScreens';
+import { categoryLabels } from './operations';
 
 const reportTypes = [
   { id: 'DAILY', label: 'Daily report' },

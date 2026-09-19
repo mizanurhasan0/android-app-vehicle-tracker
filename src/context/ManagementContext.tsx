@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -110,10 +111,14 @@ export function ManagementProvider({ children }: React.PropsWithChildren) {
     },
     [baseUrl, token, expire, load, refreshCore, isCurrent],
   );
+  // Live-location updates rerender this provider through DataContext. Keep
+  // management-only consumers stable until their own data or actions change.
+  const value = useMemo(
+    () => ({ data, loading, error, refresh, mutate }),
+    [data, loading, error, refresh, mutate],
+  );
   return (
-    <ManagementContext.Provider
-      value={{ data, loading, error, refresh, mutate }}
-    >
+    <ManagementContext.Provider value={value}>
       {children}
     </ManagementContext.Provider>
   );

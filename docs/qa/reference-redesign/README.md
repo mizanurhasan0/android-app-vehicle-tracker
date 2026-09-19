@@ -1,5 +1,9 @@
 # Reference redesign — September 10, 2026
 
+Historical QA record: the screenshots and checks below describe the September 10
+design. Its unused login artwork was removed during the September 19 cleanup;
+see the historical asset note below. Screenshots remain available.
+
 Implemented the supplied reference's white background, raspberry accent, centered
 branding/profile, pill-shaped login controls, slim balance row, and circular
 three-column dashboard. PathSathi names and transport features replace the wallet
@@ -30,10 +34,14 @@ content. No banking PIN is requested; existing phone/password authentication sta
 
 ![Notification details](notification-details.png)
 
-## Background asset
+## Historical background asset
 
-Saved at `assets/branding/login-transport.png`. Generated with the built-in
-imagegen tool. It is bundled locally and requires no image server.
+Previously stored at `assets/branding/login-transport.png` and bundled locally.
+This unused source was removed from the working tree during the 2026-09-19 cleanup
+and is no longer bundled. A temporary copy is at
+`/tmp/tracker-unused-assets.Z9rTz2/login-transport.png`; the tracked original is also
+recoverable from Git history. The screenshots and generation prompt are retained
+as historical QA evidence.
 
 Final generation prompt:
 

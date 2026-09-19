@@ -12,7 +12,7 @@ import {
   VehicleDetailsScreen,
   NoorRoutesScreen,
   RouteDetailsScreen,
-} from '../src/screens/NoorFleetScreens';
+} from '../src/screens/fleet';
 import {
   NoorMenuScreen,
   WelcomeScreen,

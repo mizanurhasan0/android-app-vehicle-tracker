@@ -104,6 +104,19 @@ it('preserves loaded data when a background refresh fails without showing a bloc
   expect(current.loading).toBe(false);
   expect(mockExpire).not.toHaveBeenCalled();
 });
+
+it('keeps the context value stable when core data causes the provider to rerender', async () => {
+  await render();
+  const previous = current;
+  await act(async () => {
+    screen.update(
+      <ManagementProvider>
+        <Probe />
+      </ManagementProvider>,
+    );
+  });
+  expect(current).toBe(previous);
+});
 it('refreshes core and management data after a mutation and returns the saved result', async () => {
   await render();
   jest

@@ -109,6 +109,19 @@ async function finishRequests() {
   });
 }
 
+it('keeps the context value stable when the parent rerenders without data changes', async () => {
+  await renderProvider();
+  const previous = current;
+  await act(async () => {
+    screen.update(
+      <DataProvider>
+        <Probe />
+      </DataProvider>,
+    );
+  });
+  expect(current).toBe(previous);
+});
+
 it('updates automatically after 20 seconds without showing a spinner or resetting screen state', async () => {
   await renderProvider();
   expect(loadingStates[0]).toBe(true);
