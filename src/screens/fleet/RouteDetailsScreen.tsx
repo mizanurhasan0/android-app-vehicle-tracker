@@ -21,6 +21,7 @@ import { f } from './styles';
 import { VehicleMark } from './FleetUI';
 import { scheduleTime } from './format';
 import { ScheduleEditor } from './ScheduleEditor';
+import { PickupPointEditor } from '../../components/PickupPointEditor';
 
 export function RouteDetailsScreen({
   route,
@@ -107,6 +108,17 @@ export function RouteDetailsScreen({
         route={selected}
         editable={session?.user.role === 'ADMIN'}
       />
+      {session?.user.role === 'ADMIN' ? (
+        <NoorCard>
+          <Text style={f.title}>{t('Pickup points')}</Text>
+          <Text style={f.sub}>
+            {t('Set the location and geofence radius for each stop.')}
+          </Text>
+          {selected.stops.map(stop => (
+            <PickupPointEditor key={stop.id} stop={stop} />
+          ))}
+        </NoorCard>
+      ) : null}
       <NoorCard>
         <View style={f.vehicleRow}>
           <VehicleMark />

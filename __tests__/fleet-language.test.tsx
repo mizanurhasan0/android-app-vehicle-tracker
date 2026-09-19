@@ -344,6 +344,29 @@ it('retains the selected route period and edits, retranslates validation, and sa
   );
 });
 
+it('saves pickup coordinates and geofence radii for an admin route stop', async () => {
+  await render(
+    <RouteDetailsScreen navigation={navigation} route={routeRoute} />,
+  );
+  await act(async () => {
+    field('Latitude').props.onChangeText('23.8103');
+    field('Longitude').props.onChangeText('90.4125');
+    field('Enter radius (m)').props.onChangeText('100');
+    field('Exit radius (m)').props.onChangeText('150');
+  });
+  await submit('Save pickup point');
+  expect(mockManagementMutate).toHaveBeenCalledWith(
+    '/admin/stops/stop-123/pickup-point',
+    {
+      latitude: 23.8103,
+      longitude: 90.4125,
+      enterRadiusMeters: 100,
+      exitRadiusMeters: 150,
+    },
+    'PUT',
+  );
+});
+
 it('keeps admin investment navigation and sign-out actions stable after translating menu labels', async () => {
   const alert = jest.spyOn(Alert, 'alert');
   await render(<NoorMenuScreen navigation={navigation} route={{} as never} />);

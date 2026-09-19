@@ -30,6 +30,7 @@ import {
   useAction,
 } from '../AdminUi';
 import { TextSettingKey, templateLabels } from './messageTemplates';
+import { TelegramConnectionCard } from '../../../components/TelegramConnectionCard';
 
 type SettingSection =
   | 'BUSINESS'
@@ -179,6 +180,7 @@ export function SettingsScreen() {
         <Heading title={t('Language')} />
         <LanguageSwitcher />
       </Box>
+      {!isAdmin ? <TelegramConnectionCard /> : null}
       <Text style={[s.muted, s.centered]}>
         NOOR TRANSPORT · {t('Safe Journey, Bright Future')}
       </Text>

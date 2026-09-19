@@ -24,6 +24,7 @@ import { AppIcon } from './AppIcon';
 import { useLanguageSettings } from '../i18n/LanguageContext';
 import { ProfileMenuIcon } from './ProfileMenuIcon';
 import { Button, Field, Notice } from './ui';
+import { TelegramConnectionCard } from './TelegramConnectionCard';
 
 export function ProfileDrawer({
   visible,
@@ -400,6 +401,7 @@ export function ProfileDrawer({
                         <LanguageOptions />
                       </View>
                     </View>
+                    {user.role === 'GUARDIAN' ? <TelegramConnectionCard /> : null}
                     <View style={local.footer}>
                       <DrawerAction
                         title={t('Sign out')}

@@ -135,5 +135,20 @@
   "Fare by destination": "Fare by destination",
   "No fares are configured from this boarding stop. Choose another stop or contact the admin.": "No fares are configured from this boarding stop. Choose another stop or contact the admin.",
   "Enter the stop name.": "Enter the stop name.",
-  "Enter a valid time as HH:mm.": "Enter a valid time as HH:mm."
+  "Enter a valid time as HH:mm.": "Enter a valid time as HH:mm.",
+  "Pickup points": "Pickup points",
+  "Set the location and geofence radius for each stop.": "Set the location and geofence radius for each stop.",
+  "Configured": "Configured",
+  "Not configured": "Not configured",
+  "Latitude": "Latitude",
+  "Longitude": "Longitude",
+  "Enter radius (m)": "Enter radius (m)",
+  "Exit radius (m)": "Exit radius (m)",
+  "Save pickup point": "Save pickup point",
+  "Pickup point saved.": "Pickup point saved.",
+  "Enter a valid latitude between -90 and 90.": "Enter a valid latitude between -90 and 90.",
+  "Enter a valid longitude between -180 and 180.": "Enter a valid longitude between -180 and 180.",
+  "Enter radius must be an integer from 10 to 10000 metres.": "Enter radius must be an integer from 10 to 10000 metres.",
+  "Exit radius must be an integer from 11 to 20000 metres.": "Exit radius must be an integer from 11 to 20000 metres.",
+  "Exit radius must be greater than enter radius.": "Exit radius must be greater than enter radius."
 }

@@ -34,6 +34,23 @@ jest.mock('../src/context/AuthContext', () => ({
     signOut: mockSignOut,
   }),
 }));
+jest.mock('../src/context/DataContext', () => ({
+  useCoreData: () => ({
+    data: {
+      telegram: {
+        enabled: false,
+        connected: false,
+        connectedAt: null,
+        username: null,
+        firstName: null,
+        chatIdLast4: null,
+      },
+    },
+    loading: false,
+    error: '',
+  }),
+  useDataActions: () => ({ mutate: jest.fn() }),
+}));
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
   default: { getItem: jest.fn(), setItem: jest.fn() },

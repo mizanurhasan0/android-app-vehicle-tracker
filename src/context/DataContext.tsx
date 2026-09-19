@@ -47,6 +47,7 @@ const LocationsContext = createContext<ReturnType<
 export function DataProvider({ children }: React.PropsWithChildren) {
   const { session, baseUrl, expire } = useAuth();
   const token = session?.token;
+  const includeTelegram = session?.user?.role === 'GUARDIAN';
   const isAuthenticated = useCredentialScope(baseUrl, token);
   // Remount before rendering another account/server: no data, socket, callbacks
   // or cached configuration may cross a credential boundary.
@@ -55,6 +56,7 @@ export function DataProvider({ children }: React.PropsWithChildren) {
       key={JSON.stringify([baseUrl, token])}
       baseUrl={baseUrl}
       token={token}
+      includeTelegram={includeTelegram}
       expire={expire}
       isAuthenticated={isAuthenticated}
     >
@@ -65,6 +67,7 @@ export function DataProvider({ children }: React.PropsWithChildren) {
 interface ScopeProps extends React.PropsWithChildren {
   baseUrl: string;
   token?: string;
+  includeTelegram: boolean;
   expire: () => Promise<void>;
   isAuthenticated: () => boolean;
 }
@@ -72,13 +75,17 @@ function DataScope({
   children,
   baseUrl,
   token,
+  includeTelegram,
   expire,
   isAuthenticated,
 }: ScopeProps) {
   const locations = useMemo(createLocationStore, []);
   const loader = useMemo(
-    () => createDashboardLoader(baseUrl, token || ''),
-    [baseUrl, token],
+    () =>
+      createDashboardLoader(baseUrl, token || '', {
+        includeTelegram,
+      }),
+    [baseUrl, token, includeTelegram],
   );
   const fetchSnapshot = useCallback(
     async (force: boolean) => {

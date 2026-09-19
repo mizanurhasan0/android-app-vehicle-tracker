@@ -53,7 +53,16 @@ export interface Route {
   vehicleId: string;
   vehicleName: string;
   monthlyAmount: number;
-  stops: { id: string; name: string }[];
+  stops: {
+    id: string;
+    name: string;
+    pickupPoint?: {
+      latitude: number;
+      longitude: number;
+      enterRadiusMeters: number;
+      exitRadiusMeters: number;
+    };
+  }[];
   fares?: RouteFare[];
 }
 export interface Subscription {
@@ -155,6 +164,61 @@ export interface Notification {
   entityId: string;
   createdAt: string;
   readAt: string | null;
+  /** Present when the API includes Telegram delivery metadata. */
+  telegramDelivery?: TelegramDeliverySummary;
+  telegramStatus?: TelegramDeliveryStatus;
+}
+
+export type TelegramDeliveryStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'SENDING'
+  | 'SENT'
+  | 'SKIPPED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+/** The server may expose either the legacy provider fields or the Telegram-specific names. */
+export interface TelegramDelivery {
+  id: string;
+  notificationId: string | null;
+  userId?: string;
+  guardianId?: string;
+  userName?: string;
+  guardianName?: string;
+  chatId?: string | number;
+  chatIdLast4?: string;
+  title: string;
+  body: string;
+  status: TelegramDeliveryStatus;
+  attempts: number;
+  lastError?: string | null;
+  providerMessageId?: string | null;
+  telegramMessageId?: number | null;
+  createdAt: string;
+  updatedAt?: string;
+  sentAt?: string | null;
+}
+
+/** Small optional projection used by notifications without changing old records. */
+export type TelegramDeliverySummary = Pick<
+  TelegramDelivery,
+  'status' | 'sentAt' | 'lastError'
+>;
+
+export interface TelegramStatus {
+  enabled: boolean;
+  connected: boolean;
+  connectedAt: string | null;
+  username: string | null;
+  firstName: string | null;
+  chatIdLast4: string | null;
+}
+
+export interface TelegramConnectResponse {
+  enabled: true;
+  url: string;
+  expiresAt: string;
 }
 export interface DashboardData {
   vehicles: Vehicle[];
@@ -168,6 +232,8 @@ export interface DashboardData {
   complaints: Complaint[];
   stops: StopRequest[];
   notifications: Notification[];
+  /** Guardian-only status; absent for admins and older API versions. */
+  telegram?: TelegramStatus;
 }
 
 export interface HistoryPoint {

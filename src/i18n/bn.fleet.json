@@ -135,5 +135,20 @@
   "Fare by destination": "গন্তব্য অনুযায়ী ভাড়া",
   "No fares are configured from this boarding stop. Choose another stop or contact the admin.": "এই ওঠার স্টপ থেকে কোনো ভাড়া নির্ধারণ করা নেই। অন্য স্টপ নির্বাচন করুন অথবা প্রশাসকের সঙ্গে যোগাযোগ করুন।",
   "Enter the stop name.": "স্টপের নাম লিখুন।",
-  "Enter a valid time as HH:mm.": "HH:mm ফরম্যাটে সঠিক সময় লিখুন।"
+  "Enter a valid time as HH:mm.": "HH:mm ফরম্যাটে সঠিক সময় লিখুন।",
+  "Pickup points": "পিকআপ পয়েন্ট",
+  "Set the location and geofence radius for each stop.": "প্রতিটি স্টপের লোকেশন ও জিওফেন্স ব্যাসার্ধ নির্ধারণ করুন।",
+  "Configured": "কনফিগার করা আছে",
+  "Not configured": "কনফিগার করা নেই",
+  "Latitude": "অক্ষাংশ",
+  "Longitude": "দ্রাঘিমাংশ",
+  "Enter radius (m)": "প্রবেশ ব্যাসার্ধ (মিটার)",
+  "Exit radius (m)": "বের হওয়ার ব্যাসার্ধ (মিটার)",
+  "Save pickup point": "পিকআপ পয়েন্ট সংরক্ষণ",
+  "Pickup point saved.": "পিকআপ পয়েন্ট সংরক্ষণ হয়েছে।",
+  "Enter a valid latitude between -90 and 90.": "-৯০ থেকে ৯০-এর মধ্যে সঠিক অক্ষাংশ দিন।",
+  "Enter a valid longitude between -180 and 180.": "-১৮০ থেকে ১৮০-এর মধ্যে সঠিক দ্রাঘিমাংশ দিন।",
+  "Enter radius must be an integer from 10 to 10000 metres.": "প্রবেশ ব্যাসার্ধ ১০ থেকে ১০,০০০ মিটারের পূর্ণসংখ্যা হতে হবে।",
+  "Exit radius must be an integer from 11 to 20000 metres.": "বের হওয়ার ব্যাসার্ধ ১১ থেকে ২০,০০০ মিটারের পূর্ণসংখ্যা হতে হবে।",
+  "Exit radius must be greater than enter radius.": "বের হওয়ার ব্যাসার্ধ প্রবেশ ব্যাসার্ধের চেয়ে বেশি হতে হবে।"
 }
