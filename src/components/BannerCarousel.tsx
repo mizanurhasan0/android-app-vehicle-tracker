@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   wrapper: { width: '100%', gap: 8 },
   page: { paddingHorizontal: 1 },
   card: {
-    height: 158,
+    height: 116,
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#E8EFEC',

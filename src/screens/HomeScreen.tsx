@@ -186,7 +186,6 @@ export function HomeScreen({
       >
         <View style={h.content}>
           <Notice text={core.error || management.error} kind="error" />
-          <BannerCarousel banners={banners} onPress={openBanner} />
           {admin ? (
             <>
               <View style={h.dateRow}>
@@ -314,6 +313,7 @@ export function HomeScreen({
                   </Text>
                 ) : null}
               </View>
+              <BannerCarousel banners={banners} onPress={openBanner} />
               <NoorSection title={t('Quick actions')}>
                 <View style={h.quickGrid}>
                   {dashboardItems.map(item => (
@@ -499,6 +499,7 @@ export function HomeScreen({
                   onPress={() => go('Admission')}
                 />
               </View>
+              <BannerCarousel banners={banners} onPress={openBanner} />
               <NoorSection
                 title={t('Current vehicle status')}
                 action={t('View')}
