@@ -64,7 +64,7 @@ const commonRoutes = {
   FleetMap: [
     '../src/navigation/routeScreens',
     'FleetMapScreen',
-    'Live location',
+    'Vehicles',
   ],
   Routes: ['../src/screens/fleet', 'NoorRoutesScreen', 'Routes'],
   RouteDetails: [

@@ -151,11 +151,6 @@
   "Exit radius must be an integer from 11 to 20000 metres.": "বের হওয়ার ব্যাসার্ধ ১১ থেকে ২০,০০০ মিটারের পূর্ণসংখ্যা হতে হবে।",
   "Exit radius must be greater than enter radius.": "বের হওয়ার ব্যাসার্ধ প্রবেশ ব্যাসার্ধের চেয়ে বেশি হতে হবে।",
   "Expenses": "খরচ",
-  "Current or last known locations": "বর্তমান বা সর্বশেষ জানা অবস্থান",
-  "{{shown}} of {{total}} vehicles on map": "{{total}}টি গাড়ির মধ্যে {{shown}}টি ম্যাপে",
-  "● Live": "● লাইভ",
-  "● Last known": "● সর্বশেষ অবস্থান",
-  "Offline trackers show their last recorded location.": "অফলাইন ট্র্যাকারের সর্বশেষ রেকর্ড করা অবস্থান দেখানো হচ্ছে।",
   "Show all on map": "ম্যাপে সব দেখুন",
   "Vehicle details": "গাড়ির বিস্তারিত"
 }

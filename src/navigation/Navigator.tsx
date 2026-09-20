@@ -127,7 +127,7 @@ export function Navigator() {
           <Stack.Screen
             name="FleetMap"
             getComponent={() => FleetMapScreen}
-            options={{ title: t('Live location') }}
+            options={{ title: t('Vehicles') }}
           />
           <Stack.Screen
             name="Routes"

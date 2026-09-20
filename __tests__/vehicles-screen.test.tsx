@@ -5,7 +5,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParams } from '../src/navigation/types';
 import { VehiclesScreen } from '../src/screens/VehiclesScreen';
 import { FleetMap } from '../src/components/FleetMap';
-import { RecordedJourney } from '../src/components/RecordedJourney';
 import { VehicleEditSheet } from '../src/components/VehicleEditSheet';
 import { VehicleListRow } from '../src/components/VehicleListRow';
 import { Select } from '../src/components/ui';
@@ -52,9 +51,6 @@ jest.mock('../src/components/FleetMap', () => ({
   FleetMap: () => null,
 }));
 jest.mock('react-native-webview', () => ({ WebView: 'WebView' }));
-jest.mock('../src/components/RecordedJourney', () => ({
-  RecordedJourney: () => null,
-}));
 jest.mock('../src/components/VehicleEditSheet', () => ({
   VehicleEditSheet: () => null,
 }));
@@ -110,27 +106,6 @@ it('keeps map markers and accessible list selection in sync in both directions',
   expect(rows()[1].props.selected).toBe(false);
 });
 
-it.each(['CITY', 'metro 456', 'karim'])(
-  'finds vehicles by name, plate, or driver using %s and clears the search',
-  async query => {
-    await renderScreen();
-    await act(async () =>
-      screen.root.findByType(TextInput).props.onChangeText(query),
-    );
-    expect(rows().map(row => row.props.vehicle.id)).toEqual(['two']);
-    expect(screen.root.findByType(FleetMap).props.vehicles).toEqual([
-      vehicles[1],
-    ]);
-    expect(screen.root.findByType(FleetMap).props.selectedId).toBeUndefined();
-    const clear = pressables().find(
-      button => button.props.accessibilityLabel === 'Clear search',
-    )!;
-    await act(async () => clear.props.onPress());
-    expect(screen.root.findByType(TextInput).props.value).toBe('');
-    expect(rows().map(row => row.props.vehicle.id)).toEqual(['one', 'two']);
-  },
-);
-
 it('opens the edit sheet for the requested vehicle independently of map selection', async () => {
   await renderScreen();
   const edit = pressables(rows()[1]).find(
@@ -145,38 +120,17 @@ it('opens the edit sheet for the requested vehicle independently of map selectio
     screen.root.findByType(VehicleEditSheet).props.onSaved(),
   );
   expect(screen.root.findAllByType(VehicleEditSheet)).toHaveLength(0);
-  await act(async () => pressableWithText('+ Add vehicle').props.onPress());
-  expect(mockNavigate).toHaveBeenCalledWith('CreateVehicle');
 });
 
-it('keeps creation, editing, and recorded journeys unavailable to guardians', async () => {
+it('keeps editing unavailable to guardians', async () => {
   mockRole = 'GUARDIAN';
   await renderScreen();
   expect(rows()).toHaveLength(2);
   expect(rows().every(row => row.props.onEdit === undefined)).toBe(true);
   expect(pressableWithText('+ Add vehicle')).toBeUndefined();
   expect(pressableWithText('Recorded journeys')).toBeUndefined();
-  expect(screen.root.findAllByType(RecordedJourney)).toHaveLength(0);
   expect(screen.root.findAllByType(VehicleEditSheet)).toHaveLength(0);
   expect(screen.root.findAllByType(FleetMap)).toHaveLength(1);
-});
-
-it('opens recordings and full history for the selected vehicle and returns to its map', async () => {
-  await renderScreen();
-  await act(async () => rows()[1].props.onSelect());
-  await act(async () => pressableWithText('Recorded journeys').props.onPress());
-  expect(screen.root.findByType(RecordedJourney).props.vehicle).toEqual(
-    vehicles[1],
-  );
-  await act(async () =>
-    screen.root.findByType(RecordedJourney).props.onFullHistory(),
-  );
-  expect(mockNavigate).toHaveBeenCalledWith('VehicleHistory', {
-    imei: '222',
-    name: 'City shuttle',
-  });
-  await act(async () => screen.root.findByType(RecordedJourney).props.onBack());
-  expect(screen.root.findByType(FleetMap).props.selectedId).toBe('two');
 });
 
 it('returns to the fleet overview when a data refresh removes the selection', async () => {
@@ -197,31 +151,21 @@ it('returns to the fleet overview when a data refresh removes the selection', as
   ).toBe(true);
 });
 
-it('filters the map and list by vehicle, clears focus, and restores every vehicle', async () => {
+it('keeps all vehicles visible while opening details and clearing map selection', async () => {
   await renderScreen();
-  await act(async () => rows()[0].props.onSelect());
-  await act(async () => screen.root.findByType(Select).props.onChange('two'));
-  expect(screen.root.findByType(FleetMap).props.vehicles).toEqual([
-    vehicles[1],
-  ]);
-  expect(screen.root.findByType(FleetMap).props.selectedId).toBeUndefined();
-  expect(rows().map(row => row.props.vehicle.id)).toEqual(['two']);
-  await act(async () => rows()[0].props.onSelect());
+  await act(async () => rows()[1].props.onSelect());
+  expect(screen.root.findByType(FleetMap).props.vehicles).toEqual(vehicles);
   await act(async () => pressableWithText('Vehicle details').props.onPress());
   expect(mockNavigate).toHaveBeenCalledWith('VehicleDetails', { id: 'two' });
   await act(async () => pressableWithText('Show all on map').props.onPress());
-  expect(screen.root.findByType(Select).props.value).toBe('');
   expect(screen.root.findByType(FleetMap).props.vehicles).toEqual(vehicles);
   expect(screen.root.findByType(FleetMap).props.selectedId).toBeUndefined();
 });
 
-it('clears a removed vehicle filter on refresh', async () => {
+it('shows the map and bottom list without search, filters or a second toolbar', async () => {
   await renderScreen();
-  await act(async () => screen.root.findByType(Select).props.onChange('two'));
-  mockData.vehicles = [vehicles[0]];
-  await act(async () => screen.update(<VehiclesScreen {...props} />));
-  expect(screen.root.findByType(Select).props.value).toBe('');
-  expect(screen.root.findByType(FleetMap).props.vehicles).toEqual([
-    vehicles[0],
-  ]);
+  expect(screen.root.findAllByType(TextInput)).toHaveLength(0);
+  expect(screen.root.findAllByType(Select)).toHaveLength(0);
+  expect(pressableWithText('+ Add vehicle')).toBeUndefined();
+  expect(rows()).toHaveLength(2);
 });

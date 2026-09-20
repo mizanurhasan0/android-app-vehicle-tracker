@@ -151,11 +151,6 @@
   "Exit radius must be an integer from 11 to 20000 metres.": "Exit radius must be an integer from 11 to 20000 metres.",
   "Exit radius must be greater than enter radius.": "Exit radius must be greater than enter radius.",
   "Expenses": "Expenses",
-  "Current or last known locations": "Current or last known locations",
-  "{{shown}} of {{total}} vehicles on map": "{{shown}} of {{total}} vehicles on map",
-  "● Live": "● Live",
-  "● Last known": "● Last known",
-  "Offline trackers show their last recorded location.": "Offline trackers show their last recorded location.",
   "Show all on map": "Show all on map",
   "Vehicle details": "Vehicle details"
 }
