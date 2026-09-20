@@ -55,7 +55,6 @@
   "Edit vehicle documents and status": "Edit vehicle documents and status",
   "Daily schedule": "Daily schedule",
   "No schedule has been added yet.": "No schedule has been added yet.",
-  "Fuel / expenses": "Fuel / expenses",
   "Purchase date (YYYY-MM-DD)": "Purchase date (YYYY-MM-DD)",
   "Fitness expiry (YYYY-MM-DD)": "Fitness expiry (YYYY-MM-DD)",
   "License expiry (YYYY-MM-DD)": "License expiry (YYYY-MM-DD)",
@@ -150,5 +149,13 @@
   "Enter a valid longitude between -180 and 180.": "Enter a valid longitude between -180 and 180.",
   "Enter radius must be an integer from 10 to 10000 metres.": "Enter radius must be an integer from 10 to 10000 metres.",
   "Exit radius must be an integer from 11 to 20000 metres.": "Exit radius must be an integer from 11 to 20000 metres.",
-  "Exit radius must be greater than enter radius.": "Exit radius must be greater than enter radius."
+  "Exit radius must be greater than enter radius.": "Exit radius must be greater than enter radius.",
+  "Expenses": "Expenses",
+  "Current or last known locations": "Current or last known locations",
+  "{{shown}} of {{total}} vehicles on map": "{{shown}} of {{total}} vehicles on map",
+  "● Live": "● Live",
+  "● Last known": "● Last known",
+  "Offline trackers show their last recorded location.": "Offline trackers show their last recorded location.",
+  "Show all on map": "Show all on map",
+  "Vehicle details": "Vehicle details"
 }

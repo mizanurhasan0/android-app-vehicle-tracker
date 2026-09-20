@@ -636,14 +636,14 @@ it('keeps maintenance selections and description payloads stable across language
   await setInput('Service date (YYYY-MM-DD)', '2026-09-01');
   await setInput('Next service (YYYY-MM-DD)', '2026-10-01');
   await select('Status', 'COMPLETED');
-  await pressAccessible('checkbox', 'Oil change');
+  await pressAccessible('checkbox', 'Electrical inspection');
   await changeLanguage('bn');
   expect(textContent()).toContain('রক্ষণাবেক্ষণ যোগ করুন');
   expect(
     screen.root.findAll(
       node =>
         node.props.accessibilityRole === 'checkbox' &&
-        node.props.accessibilityLabel === 'তেল পরিবর্তন',
+        node.props.accessibilityLabel === 'বৈদ্যুতিক পরীক্ষা',
       { deep: false },
     )[0].props.accessibilityState.checked,
   ).toBe(true);
@@ -652,7 +652,7 @@ it('keeps maintenance selections and description payloads stable across language
     screen.root.findAll(
       node =>
         node.props.accessibilityRole === 'checkbox' &&
-        node.props.accessibilityLabel === 'Oil change',
+        node.props.accessibilityLabel === 'Electrical inspection',
       { deep: false },
     )[0].props.accessibilityState.checked,
   ).toBe(true);
@@ -662,7 +662,7 @@ it('keeps maintenance selections and description payloads stable across language
     {
       vehicleId: 'bus-1',
       title: 'Paid',
-      description: 'Active\nকাজ: তেল পরিবর্তন',
+      description: 'Active\nকাজ: বৈদ্যুতিক পরীক্ষা',
       serviceDate: '2026-09-01',
       nextServiceDate: '2026-10-01',
       amount: 25050,

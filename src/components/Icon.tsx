@@ -52,7 +52,7 @@ export type IconName =
   | 'notification' | 'notifications' | 'request' | 'requests' | 'admission'
   | 'report' | 'reports' | 'receipt' | 'document' | 'bills' | 'due' | 'user'
   | 'profile' | 'lock' | 'eye' | 'back' | 'attendance' | 'calendar' | 'history'
-  | 'clock' | 'maintenance' | 'fuel' | 'mobile' | 'address' | 'emergency'
+  | 'clock' | 'maintenance' | 'expenses' | 'mobile' | 'address' | 'emergency'
   | 'odometer' | 'duration'
   | 'dropoff' | 'location' | 'pin' | 'phone' | 'call' | 'contact'
   | 'communication' | 'whatsapp' | 'sms' | 'mail' | 'settings' | 'more'
@@ -69,7 +69,7 @@ const icons: Record<IconName, LucideIcon> = {
   admission: FilePlus, report: ReceiptText, reports: ReceiptText, receipt: ReceiptText,
   document: FileText, bills: ReceiptText, due: Clock3, user: UserRound, profile: UserRound,
   lock: LockKeyhole, eye: Eye, back: ArrowLeft, attendance: CalendarDays,
-  calendar: CalendarDays, history: Clock3, clock: Clock3, maintenance: Wrench, fuel: Wallet,
+  calendar: CalendarDays, history: Clock3, clock: Clock3, maintenance: Wrench, expenses: Wallet,
   odometer: Gauge, duration: Clock3,
   mobile: Smartphone, address: House, emergency: CircleAlert, dropoff: Flag,
   location: MapPin, pin: MapPin, phone: Phone, call: Phone, contact: Phone,

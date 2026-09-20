@@ -65,7 +65,7 @@ it.each([
   ['user', 'UserRound'], ['profile', 'UserRound'], ['lock', 'LockKeyhole'],
   ['eye', 'Eye'], ['back', 'ArrowLeft'], ['attendance', 'CalendarDays'],
   ['calendar', 'CalendarDays'], ['history', 'Clock3'], ['clock', 'Clock3'],
-  ['maintenance', 'Wrench'], ['fuel', 'Wallet'], ['odometer', 'Gauge'],
+  ['maintenance', 'Wrench'], ['expenses', 'Wallet'], ['odometer', 'Gauge'],
   ['duration', 'Clock3'], ['mobile', 'Smartphone'], ['address', 'House'],
   ['emergency', 'CircleAlert'], ['dropoff', 'Flag'], ['location', 'MapPin'],
   ['pin', 'MapPin'], ['phone', 'Phone'], ['call', 'Phone'], ['contact', 'Phone'],

@@ -18,7 +18,7 @@ import {
 } from '../AdminUi';
 
 const services = [
-  { value: 'তেল পরিবর্তন', label: 'Oil change' },
+  { value: 'বৈদ্যুতিক পরীক্ষা', label: 'Electrical inspection' },
   { value: 'ব্যাটারি', label: 'Battery' },
   { value: 'টায়ার', label: 'Tyres' },
   { value: 'মেরামত', label: 'Repair' },

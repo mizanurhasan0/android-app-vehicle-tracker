@@ -53,7 +53,7 @@ export function LedgerForm({
   };
   const categories =
     form.type === 'EXPENSE'
-      ? ['SALARY', 'FUEL', 'REPAIR', 'PARTS', 'TAX', 'OFFICE', 'OTHER']
+      ? ['SALARY', 'CHARGING', 'REPAIR', 'PARTS', 'TAX', 'OFFICE', 'OTHER']
       : form.type === 'INVESTMENT'
       ? ['VEHICLE', 'CAPITAL', 'OTHER']
       : ['OTHER'];

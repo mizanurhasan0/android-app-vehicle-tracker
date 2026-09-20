@@ -20,6 +20,7 @@ import { useDeadline } from '../hooks/useDeadline';
 import { useTranslation } from '../i18n';
 import { colors } from '../theme';
 import { Icon } from './Icon';
+import { hasMapPosition } from '../utils/mapPosition';
 
 export interface FleetMapProps {
   vehicles: Vehicle[];
@@ -29,19 +30,7 @@ export interface FleetMapProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export function hasMapPosition(location?: Location): location is Location & {
-  latitude: number;
-  longitude: number;
-} {
-  return (
-    typeof location?.latitude === 'number' &&
-    typeof location.longitude === 'number' &&
-    Number.isFinite(location.latitude) &&
-    Number.isFinite(location.longitude) &&
-    Math.abs(location.latitude) <= 90 &&
-    Math.abs(location.longitude) <= 180
-  );
-}
+export { hasMapPosition } from '../utils/mapPosition';
 
 export function fleetMapMarkers(vehicles: Vehicle[], locations: Location[]) {
   const byImei = new Map(locations.map(location => [location.imei, location]));
@@ -77,12 +66,10 @@ export function fleetMapHtml(
 ) {
   return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src https://tile.openstreetmap.org;"><style>
 html,body,#map{margin:0;width:100%;height:100%;overflow:hidden;background:#e8efed;font-family:system-ui}#map{position:relative;touch-action:none}#tiles,#markers{position:absolute;inset:0}#tiles img{position:absolute;width:256px;height:256px}#markers{pointer-events:none}.marker{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;border:3px solid white;border-radius:15px;background:${
-    colors.muted
+    colors.amber
   };color:white;box-shadow:0 3px 10px #18343b35;pointer-events:auto;display:flex;align-items:center;justify-content:center}.marker.live{background:${
     colors.primary
-  }}.marker.selected{background:${
-    colors.primary
-  };outline:7px solid #087f7828;z-index:2}.marker svg{width:24px;height:24px}.marker span{position:absolute;top:52px;left:50%;transform:translateX(-50%);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:7px;background:white;color:${
+  }}.marker.selected{outline:7px solid #006b4728;z-index:2}.marker svg{width:24px;height:24px}.marker span{position:absolute;top:52px;left:50%;transform:translateX(-50%);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:7px;background:white;color:${
     colors.ink
   };font-size:12px;font-weight:600;padding:5px 9px;box-shadow:0 2px 6px #18343b15;pointer-events:none}#credit{position:absolute;bottom:18px;left:0;background:#ffffffed;padding:3px 6px;font-size:10px;color:${
     colors.muted
@@ -99,11 +86,11 @@ function project(p){var lat=Math.max(-85.0511,Math.min(85.0511,p.latitude))*Math
 function selectedItem(){return items.find(function(p){return p.id===selected;});}
 function fit(){if(!items.length){draw();return;}var ps=items.map(project),xs=ps.map(function(p){return p[0];}),ys=ps.map(function(p){return p[1];});var l=Math.min.apply(null,xs),r=Math.max.apply(null,xs),t=Math.min.apply(null,ys),b=Math.max.apply(null,ys);cx=(l+r)/2;cy=(t+b)/2;zoom=Math.max(1,Math.min(16,Math.floor(Math.log2(Math.min(Math.max(1,map.clientWidth-120)/(256*Math.max(r-l,0.00001)),Math.max(1,map.clientHeight-150)/(256*Math.max(b-t,0.00001)))))));initialized=true;draw();}
 function focus(){var p=selectedItem();if(!p){fit();return;}var q=project(p);cx=q[0];cy=q[1];zoom=16;initialized=true;draw();}
-function drawMarker(p){var scale=256*Math.pow(2,zoom),q=project(p),dx=q[0]-cx;dx-=Math.round(dx);var px=dx*scale+map.clientWidth/2,py=(q[1]-cy)*scale+map.clientHeight/2,button=markerNodes.get(p.id);var offscreen=px<-160||px>map.clientWidth+160||py<-70||py>map.clientHeight+70;if(offscreen&&!button)return;if(!button){button=document.createElement('button');button.dataset.vehicleId=p.id;button.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8"/><path d="M7 14h.01M17 14h.01"/><rect width="18" height="8" x="3" y="10" rx="2"/><path d="M5 18v2M19 18v2"/></svg>';button.onclick=function(){selected=p.id;focus();send('select',p.id);};markerNodes.set(p.id,button);layer.appendChild(button);}button.style.display=offscreen?'none':'';button.className='marker'+(p.live?' live':'')+(p.id===selected?' selected':'');button.style.left=px+'px';button.style.top=py+'px';button.setAttribute('aria-label',p.label||p.name);button.setAttribute('aria-pressed',String(p.id===selected));var name=button.querySelector('span');if(p.id===selected){if(!name){name=document.createElement('span');button.appendChild(name);}if(name.textContent!==p.name)name.textContent=p.name;}else if(name)name.remove();}
+function drawMarker(p){var scale=256*Math.pow(2,zoom),q=project(p),dx=q[0]-cx;dx-=Math.round(dx);var px=dx*scale+map.clientWidth/2,py=(q[1]-cy)*scale+map.clientHeight/2,button=markerNodes.get(p.id);var offscreen=px<-160||px>map.clientWidth+160||py<-70||py>map.clientHeight+70;if(offscreen&&!button)return;if(!button){button=document.createElement('button');button.dataset.vehicleId=p.id;button.innerHTML='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8"/><path d="M7 14h.01M17 14h.01"/><rect width="18" height="8" x="3" y="10" rx="2"/><path d="M5 18v2M19 18v2"/></svg>';button.onclick=function(){selected=p.id;focus();send('select',p.id);};markerNodes.set(p.id,button);layer.appendChild(button);}button.style.display=offscreen?'none':'';button.className='marker'+(p.live?' live':'')+(p.id===selected?' selected':'');button.style.left=px+'px';button.style.top=py+'px';button.setAttribute('aria-label',p.label||p.name);button.setAttribute('aria-pressed',String(p.id===selected));var name=button.querySelector('span');if(!name){name=document.createElement('span');button.appendChild(name);}if(name.textContent!==p.name)name.textContent=p.name;}
 function draw(){if(!items.length){tiles.replaceChildren();layer.replaceChildren();markerNodes.clear();return;}var count=Math.pow(2,zoom),scale=256*count,left=cx*scale-map.clientWidth/2,top=cy*scale-map.clientHeight/2,used={};
 for(var x=Math.floor(left/256);x<=Math.floor((left+map.clientWidth)/256);x++)for(var y=Math.floor(top/256);y<=Math.floor((top+map.clientHeight)/256);y++){if(y<0||y>=count)continue;var key='tile-'+zoom+'-'+x+'-'+y;used[key]=true;var im=document.getElementById(key);if(!im){im=document.createElement('img');im.id=key;im.alt='';im.draggable=false;im.onerror=function(){if(!tileError){tileError=true;send('tileError');}};im.src='https://tile.openstreetmap.org/'+zoom+'/'+((x%count+count)%count)+'/'+y+'.png';tiles.appendChild(im);}im.style.left=(x*256-left)+'px';im.style.top=(y*256-top)+'px';}
 Array.from(tiles.children).forEach(function(e){if(!used[e.id])e.remove();});items.forEach(drawMarker);}
-window.updateFleet=function(update){var previous=selected,wasEmpty=!items.length,byId=new Map(update.reset?[]:items.map(function(p){return [p.id,p];}));(update.remove||[]).forEach(function(id){byId.delete(id);});(update.upsert||[]).forEach(function(p){byId.set(p.id,p);});items=Array.from(byId.values());markerNodes.forEach(function(button,id){if(!byId.has(id)){button.remove();markerNodes.delete(id);}});if(Object.prototype.hasOwnProperty.call(update,'selectedId'))selected=update.selectedId;if(update.labels)window.setFleetLabels(update.labels);if(!initialized||previous!==selected){if(selectedItem())focus();else fit();}else if(update.reset||wasEmpty||!items.length)draw();else (update.upsert||[]).forEach(drawMarker);};
+window.updateFleet=function(update){var previous=selected,wasEmpty=!items.length,previousIds=new Set(items.map(function(p){return p.id;})),byId=new Map(update.reset?[]:items.map(function(p){return [p.id,p];}));(update.remove||[]).forEach(function(id){byId.delete(id);});(update.upsert||[]).forEach(function(p){byId.set(p.id,p);});items=Array.from(byId.values());markerNodes.forEach(function(button,id){if(!byId.has(id)){button.remove();markerNodes.delete(id);}});if(Object.prototype.hasOwnProperty.call(update,'selectedId'))selected=update.selectedId;if(update.labels)window.setFleetLabels(update.labels);var membershipChanged=previousIds.size!==byId.size||items.some(function(p){return !previousIds.has(p.id);});if(!initialized||wasEmpty||membershipChanged||previous!==selected){if(selectedItem())focus();else fit();}else if(update.reset||!items.length)draw();else (update.upsert||[]).forEach(drawMarker);};
 window.setFleetData=function(next,id){window.updateFleet({reset:true,upsert:next,selectedId:id});};
 window.setFleetLabels=function(labels){document.documentElement.lang=labels.language;document.getElementById('contributors').textContent=labels.contributors;};
 window.fleetAction=function(action){if(action==='fit')fit();else if(action==='focus')focus();else{zoom=Math.max(1,Math.min(19,zoom+(action==='in'?1:-1)));draw();}};

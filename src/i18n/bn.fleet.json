@@ -55,7 +55,6 @@
   "Edit vehicle documents and status": "গাড়ির নথি ও স্ট্যাটাস সম্পাদনা",
   "Daily schedule": "দৈনিক সময়সূচি",
   "No schedule has been added yet.": "সময়সূচি এখনো যোগ করা হয়নি।",
-  "Fuel / expenses": "জ্বালানি / খরচ",
   "Purchase date (YYYY-MM-DD)": "ক্রয় তারিখ (YYYY-MM-DD)",
   "Fitness expiry (YYYY-MM-DD)": "ফিটনেস মেয়াদ (YYYY-MM-DD)",
   "License expiry (YYYY-MM-DD)": "লাইসেন্স মেয়াদ (YYYY-MM-DD)",
@@ -150,5 +149,13 @@
   "Enter a valid longitude between -180 and 180.": "-১৮০ থেকে ১৮০-এর মধ্যে সঠিক দ্রাঘিমাংশ দিন।",
   "Enter radius must be an integer from 10 to 10000 metres.": "প্রবেশ ব্যাসার্ধ ১০ থেকে ১০,০০০ মিটারের পূর্ণসংখ্যা হতে হবে।",
   "Exit radius must be an integer from 11 to 20000 metres.": "বের হওয়ার ব্যাসার্ধ ১১ থেকে ২০,০০০ মিটারের পূর্ণসংখ্যা হতে হবে।",
-  "Exit radius must be greater than enter radius.": "বের হওয়ার ব্যাসার্ধ প্রবেশ ব্যাসার্ধের চেয়ে বেশি হতে হবে।"
+  "Exit radius must be greater than enter radius.": "বের হওয়ার ব্যাসার্ধ প্রবেশ ব্যাসার্ধের চেয়ে বেশি হতে হবে।",
+  "Expenses": "খরচ",
+  "Current or last known locations": "বর্তমান বা সর্বশেষ জানা অবস্থান",
+  "{{shown}} of {{total}} vehicles on map": "{{total}}টি গাড়ির মধ্যে {{shown}}টি ম্যাপে",
+  "● Live": "● লাইভ",
+  "● Last known": "● সর্বশেষ অবস্থান",
+  "Offline trackers show their last recorded location.": "অফলাইন ট্র্যাকারের সর্বশেষ রেকর্ড করা অবস্থান দেখানো হচ্ছে।",
+  "Show all on map": "ম্যাপে সব দেখুন",
+  "Vehicle details": "গাড়ির বিস্তারিত"
 }

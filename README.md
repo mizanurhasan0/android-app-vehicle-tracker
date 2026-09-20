@@ -16,6 +16,13 @@ npm start
 npm run android
 ```
 
+Debug builds install as **Noor Transport (Debug)** with application ID
+`com.pathsathi.transport.debug`. They can coexist with the release app
+(`com.pathsathi.transport`) without signing-key conflicts or removing its data.
+Sign in separately in the debug app. The `android` script includes the matching
+launch suffix; when running the React Native CLI directly, use
+`npx react-native run-android --appIdSuffix debug`.
+
 Both debug and release apps default to the deployed API at
 `http://147.79.71.98:3000`; live Socket.IO uses port 3001. No local backend is
 needed. On the first upgrade, saved loopback/emulator defaults move to this VPS

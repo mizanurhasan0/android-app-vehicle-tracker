@@ -8,6 +8,7 @@ import { FleetMap } from '../src/components/FleetMap';
 import { RecordedJourney } from '../src/components/RecordedJourney';
 import { VehicleEditSheet } from '../src/components/VehicleEditSheet';
 import { VehicleListRow } from '../src/components/VehicleListRow';
+import { Select } from '../src/components/ui';
 import { Vehicle } from '../src/api/types';
 
 let mockRole = 'ADMIN';
@@ -46,7 +47,11 @@ jest.mock('../src/context/DataContext', () => {
   });
   return { useData, useCoreData: useData, useDataActions: useData };
 });
-jest.mock('../src/components/FleetMap', () => ({ FleetMap: () => null }));
+jest.mock('../src/components/FleetMap', () => ({
+  ...jest.requireActual('../src/components/FleetMap'),
+  FleetMap: () => null,
+}));
+jest.mock('react-native-webview', () => ({ WebView: 'WebView' }));
 jest.mock('../src/components/RecordedJourney', () => ({
   RecordedJourney: () => null,
 }));
@@ -94,7 +99,8 @@ afterEach(async () => {
 
 it('keeps map markers and accessible list selection in sync in both directions', async () => {
   await renderScreen();
-  expect(screen.root.findByType(FleetMap).props.selectedId).toBe('one');
+  expect(screen.root.findByType(FleetMap).props.selectedId).toBeUndefined();
+  expect(screen.root.findByType(FleetMap).props.vehicles).toEqual(vehicles);
   await act(async () => pressables(rows()[1])[0].props.onPress());
   expect(screen.root.findByType(FleetMap).props.selectedId).toBe('two');
   expect(pressables(rows()[1])[0].props.accessibilityState.selected).toBe(true);
@@ -112,6 +118,10 @@ it.each(['CITY', 'metro 456', 'karim'])(
       screen.root.findByType(TextInput).props.onChangeText(query),
     );
     expect(rows().map(row => row.props.vehicle.id)).toEqual(['two']);
+    expect(screen.root.findByType(FleetMap).props.vehicles).toEqual([
+      vehicles[1],
+    ]);
+    expect(screen.root.findByType(FleetMap).props.selectedId).toBeUndefined();
     const clear = pressables().find(
       button => button.props.accessibilityLabel === 'Clear search',
     )!;
@@ -130,7 +140,7 @@ it('opens the edit sheet for the requested vehicle independently of map selectio
   expect(screen.root.findByType(VehicleEditSheet).props.vehicle).toEqual(
     vehicles[1],
   );
-  expect(screen.root.findByType(FleetMap).props.selectedId).toBe('one');
+  expect(screen.root.findByType(FleetMap).props.selectedId).toBeUndefined();
   await act(async () =>
     screen.root.findByType(VehicleEditSheet).props.onSaved(),
   );
@@ -169,13 +179,13 @@ it('opens recordings and full history for the selected vehicle and returns to it
   expect(screen.root.findByType(FleetMap).props.selectedId).toBe('two');
 });
 
-it('falls back to an available vehicle when a data refresh removes the selection', async () => {
+it('returns to the fleet overview when a data refresh removes the selection', async () => {
   await renderScreen();
   await act(async () => rows()[1].props.onSelect());
   mockData.vehicles = [vehicles[0]];
   await act(async () => screen.update(<VehiclesScreen {...props} />));
-  expect(screen.root.findByType(FleetMap).props.selectedId).toBe('one');
-  expect(rows()[0].props.selected).toBe(true);
+  expect(screen.root.findByType(FleetMap).props.selectedId).toBeUndefined();
+  expect(rows()[0].props.selected).toBe(false);
   mockData.vehicles = [];
   await act(async () => screen.update(<VehiclesScreen {...props} />));
   expect(screen.root.findByType(FleetMap).props.selectedId).toBeUndefined();
@@ -185,4 +195,33 @@ it('falls back to an available vehicle when a data refresh removes the selection
       .findAllByType(Text)
       .some(node => node.props.children === 'No vehicles yet'),
   ).toBe(true);
+});
+
+it('filters the map and list by vehicle, clears focus, and restores every vehicle', async () => {
+  await renderScreen();
+  await act(async () => rows()[0].props.onSelect());
+  await act(async () => screen.root.findByType(Select).props.onChange('two'));
+  expect(screen.root.findByType(FleetMap).props.vehicles).toEqual([
+    vehicles[1],
+  ]);
+  expect(screen.root.findByType(FleetMap).props.selectedId).toBeUndefined();
+  expect(rows().map(row => row.props.vehicle.id)).toEqual(['two']);
+  await act(async () => rows()[0].props.onSelect());
+  await act(async () => pressableWithText('Vehicle details').props.onPress());
+  expect(mockNavigate).toHaveBeenCalledWith('VehicleDetails', { id: 'two' });
+  await act(async () => pressableWithText('Show all on map').props.onPress());
+  expect(screen.root.findByType(Select).props.value).toBe('');
+  expect(screen.root.findByType(FleetMap).props.vehicles).toEqual(vehicles);
+  expect(screen.root.findByType(FleetMap).props.selectedId).toBeUndefined();
+});
+
+it('clears a removed vehicle filter on refresh', async () => {
+  await renderScreen();
+  await act(async () => screen.root.findByType(Select).props.onChange('two'));
+  mockData.vehicles = [vehicles[0]];
+  await act(async () => screen.update(<VehiclesScreen {...props} />));
+  expect(screen.root.findByType(Select).props.value).toBe('');
+  expect(screen.root.findByType(FleetMap).props.vehicles).toEqual([
+    vehicles[0],
+  ]);
 });

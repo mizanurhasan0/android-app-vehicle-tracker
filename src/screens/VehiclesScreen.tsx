@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HomeStackParams } from '../navigation/types';
-import { Empty, Notice } from '../components/ui';
-import { FleetMap } from '../components/FleetMap';
+import { Empty, Notice, Select, Button } from '../components/ui';
+import { FleetMap, hasMapPosition } from '../components/FleetMap';
 import { VehicleListRow } from '../components/VehicleListRow';
 import { VehicleEditSheet } from '../components/VehicleEditSheet';
 import { RecordedJourney } from '../components/RecordedJourney';
@@ -24,7 +24,8 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useAction } from '../hooks/useAction';
 import { useTranslation } from '../i18n';
-import { colors } from '../theme';
+import { colors, styles } from '../theme';
+import { f } from './fleet/styles';
 import { dateLabel, numberLabel } from '../utils/format';
 
 export function VehiclesScreen({
@@ -38,30 +39,40 @@ export function VehiclesScreen({
   const compact = width < 380;
   const [selectedId, setSelectedId] = useState<string>();
   const [query, setQuery] = useState('');
+  const [vehicleFilter, setVehicleFilter] = useState('');
+  const activeFilter = data.vehicles.some(v => v.id === vehicleFilter)
+    ? vehicleFilter
+    : '';
+  const changeFilters = (value: string, search = '') => {
+    setVehicleFilter(value);
+    setQuery(search);
+    setSelectedId(undefined);
+  };
   const [expanded, setExpanded] = useState(false);
   const [recorded, setRecorded] = useState(false);
   const mapHeight =
-    expanded || height < 650
-      ? 180
-      : Math.max(180, Math.min(360, height * 0.34));
+    expanded || height < 650 ? 180 : Math.max(180, Math.min(320, height * 0.3));
   const [editing, setEditing] = useState<Vehicle | null>(null);
   const admin = session?.user.role === 'ADMIN';
-  const selected =
-    data.vehicles.find(vehicle => vehicle.id === selectedId) ??
-    data.vehicles[0];
   const locationsByImei = useMemo(
     () => new Map(data.locations.map(item => [item.imei, item])),
     [data.locations],
   );
-  const location = selected && locationsByImei.get(selected.imei);
   const filtered = useMemo(() => {
     const search = query.trim().toLocaleLowerCase();
-    return data.vehicles.filter(vehicle =>
-      [vehicle.name, vehicle.plate, vehicle.driverName ?? ''].some(value =>
-        value.toLocaleLowerCase().includes(search),
-      ),
+    return data.vehicles.filter(
+      vehicle =>
+        (!activeFilter || vehicle.id === activeFilter) &&
+        [vehicle.name, vehicle.plate, vehicle.driverName ?? ''].some(value =>
+          value.toLocaleLowerCase().includes(search),
+        ),
     );
-  }, [data.vehicles, query]);
+  }, [data.vehicles, query, activeFilter]);
+  const selected = filtered.find(vehicle => vehicle.id === selectedId);
+  const location = selected && locationsByImei.get(selected.imei);
+  const positionedCount = filtered.filter(vehicle =>
+    hasMapPosition(locationsByImei.get(vehicle.imei)),
+  ).length;
   const awaitingVehicle =
     data.subscriptions.some(item => item.status === 'ACTIVE') ||
     data.requests.some(item => item.status === 'PENDING');
@@ -70,9 +81,9 @@ export function VehiclesScreen({
     <SafeAreaView style={local.screen} edges={['left', 'right', 'bottom']}>
       <View style={local.toolbar}>
         <View style={local.toolbarCopy}>
-          <Text style={local.eyebrow}>{t('FLEET OVERVIEW')}</Text>
-          <Text style={[local.title, compact && local.compactTitle]}>
-            {admin ? t('Your fleet') : t('Your vehicle')}
+          <Text style={styles.heading}>{t('Fleet map')}</Text>
+          <Text style={local.caption}>
+            {t('Current or last known locations')}
           </Text>
         </View>
         {admin ? (
@@ -124,9 +135,63 @@ export function VehiclesScreen({
         />
       ) : (
         <>
+          <View style={local.filters}>
+            <Select
+              compact
+              label={t('Filter by vehicle')}
+              value={activeFilter}
+              options={[
+                { value: '', label: t('All vehicles') },
+                ...data.vehicles.map(vehicle => ({
+                  value: vehicle.id,
+                  label: `${vehicle.name} · ${vehicle.plate}`,
+                })),
+              ]}
+              onChange={value => changeFilters(value)}
+            />
+            <View style={f.searchBox}>
+              <Icon name="search" size={18} color={colors.muted} />
+              <TextInput
+                accessibilityLabel={t('Search vehicles')}
+                placeholder={t('Search name, plate or driver')}
+                placeholderTextColor={colors.muted}
+                value={query}
+                onChangeText={value => changeFilters(activeFilter, value)}
+                autoCorrect={false}
+                style={f.searchInput}
+              />
+              {query ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('Clear search')}
+                  onPress={() => changeFilters(activeFilter)}
+                  style={local.clear}
+                >
+                  <Icon name="close" size={20} color={colors.muted} />
+                </Pressable>
+              ) : null}
+            </View>
+            <View style={local.legend}>
+              <Text style={local.caption}>
+                {t('{{shown}} of {{total}} vehicles on map', {
+                  shown: numberLabel(positionedCount),
+                  total: numberLabel(filtered.length),
+                })}
+              </Text>
+              <Text style={[local.caption, { color: colors.primary }]}>
+                {t('● Live')}
+              </Text>
+              <Text style={[local.caption, { color: colors.amber }]}>
+                {t('● Last known')}
+              </Text>
+            </View>
+            <Text style={local.caption}>
+              {t('Offline trackers show their last recorded location.')}
+            </Text>
+          </View>
           <View style={[local.mapArea, { height: mapHeight }]}>
             <FleetMap
-              vehicles={data.vehicles}
+              vehicles={filtered}
               locations={data.locations}
               selectedId={selected?.id}
               onSelect={setSelectedId}
@@ -167,7 +232,7 @@ export function VehiclesScreen({
                         </Text>
                         <Text style={local.selectedName}>{selected.name}</Text>
                         <Text style={local.caption}>
-                          {location?.positionAt
+                          {hasMapPosition(location) && location.positionAt
                             ? t('Updated {{time}}', {
                                 time: dateLabel(location.positionAt),
                               })
@@ -201,28 +266,24 @@ export function VehiclesScreen({
                       ) : null}
                     </View>
                   ) : null}
-                  <View style={local.search}>
-                    <View accessible={false} style={local.searchIcon} />
-                    <TextInput
-                      accessibilityLabel={t('Search vehicles')}
-                      placeholder={t('Search name, plate or driver')}
-                      placeholderTextColor={colors.muted}
-                      value={query}
-                      onChangeText={setQuery}
-                      autoCorrect={false}
-                      style={local.searchInput}
-                    />
-                    {query ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={t('Clear search')}
-                        onPress={() => setQuery('')}
-                        style={local.clear}
-                      >
-                        <Icon name="close" size={20} color={colors.muted} />
-                      </Pressable>
-                    ) : null}
-                  </View>
+                  {selected ? (
+                    <View style={local.legend}>
+                      <Button
+                        title={t('Vehicle details')}
+                        secondary
+                        onPress={() =>
+                          navigation.navigate('VehicleDetails', {
+                            id: selected.id,
+                          })
+                        }
+                      />
+                      <Button
+                        title={t('Show all on map')}
+                        secondary
+                        onPress={() => changeFilters('')}
+                      />
+                    </View>
+                  ) : null}
                   <View style={local.listTitleRow}>
                     <Text accessibilityRole="header" style={local.listTitle}>
                       {t('Vehicles')}
@@ -282,7 +343,7 @@ export function VehiclesScreen({
   );
 }
 const local = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.surface },
+  screen: { flex: 1, backgroundColor: colors.background },
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -298,20 +359,13 @@ const local = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 1.4,
   },
-  title: {
-    color: colors.ink,
-    fontSize: 25,
-    fontWeight: '700',
-    letterSpacing: -0.6,
-  },
-  compactTitle: { fontSize: 20 },
   addSymbol: { fontSize: 24 },
   callSymbol: { fontSize: 22 },
   add: {
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 14,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: colors.mint,
     flexShrink: 1,
   },
@@ -321,7 +375,7 @@ const local = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 14,
     padding: 4,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: colors.background,
   },
   tab: {
@@ -340,18 +394,26 @@ const local = StyleSheet.create({
     textAlign: 'center',
   },
   activeTabText: { color: colors.surface },
-  mapArea: { minHeight: 180, backgroundColor: colors.background },
+  mapArea: {
+    minHeight: 180,
+    marginHorizontal: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: colors.background,
+  },
+  filters: { paddingHorizontal: 16, paddingBottom: 10, gap: 8 },
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10,
+  },
   sheet: {
     flex: 1,
-    marginTop: -14,
+    marginTop: 10,
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    shadowColor: colors.ink,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
     overflow: 'hidden',
   },
   handleTouch: { alignItems: 'center', justifyContent: 'center', height: 28 },
@@ -367,39 +429,15 @@ const local = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
     backgroundColor: colors.mint,
-    borderRadius: 12,
-  },
-  callText: { color: colors.primary, fontSize: 12, fontWeight: '600' },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 14,
-    paddingLeft: 16,
-    gap: 12,
-  },
-  searchIcon: {
-    width: 14,
-    height: 14,
-    borderWidth: 1.8,
-    borderColor: colors.primary,
     borderRadius: 8,
   },
-  searchInput: {
-    flex: 1,
-    minHeight: 48,
-    color: colors.ink,
-    fontSize: 14,
-    paddingVertical: 10,
-  },
+  callText: { color: colors.primary, fontSize: 12, fontWeight: '600' },
   clear: {
     width: 44,
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clearText: { color: colors.muted, fontSize: 23 },
   listTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',

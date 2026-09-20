@@ -157,7 +157,7 @@ export function VehicleDetailsScreen({
         {admin ? (
           <>
             <Button
-              title={t('Fuel / expenses')}
+              title={t('Expenses')}
               secondary
               onPress={() =>
                 navigation.navigate('Accounts', { tab: 'EXPENSE' })

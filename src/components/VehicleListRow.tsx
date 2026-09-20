@@ -11,6 +11,7 @@ import { useDeadline } from '../hooks/useDeadline';
 import { useTranslation } from '../i18n';
 import { colors } from '../theme';
 import { numberLabel, readable } from '../utils/format';
+import { hasMapPosition } from '../utils/mapPosition';
 import { AppIcon } from './AppIcon';
 
 interface VehicleListRowProps {
@@ -47,7 +48,9 @@ export function VehicleListRow({
       : colors.muted;
   const speed = location?.speed;
   const description = [
-    readable(status),
+    hasMapPosition(location) && status === 'offline'
+      ? `${readable(status)} · ${t('Last known')}`
+      : readable(status),
     speed != null && Number.isFinite(speed)
       ? `${status === 'live' ? '' : `${t('Last speed')} `}${numberLabel(
           speed,
@@ -115,7 +118,7 @@ const local = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 18,
+    borderRadius: 8,
     backgroundColor: colors.surface,
     paddingRight: 10,
   },
@@ -135,7 +138,7 @@ const local = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 15,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
@@ -153,7 +156,7 @@ const local = StyleSheet.create({
     paddingHorizontal: 9,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 8,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,

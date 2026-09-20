@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "android": "react-native run-android",
+    "android": "react-native run-android --appIdSuffix debug",
     "audit:local": "node scripts/audit-local.js",
     "lint": "eslint .",
     "start": "react-native start",

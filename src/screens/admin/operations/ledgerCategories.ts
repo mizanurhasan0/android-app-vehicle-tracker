@@ -1,7 +1,9 @@
 export const categoryLabels: Record<string, string> = {
   OTHER: 'Other',
   SALARY: 'Driver salary',
-  FUEL: 'Fuel',
+  CHARGING: 'Charging',
+  // Legacy server category retained so existing entries use the same display label.
+  FUEL: 'Charging',
   MAINTENANCE: 'Maintenance',
   REPAIR: 'Repair',
   PARTS: 'Parts',

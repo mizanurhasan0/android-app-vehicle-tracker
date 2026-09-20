@@ -136,3 +136,63 @@ it('renders actual vehicle positions, selects pins, and updates without evaluati
     dom.window.close();
   }
 });
+
+it('keeps offline and expired tracker positions on the map as last known', () => {
+  const markers = fleetMapMarkers(vehicles, [
+    { ...locations[0], status: 'offline' },
+    { ...locations[1], status: 'live', lastSeen: '2000-01-01T00:00:00Z' },
+  ]);
+  expect(markers).toEqual([
+    expect.objectContaining({
+      id: 'a',
+      latitude: 0,
+      longitude: 0,
+      live: false,
+    }),
+    expect.objectContaining({
+      id: 'b',
+      latitude: 23.8,
+      longitude: 90.4,
+      live: false,
+    }),
+  ]);
+});
+
+it('fits all markers initially and refits when a vehicle filter changes', () => {
+  const markers = fleetMapMarkers(vehicles, locations);
+  const dom = new JSDOM(fleetMapHtml(markers), {
+    runScripts: 'dangerously',
+    beforeParse(window) {
+      Object.defineProperty(window.HTMLElement.prototype, 'clientWidth', {
+        get: () => 400,
+      });
+      Object.defineProperty(window.HTMLElement.prototype, 'clientHeight', {
+        get: () => 360,
+      });
+    },
+  });
+  try {
+    const visibleMarkers = () =>
+      [...dom.window.document.querySelectorAll<HTMLElement>('.marker')].filter(
+        marker => marker.style.display !== 'none',
+      );
+    expect(visibleMarkers()).toHaveLength(2);
+    expect(dom.window.document.querySelector('.selected')).toBeNull();
+    expect(
+      visibleMarkers().map(marker => marker.querySelector('span')?.textContent),
+    ).toEqual(vehicles.map(v => v.name));
+    dom.window.eval('window.updateFleet({remove:["a"]})');
+    expect(visibleMarkers()).toHaveLength(1);
+    expect(visibleMarkers()[0].style.left).toBe('200px');
+    dom.window.eval(
+      `window.updateFleet({upsert:${JSON.stringify([markers[0]])}})`,
+    );
+    expect(visibleMarkers()).toHaveLength(2);
+    for (const marker of visibleMarkers()) {
+      expect(parseFloat(marker.style.left)).toBeGreaterThan(0);
+      expect(parseFloat(marker.style.left)).toBeLessThan(400);
+    }
+  } finally {
+    dom.window.close();
+  }
+});
