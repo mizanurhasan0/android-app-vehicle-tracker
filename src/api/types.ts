@@ -93,7 +93,9 @@ export interface Bill {
   paidAt: string | null;
 }
 export interface PaymentAccount {
-  method: 'BKASH' | 'ROCKET';
+  method: string;
+  name?: string;
+  imageUrl?: string;
   number: string;
   instructions: string;
 }
@@ -111,6 +113,9 @@ export interface Payment {
   recipientNumber: string;
   amount: number;
   transactionId: string;
+  methodName?: string;
+  evidenceImageUrl?: string;
+  transactionInfo?: string;
   status: Status;
   note: string;
   createdAt: string;

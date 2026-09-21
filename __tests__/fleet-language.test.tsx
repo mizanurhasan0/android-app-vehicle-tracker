@@ -19,6 +19,8 @@ import {
   EmergencyScreen,
 } from '../src/screens/NoorMenuScreen';
 
+jest.mock('react-native-webview', () => ({ WebView: 'WebView' }));
+
 let mockRole = 'ADMIN';
 const mockNavigate = jest.fn();
 const mockMutate = jest.fn().mockResolvedValue({});
@@ -344,10 +346,26 @@ it('retains the selected route period and edits, retranslates validation, and sa
   );
 });
 
+it('keeps an overlong schedule stop name on-device and does not submit it', async () => {
+  await render(
+    <RouteDetailsScreen navigation={navigation} route={routeRoute} />,
+  );
+  await submit('Edit schedule');
+  await act(async () =>
+    field('Stop 1').props.onChangeText('a'.repeat(101)),
+  );
+  await submit('Save schedule');
+  expect(textValues()).toContain('Stop names can be at most 100 characters.');
+  expect(mockManagementMutate).not.toHaveBeenCalled();
+});
+
 it('saves pickup coordinates and geofence radii for an admin route stop', async () => {
   await render(
     <RouteDetailsScreen navigation={navigation} route={routeRoute} />,
   );
+  await submit('Set location');
+  await submit('Enter coordinates manually');
+  await submit('Alert settings');
   await act(async () => {
     field('Latitude').props.onChangeText('23.8103');
     field('Longitude').props.onChangeText('90.4125');
@@ -364,6 +382,33 @@ it('saves pickup coordinates and geofence radii for an admin route stop', async 
       exitRadiusMeters: 150,
     },
     'PUT',
+  );
+});
+
+it('searches for a pickup point and uses the selected coordinates', async () => {
+  jest.spyOn(global, 'fetch').mockResolvedValue({
+    ok: true,
+    json: async () => [
+      {
+        display_name: 'Mirpur 10, Dhaka, Bangladesh',
+        lat: '23.8069',
+        lon: '90.3681',
+      },
+    ],
+  } as Response);
+  await render(
+    <RouteDetailsScreen navigation={navigation} route={routeRoute} />,
+  );
+  await submit('Set location');
+  await act(async () =>
+    field('Search location').props.onChangeText('Mirpur 10'),
+  );
+  await submit('Search');
+  await press('Mirpur 10, Dhaka, Bangladesh');
+  expect(textValues()).toContain('Selected location: 23.80690, 90.36810');
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining('q=Mirpur%2010'),
+    { headers: { Accept: 'application/json' } },
   );
 });
 

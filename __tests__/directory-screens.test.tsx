@@ -92,6 +92,8 @@ it.each(['GUARDIAN', null] as const)(
 
 it('shows editable receiving account details to admins', async () => {
   await render(PaymentAccountsScreen);
+  const { Select } = require('../src/components/ui');
+  await act(async () => screen.root.findByType(Select).props.onChange('BKASH'));
   expect(
     screen.root
       .findAllByType(TextInput)
@@ -99,9 +101,11 @@ it('shows editable receiving account details to admins', async () => {
         node => node.props.accessibilityLabel === 'Receiving account number',
       )?.props.value,
   ).toBe('01700000001');
-  expect(screen.root.findByType(Button).props.title).toBe(
-    'Save payment number',
-  );
+  expect(
+    screen.root
+      .findAllByType(Button)
+      .some(item => item.props.title === 'Save payment method'),
+  ).toBe(true);
   expect(mockMutate).not.toHaveBeenCalled();
 });
 

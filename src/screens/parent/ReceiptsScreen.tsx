@@ -93,7 +93,7 @@ export function receiptDocument(
       ? [
           '',
           t('Method: {{method}}', {
-            method: oneLine(readable(approved.method)),
+            method: oneLine(approved.methodName || readable(approved.method)),
           }),
           t('Transaction ID: {{id}}', { id: oneLine(approved.transactionId) }),
           t('Sender number: {{number}}', {
@@ -199,7 +199,7 @@ export function ReceiptsScreen() {
                 <InfoRow
                   icon="payment"
                   label={t('Method')}
-                  value={readable(payment.method)}
+                  value={payment.methodName || readable(payment.method)}
                 />
                 <InfoRow
                   icon="receipt"

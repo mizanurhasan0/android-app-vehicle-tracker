@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../i18n';
 import { Text, View } from 'react-native';
+import { PaymentEvidence } from './PaymentEvidence';
 import { Payment } from '../../api/types';
 import { TransportShift } from '../../api/management';
 import { Badge, Card } from '../../components/ui';
@@ -29,7 +30,8 @@ export function GuardianSubmissionCard({
         <Text style={styles.muted}>{paymentShiftLabel(payment, shifts)}</Text>
       ) : null}
       <Text selectable style={styles.body}>
-        {readable(payment.method)} · {payment.transactionId}
+        {payment.methodName || readable(payment.method)} ·{' '}
+        {payment.transactionId}
       </Text>
       <Text selectable style={styles.muted}>
         {t('From {{sender}}\nTo {{recipient}}', {
@@ -38,6 +40,7 @@ export function GuardianSubmissionCard({
         })}
       </Text>
       <Text style={styles.muted}>{dateLabel(payment.createdAt)}</Text>
+      <PaymentEvidence payment={payment} />
       {payment.note ? (
         <Text
           style={[

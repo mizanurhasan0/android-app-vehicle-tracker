@@ -1,6 +1,8 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { Card, Empty, Page } from '../components/ui';
+import { PaymentImage } from '../components/PaymentImage';
+import { readable } from '../utils/format';
 import { AppIcon } from '../components/AppIcon';
 import { AccountForm, VehicleForm } from '../components/setup/SetupForms';
 import { useAuth } from '../context/AuthContext';
@@ -38,13 +40,19 @@ export function PaymentAccountsScreen() {
                 <View style={styles.between}>
                   <AppIcon kind="payments" />
                   <Text style={styles.heading}>
-                    {item.method === 'BKASH' ? 'bKash' : 'Rocket'}
+                    {item.name || readable(item.method)}
                   </Text>
                 </View>
                 <Text selectable style={styles.title}>
                   {item.number}
                 </Text>
                 <Text style={styles.body}>{item.instructions}</Text>
+                {item.imageUrl ? (
+                  <PaymentImage
+                    label={t('Scan this QR code to pay')}
+                    value={item.imageUrl}
+                  />
+                ) : null}
               </Card>
             ))
           )}

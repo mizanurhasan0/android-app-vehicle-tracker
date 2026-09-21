@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { PaymentImage } from '../../components/PaymentImage';
 import { Payment } from '../../api/types';
 import { TransportShift } from '../../api/management';
 import { paymentShiftLabel } from '../../utils/paymentShift';
@@ -49,7 +50,10 @@ export function SubmissionCard({
         </Text>
       </View>
       <View style={desk.receipt}>
-        <Detail label={t('Payment method')} value={readable(payment.method)} />
+        <Detail
+          label={t('Payment method')}
+          value={payment.methodName || readable(payment.method)}
+        />
         <Detail label={t('Transaction ID')} value={payment.transactionId} />
       </View>
       <Text style={styles.muted}>
@@ -95,6 +99,18 @@ export function SubmissionCard({
               value={payment.recipientNumber}
             />
           </View>
+          {payment.transactionInfo ? (
+            <Detail
+              label={t('Transaction information')}
+              value={payment.transactionInfo}
+            />
+          ) : null}
+          {payment.evidenceImageUrl ? (
+            <PaymentImage
+              label={t('Payment evidence')}
+              value={payment.evidenceImageUrl}
+            />
+          ) : null}
           {payment.note ? (
             <Detail label={t('Admin note')} value={payment.note} />
           ) : null}
@@ -111,7 +127,7 @@ export function SubmissionCard({
                   'Confirm receipt of {{amount}} in {{method}} account {{number}}. Transaction: {{transaction}}. This will mark the bill as paid.',
                   {
                     amount: money(payment.amount),
-                    method: readable(payment.method),
+                    method: payment.methodName || readable(payment.method),
                     number: payment.recipientNumber,
                     transaction: payment.transactionId,
                   },

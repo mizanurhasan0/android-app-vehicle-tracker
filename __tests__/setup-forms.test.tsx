@@ -86,18 +86,10 @@ function panel(name: Panel) {
   return screen.root.findByType(forms[name]);
 }
 
-async function selectWallet(label: string) {
-  await act(async () => {
-    panel('payments')
-      .findAll(
-        node =>
-          node.props.accessibilityRole === 'radio' &&
-          node.props.accessibilityLabel === label &&
-          typeof node.props.onPress === 'function',
-        { deep: false },
-      )[0]
-      .props.onPress();
-  });
+async function selectWallet(value: string) {
+  await act(async () =>
+    panel('payments').findByType(Select).props.onChange(value),
+  );
 }
 
 function field(name: Panel, label: string) {
@@ -123,104 +115,82 @@ async function press(name: Panel, title: string) {
   });
 }
 
-it('initializes the payment form with the saved bKash account', async () => {
+it('loads a saved payment account selected by the admin', async () => {
   await renderForm();
+  await selectWallet('BKASH');
+  expect(field('payments', 'Payment method name').props.value).toBe('bKash');
   expect(field('payments', 'Receiving account number').props.value).toBe(
     '01700000001',
   );
-  expect(field('payments', 'Payment instructions').props.value).toBe(
-    'Send Money',
-  );
+  expect(mockMutate).not.toHaveBeenCalled();
+});
+
+it('requires a name and number, and saves any provider with an optional QR image', async () => {
+  await renderForm();
+  await press('payments', 'Save payment method');
+  expect(mockMutate).not.toHaveBeenCalled();
+  expect(field('payments', 'Payment method name').props.error).toBeTruthy();
   expect(
-    panel('payments').findAll(
-      node =>
-        node.props.accessibilityRole === 'radio' &&
-        node.props.accessibilityLabel === 'bKash',
-    )[0].props.accessibilityState.checked,
-  ).toBe(true);
-  expect(mockMutate).not.toHaveBeenCalled();
-});
-
-it('requires payment instructions even with a valid receiving number', async () => {
-  await renderForm();
-  await fill('payments', { 'Payment instructions': '  ' });
-  await press('payments', 'Save payment number');
-  expect(mockMutate).not.toHaveBeenCalled();
-  expect(field('payments', 'Payment instructions').props.error).toBe(
-    'Add payment instructions.',
-  );
-  await fill('payments', { 'Payment instructions': 'Send Money' });
-  expect(field('payments', 'Payment instructions').props.error).toBeFalsy();
-});
-
-it('validates payment details and saves the chosen receiving account', async () => {
-  await renderForm();
-  await selectWallet('Rocket');
+    field('payments', 'Receiving account number').props.error,
+  ).toBeTruthy();
   await fill('payments', {
-    'Receiving account number': '123',
-    'Payment instructions': 'Send Money to the school office',
+    'Payment method name': 'School Bank',
+    'Receiving account number': 'AC-1234567890123456',
   });
-  await press('payments', 'Save payment number');
-  expect(mockMutate).not.toHaveBeenCalled();
-  expect(
+  const { PaymentImage } = require('../src/components/PaymentImage');
+  await act(async () =>
     panel('payments')
-      .findAllByType(Notice)
-      .some(node => node.props.kind === 'error' && !!node.props.text),
-  ).toBe(true);
-  await fill('payments', { 'Receiving account number': '017000000022' });
-  await press('payments', 'Save payment number');
+      .findByType(PaymentImage)
+      .props.onChange('data:image/png;base64,AAAA'),
+  );
+  await press('payments', 'Save payment method');
   expect(mockMutate).toHaveBeenCalledWith(
-    '/admin/payment-accounts/ROCKET',
+    expect.stringMatching(/^\/admin\/payment-accounts\/PAY_/),
     {
-      number: '017000000022',
-      instructions: 'Send Money to the school office',
+      name: 'School Bank',
+      number: 'AC-1234567890123456',
+      instructions: '',
+      imageUrl: 'data:image/png;base64,AAAA',
     },
     'PUT',
   );
 });
 
-it('preserves separate wallet drafts while switching payment methods', async () => {
+it('preserves separate saved-account and new-account drafts', async () => {
   await renderForm();
+  await selectWallet('BKASH');
   await fill('payments', {
     'Payment instructions': 'Draft bKash instructions',
   });
-  await selectWallet('Rocket');
+  await selectWallet('');
   await fill('payments', {
+    'Payment method name': 'Nagad',
     'Receiving account number': '017000000022',
-    'Payment instructions': 'Draft Rocket instructions',
   });
-  await selectWallet('bKash');
-  expect(field('payments', 'Receiving account number').props.value).toBe(
-    '01700000001',
-  );
+  await selectWallet('BKASH');
   expect(field('payments', 'Payment instructions').props.value).toBe(
     'Draft bKash instructions',
   );
-  await selectWallet('Rocket');
+  await selectWallet('');
+  expect(field('payments', 'Payment method name').props.value).toBe('Nagad');
   expect(field('payments', 'Receiving account number').props.value).toBe(
     '017000000022',
   );
-  expect(field('payments', 'Payment instructions').props.value).toBe(
-    'Draft Rocket instructions',
-  );
 });
 
-it('loads refreshed account details without overwriting an edited wallet', async () => {
-  mockData.accounts = [];
+it('loads refreshed details without overwriting edited accounts', async () => {
   await renderForm();
-  expect(field('payments', 'Receiving account number').props.value).toBe('');
+  await selectWallet('BKASH');
   await act(async () => {
-    mockData.accounts = [
-      { method: 'BKASH', number: '01700000001', instructions: 'Send Money' },
-    ];
+    mockData.accounts = [{ ...mockData.accounts[0], number: '01700000009' }];
     screen.update(<AccountForm />);
   });
   expect(field('payments', 'Receiving account number').props.value).toBe(
-    '01700000001',
+    '01700000009',
   );
   await fill('payments', { 'Receiving account number': '01700000008' });
   await act(async () => {
-    mockData.accounts = [{ ...mockData.accounts[0], number: '01700000009' }];
+    mockData.accounts = [{ ...mockData.accounts[0], number: '01700000007' }];
     screen.update(<AccountForm />);
   });
   expect(field('payments', 'Receiving account number').props.value).toBe(

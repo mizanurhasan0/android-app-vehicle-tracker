@@ -55,6 +55,7 @@ export function ScheduleEditor({
             label={t('Stop {{number}}', { number: numberLabel(i + 1) })}
             value={entry.label}
             error={action.fieldErrors[`entries.${i}.label`]}
+            maxLength={100}
             onChangeText={label => update(i, { label })}
           />
           <View style={f.actionRow}>
@@ -121,8 +122,12 @@ export function ScheduleEditor({
           action.run(async () => {
             const errors: Record<string, string> = {};
             entries.forEach((entry, index) => {
-              if (!entry.label.trim())
+              const label = entry.label.trim();
+              if (!label)
                 errors[`entries.${index}.label`] = 'Enter the stop name.';
+              else if (label.length > 100)
+                errors[`entries.${index}.label`] =
+                  'Stop names can be at most 100 characters.';
               if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(entry.time))
                 errors[`entries.${index}.time`] =
                   'Enter a valid time as HH:mm.';

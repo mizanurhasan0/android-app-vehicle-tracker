@@ -7,6 +7,13 @@ export async function pickStudentPhoto(): Promise<string | null> {
   return NativeModules.NoorMedia.pickPhoto();
 }
 
+/** Preserve readable QR codes and receipt text at up to 1280 pixels. */
+export async function pickPaymentPhoto(): Promise<string | null> {
+  if (Platform.OS !== 'android' || !NativeModules.NoorMedia?.pickPaymentPhoto)
+    throw new Error('Use the updated Android app to select a photo.');
+  return NativeModules.NoorMedia.pickPaymentPhoto();
+}
+
 /** Exports are written to the user's selected document location via Android SAF. */
 export async function saveReportFile(
   filename: string,

@@ -10,9 +10,9 @@ export function PaymentInstructions() {
     <Card tinted>
       <Text style={styles.heading}>{t('Your payment, step by step')}</Text>
       <Text style={styles.body}>
-        {t('1. Send the bill amount to the admin’s number.')}
+        {t('1. Pay the full bill using an admin account number or QR code.')}
         {'\n'}
-        {t('2. Submit your transaction ID below.')}
+        {t('2. Submit your transaction ID or payment evidence below.')}
         {'\n'}
         {t('3. Receive confirmation after admin review.')}
       </Text>

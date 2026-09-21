@@ -1032,3 +1032,151 @@ it('shows each shift when choosing bills for the same student', async () => {
   );
   await act(async () => screen.unmount());
 });
+
+it('shows a custom QR account and submits image evidence without a transaction ID', async () => {
+  const { PaymentImage } = require('../src/components/PaymentImage');
+  mockData.accounts = [
+    {
+      method: 'BANK',
+      name: 'School Bank',
+      number: 'AC-1234567890123456',
+      instructions: '',
+      imageUrl: 'data:image/png;base64,AAAA',
+    },
+  ];
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(<PaymentsScreen />);
+  });
+  await act(async () =>
+    screen.root
+      .findAllByType(Button)
+      .find(item => item.props.title === 'I’ve paid · submit details')!
+      .props.onPress(),
+  );
+  const method = screen.root
+    .findAllByType(Select)
+    .find(item => item.props.label === 'Payment method')!;
+  expect(method.props.options).toEqual([
+    { value: 'BANK', label: 'School Bank' },
+  ]);
+  await act(async () => method.props.onChange('BANK'));
+  expect(
+    screen.root
+      .findAllByType(PaymentImage)
+      .find(item => item.props.label === 'Scan this QR code to pay')!.props
+      .value,
+  ).toBe(mockData.accounts[0].imageUrl);
+  await act(async () => {
+    screen.root
+      .findAllByType(Field)
+      .find(item => item.props.label === 'Number you sent money from')!
+      .props.onChangeText('AC-SENDER');
+    screen.root
+      .findAllByType(PaymentImage)
+      .find(item => item.props.label === 'Payment evidence')!
+      .props.onChange('data:image/png;base64,BBBB');
+    screen.root
+      .findAllByType(Field)
+      .find(item => item.props.label === 'Transaction information (optional)')!
+      .props.onChangeText('Paid at branch');
+  });
+  await act(async () =>
+    screen.root
+      .findAllByType(Button)
+      .find(item => item.props.title === 'Submit for verification')!
+      .props.onPress(),
+  );
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/payments/submissions',
+    expect.objectContaining({
+      method: 'BANK',
+      recipientNumber: 'AC-1234567890123456',
+      senderNumber: 'AC-SENDER',
+      transactionId: '',
+      evidenceImageUrl: 'data:image/png;base64,BBBB',
+      transactionInfo: 'Paid at branch',
+    }),
+  );
+  await act(async () => screen.unmount());
+});
+
+it('allows guardians to update pending evidence and shows it to the reviewing admin', async () => {
+  const {
+    PaymentEvidence,
+  } = require('../src/screens/payments/PaymentEvidence');
+  const { PaymentImage } = require('../src/components/PaymentImage');
+  seedAdminPayments();
+  const payment = {
+    ...mockData.payments[0],
+    methodName: 'School Bank',
+    evidenceImageUrl: 'data:image/png;base64,AAAA',
+    transactionInfo: 'Paid at branch',
+  };
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(<PaymentEvidence payment={payment} />);
+  });
+  await act(async () =>
+    screen.root
+      .findAllByType(Button)
+      .find(item => item.props.title === 'Update payment evidence')!
+      .props.onPress(),
+  );
+  await act(async () =>
+    screen.root
+      .findAllByType(Field)
+      .find(item => item.props.label === 'Transaction ID')!
+      .props.onChangeText('BANK-REF/123'),
+  );
+  await act(async () =>
+    screen.root
+      .findAllByType(Button)
+      .find(item => item.props.title === 'Save payment evidence')!
+      .props.onPress(),
+  );
+  expect(mockMutate).toHaveBeenCalledWith(
+    `/payments/submissions/${payment.id}/evidence`,
+    {
+      transactionId: 'BANK-REF/123',
+      evidenceImageUrl: payment.evidenceImageUrl,
+      transactionInfo: payment.transactionInfo,
+    },
+    'PATCH',
+  );
+  await act(async () =>
+    screen.update(
+      <PaymentEvidence payment={{ ...payment, status: 'APPROVED' }} />,
+    ),
+  );
+  expect(
+    screen.root
+      .findAllByType(Button)
+      .some(item => item.props.title === 'Update payment evidence'),
+  ).toBe(false);
+  const { SubmissionCard } = require('../src/screens/payments/SubmissionCard');
+  await act(async () =>
+    screen.update(
+      <SubmissionCard
+        payment={payment}
+        shifts={[]}
+        expanded
+        onToggle={() => {}}
+      />,
+    ),
+  );
+  expect(screen.root.findByType(PaymentImage).props.value).toBe(
+    payment.evidenceImageUrl,
+  );
+  expect(
+    screen.root
+      .findAllByType(Text)
+      .some(item => item.props.children === 'School Bank'),
+  ).toBe(true);
+  expect(
+    screen.root
+      .findAllByType(Text)
+      .some(item => item.props.children === payment.transactionInfo),
+  ).toBe(true);
+  await act(async () => screen.unmount());
+});

@@ -28,7 +28,7 @@ const templates: Record<
     fields: ['student', 'month'],
   },
   'Payment needs verification': {
-    pattern: /^(.+) submitted a (BKASH|ROCKET) payment for (\d{4}-\d{2})\.$/s,
+    pattern: /^(.+) submitted a (.+) payment for (\d{4}-\d{2})\.$/s,
     key: '{{guardian}} submitted a {{method}} payment for {{month}}.',
     fields: ['guardian', 'method', 'month'],
   },
@@ -49,7 +49,7 @@ export function notificationText(
         template.fields.map((field, index) => [field, match[index + 1]]),
       )
     : undefined;
-  if (values?.method)
+  if (values?.method === 'BKASH' || values?.method === 'ROCKET')
     values.method = i18n.t(values.method === 'BKASH' ? 'bKash' : 'Rocket');
   return {
     title: translateMessage(notification.title),

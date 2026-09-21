@@ -22,6 +22,7 @@ class NoorMediaModule(private val context: ReactApplicationContext) : ReactConte
   private var pending: Promise? = null
   private var document: String? = null
   private var documentMime: String? = null
+  private var photoSize = 480
   private val photoCode = 7612
   private val documentCode = 7613
   override fun getName() = "NoorMedia"
@@ -32,6 +33,7 @@ class NoorMediaModule(private val context: ReactApplicationContext) : ReactConte
         if (requestCode != photoCode && requestCode != documentCode) return
         val promise = pending ?: return
         pending = null
+        val maxPhotoSize = photoSize
         val content = document
         val mime = documentMime
         document = null
@@ -78,7 +80,7 @@ class NoorMediaModule(private val context: ReactApplicationContext) : ReactConte
               context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
               if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw IllegalArgumentException("Please choose a valid image")
               var sample = 1
-              while (bounds.outWidth / sample > 960 || bounds.outHeight / sample > 960) sample *= 2
+              while (bounds.outWidth / sample > maxPhotoSize * 2 || bounds.outHeight / sample > maxPhotoSize * 2) sample *= 2
               val options = BitmapFactory.Options().apply { inSampleSize = sample }
               val original = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
                 ?: throw IllegalArgumentException("Could not read the selected image")
@@ -100,10 +102,15 @@ class NoorMediaModule(private val context: ReactApplicationContext) : ReactConte
                 }
               }
               val oriented = if (matrix.isIdentity) original else Bitmap.createBitmap(original, 0, 0, original.width, original.height, matrix, true)
-              val scale = minOf(1f, 480f / maxOf(oriented.width, oriented.height))
+              val scale = minOf(1f, maxPhotoSize.toFloat() / maxOf(oriented.width, oriented.height))
               val bitmap = Bitmap.createScaledBitmap(oriented, maxOf(1, (oriented.width * scale).toInt()), maxOf(1, (oriented.height * scale).toInt()), true)
               val output = ByteArrayOutputStream()
-              bitmap.compress(Bitmap.CompressFormat.JPEG, 82, output)
+              var quality = 90
+              do {
+                output.reset()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)
+                quality -= 10
+              } while (output.size() > 300_000 && quality >= 50)
               val bytes = output.toByteArray()
               if (bitmap !== oriented) bitmap.recycle()
               if (oriented !== original) oriented.recycle()
@@ -120,10 +127,16 @@ class NoorMediaModule(private val context: ReactApplicationContext) : ReactConte
   }
 
   @ReactMethod
-  fun pickPhoto(promise: Promise) {
+  fun pickPhoto(promise: Promise) = openPhoto(480, promise)
+
+  @ReactMethod
+  fun pickPaymentPhoto(promise: Promise) = openPhoto(1280, promise)
+
+  private fun openPhoto(size: Int, promise: Promise) {
     val activity = reactApplicationContext.currentActivity
     if (activity == null || pending != null) { promise.reject("UNAVAILABLE", "Please try again when the app is ready"); return }
     pending = promise
+    photoSize = size
     try {
       val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply { type = "image/*"; addCategory(Intent.CATEGORY_OPENABLE) }
       activity.startActivityForResult(intent, photoCode)

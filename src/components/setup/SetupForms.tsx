@@ -1,16 +1,14 @@
 import { ValidationError } from '../../utils/validation';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { PaymentAccount } from '../../api/types';
+import { StyleSheet, Text, View } from 'react-native';
+import { PaymentImage } from '../PaymentImage';
+import { readable } from '../../utils/format';
 import { useCoreData } from '../../context/DataContext';
 import { useAction } from '../../hooks/useAction';
 import { useTranslation } from '../../i18n';
 import { colors, styles } from '../../theme';
 import { numberLabel, toPoisha } from '../../utils/format';
 import { Button, Card, Empty, Field, Notice, Select } from '../ui';
-
-type Wallet = PaymentAccount['method'];
-type AccountDraft = Pick<PaymentAccount, 'number' | 'instructions'>;
 
 function FormHeading({ title, detail }: { title: string; detail: string }) {
   return (
@@ -26,138 +24,105 @@ function FormHeading({ title, detail }: { title: string; detail: string }) {
 export function AccountForm() {
   const { t } = useTranslation();
   const { data, mutate } = useCoreData();
-  const [method, setMethod] = useState<Wallet>('BKASH');
-  // Only edited wallets have overrides, so refreshes still populate untouched forms.
-  const [drafts, setDrafts] = useState<Partial<Record<Wallet, AccountDraft>>>(
-    {},
-  );
-  const [resultMethod, setResultMethod] = useState<Wallet | null>(null);
+  const [method, setMethod] = useState('');
+  const [drafts, setDrafts] = useState<
+    Record<
+      string,
+      { name: string; number: string; instructions: string; imageUrl: string }
+    >
+  >({});
   const account = data.accounts.find(item => item.method === method);
   const draft = drafts[method] ?? {
+    name: account?.name ?? (account ? readable(account.method) : ''),
     number: account?.number ?? '',
-    instructions:
-      account?.instructions ?? t('Use Send Money to this personal account.'),
+    instructions: account?.instructions ?? '',
+    imageUrl: account?.imageUrl ?? '',
   };
   const action = useAction();
-  const updateDraft = (change: Partial<AccountDraft>) => {
+  const update = (change: Partial<typeof draft>) => {
+    Object.keys(change).forEach(action.clearFieldError);
     setDrafts(current => ({
       ...current,
       [method]: { ...(current[method] ?? draft), ...change },
     }));
-    setResultMethod(null);
   };
-
   return (
     <Card>
       <FormHeading
         title={t('Where guardians send money')}
-        detail={t('Choose a wallet and save its receiving details.')}
+        detail={t(
+          'Add any payment method with its name, account number and QR image.',
+        )}
       />
-      <View style={form.group}>
-        <Text style={form.fieldLabel}>{t('Payment method')}</Text>
-        <View
-          accessibilityRole="radiogroup"
-          accessibilityLabel={t('Payment method')}
-          style={form.wallets}
-        >
-          {(['BKASH', 'ROCKET'] as const).map(wallet => (
-            <Pressable
-              key={wallet}
-              accessibilityRole="radio"
-              accessibilityLabel={wallet === 'BKASH' ? t('bKash') : t('Rocket')}
-              accessibilityState={{
-                checked: method === wallet,
-                disabled: action.busy,
-              }}
-              disabled={action.busy}
-              onPress={() => {
-                action.clearFeedback();
-                setMethod(wallet);
-              }}
-              style={({ pressed }) => [
-                form.wallet,
-                method === wallet && form.walletSelected,
-                action.busy && form.disabled,
-                pressed && form.pressed,
-              ]}
-            >
-              <Text
-                style={[
-                  form.walletName,
-                  method === wallet && form.walletNameSelected,
-                ]}
-              >
-                {wallet === 'BKASH' ? t('bKash') : t('Rocket')}
-              </Text>
-              <View
-                accessible={false}
-                style={[form.radio, method === wallet && form.radioSelected]}
-              >
-                {method === wallet ? <View style={form.radioDot} /> : null}
-              </View>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-      {account ? (
-        <View style={form.preview}>
-          <Text style={form.sectionLabel}>{t('Current receiving number')}</Text>
-          <Text selectable style={form.accountNumber}>
-            {account.number}
-          </Text>
-          <Text style={styles.muted}>{t('Visible to guardians')}</Text>
-        </View>
-      ) : null}
+      <Select
+        compact
+        label={t('Payment method')}
+        value={method}
+        disabled={action.busy}
+        onChange={value => {
+          setMethod(value);
+          action.clearFeedback();
+        }}
+        options={[
+          { value: '', label: t('Add payment method') },
+          ...data.accounts.map(item => ({
+            value: item.method,
+            label: item.name || readable(item.method),
+          })),
+        ]}
+      />
+      <Field
+        label={t('Payment method name')}
+        value={draft.name}
+        maxLength={80}
+        error={action.fieldErrors.name}
+        editable={!action.busy}
+        onChangeText={name => update({ name })}
+      />
       <Field
         label={t('Receiving account number')}
         value={draft.number}
+        maxLength={100}
         error={action.fieldErrors.number}
-        onChangeText={number => {
-          action.clearFieldError('number');
-          updateDraft({ number });
-        }}
-        keyboardType="phone-pad"
-        autoCorrect={false}
-        maxLength={12}
         editable={!action.busy}
+        autoCorrect={false}
+        onChangeText={number => update({ number })}
       />
       <Field
         label={t('Payment instructions')}
         value={draft.instructions}
-        error={action.fieldErrors.instructions}
-        onChangeText={instructions => {
-          action.clearFieldError('instructions');
-          updateDraft({ instructions });
-        }}
         multiline
         maxLength={300}
         editable={!action.busy}
-        hint={t('Specify Send Money or Payment and the account holder’s name.')}
+        onChangeText={instructions => update({ instructions })}
       />
-      <Notice text={resultMethod === method ? action.error : ''} kind="error" />
-      <Notice text={resultMethod === method ? action.success : ''} />
+      <PaymentImage
+        label={t('Payment QR image')}
+        value={draft.imageUrl}
+        disabled={action.busy}
+        onChange={imageUrl => update({ imageUrl })}
+      />
+      <Notice text={action.error} kind="error" />
       <Button
-        title={t('Save payment number')}
+        title={t('Save payment method')}
         busy={action.busy}
-        onPress={() => {
-          setResultMethod(method);
+        onPress={() =>
           action.run(async () => {
-            const number = draft.number.trim();
-            const instructions = draft.instructions.trim();
             const errors: Record<string, string> = {};
-            if (
-              !(
-                method === 'BKASH' ? /^01[3-9]\d{8}$/ : /^01[3-9]\d{8,9}$/
-              ).test(number)
-            )
-              errors.number =
-                'Enter the receiving account’s valid mobile wallet number.';
-            if (!instructions)
-              errors.instructions = 'Add payment instructions.';
+            if (!draft.name.trim())
+              errors.name = 'Enter a payment method name.';
+            if (!draft.number.trim())
+              errors.number = 'Enter an account number.';
             if (Object.keys(errors).length) throw new ValidationError(errors);
+            const key = method || `PAY_${Date.now()}`;
             await mutate(
-              `/admin/payment-accounts/${method}`,
-              { number, instructions },
+              `/admin/payment-accounts/${key}`,
+              {
+                ...draft,
+                name: draft.name.trim(),
+                number: draft.number.trim(),
+                instructions: draft.instructions.trim(),
+              },
               'PUT',
             );
             setDrafts(current => {
@@ -165,8 +130,9 @@ export function AccountForm() {
               delete next[method];
               return next;
             });
-          }, 'Payment details saved. Guardians can now use this number.');
-        }}
+            setMethod(key);
+          }, 'Payment method saved.')
+        }
       />
     </Card>
   );
@@ -455,53 +421,13 @@ const form = StyleSheet.create({
     paddingTop: 18,
     marginTop: 4,
   },
-  fieldLabel: { color: colors.ink, fontSize: 14, fontWeight: '600' },
   sectionLabel: { color: colors.primary, fontSize: 14, fontWeight: '700' },
-  wallets: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  wallet: {
-    flex: 1,
-    minWidth: 108,
-    minHeight: 60,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.line,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  walletSelected: { backgroundColor: colors.mint, borderColor: colors.primary },
-  walletName: {
-    flexShrink: 1,
-    color: colors.ink,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  walletNameSelected: { color: colors.primary },
-  radio: {
-    width: 20,
-    height: 20,
-    borderWidth: 1.5,
-    borderColor: colors.muted,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioSelected: { borderColor: colors.primary },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.primary,
-  },
   preview: {
     backgroundColor: colors.background,
     padding: 16,
     borderRadius: 14,
     gap: 10,
   },
-  accountNumber: { color: colors.ink, fontSize: 23, fontWeight: '700' },
   stop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stopNumber: {
     minWidth: 28,
@@ -514,6 +440,4 @@ const form = StyleSheet.create({
   },
   stopNumberText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
   stopName: { flex: 1, color: colors.ink, fontSize: 14, lineHeight: 21 },
-  disabled: { opacity: 0.5 },
-  pressed: { opacity: 0.75 },
 });

@@ -1,7 +1,7 @@
 # Noor Transport Android
 
 React Native Android app for guardian transport requests, assigned vehicle tracking,
-manual bKash/Rocket payment submissions and an admin review workspace.
+configurable payment methods with QR images and payment evidence and an admin review workspace.
 
 ## Run locally
 
@@ -46,8 +46,7 @@ numbers are included.
 ## First setup
 
 1. Bootstrap an admin in the API using `ADMIN_PHONE` / `ADMIN_PASSWORD`.
-2. Sign in as admin. Open **Payment accounts** to add bKash/Rocket receiving numbers and clear
-   Send Money/Payment instructions. Use **Create vehicle**, then **Routes** to
+2. Sign in as admin. Open **Payment accounts** to add any payment method: name, receiving account number, optional QR image and instructions. Use **Create vehicle**, then **Routes** to
    add a route with pickup stops.
 3. A guardian creates an account with their phone and password, then submits a
    student name, route and stop from **Requested → Request forms**.
@@ -56,7 +55,7 @@ numbers are included.
 5. Admin generates that month's bills from **Bills**. This is an explicit admin
    action, not an unattended scheduled charge.
 6. Guardian sends the full amount outside this app, opens a bill, selects the
-   wallet and submits sender/receiver numbers plus transaction ID.
+   method and submits sender/receiver numbers with a transaction ID or evidence image.
 7. Admin independently verifies the transfer and approves or rejects with a
    reason. Approval marks the bill paid and creates a guardian notification.
    Rejection leaves it unpaid and allows corrected resubmission.
@@ -307,3 +306,17 @@ Existing server backup procedures still apply.
 
 See [implementation and verification](docs/qa/noor-redesign/README.md) and
 [management API documentation](../gps-tracker-api/docs/MANAGEMENT_API.md).
+
+## QR payments and evidence
+
+Admin **Payment accounts** → **Add payment method** saves any provider, bank or wallet.
+Select an existing method to edit its name, number, instructions or QR image.
+Guardians see the configured number and QR in the payment form; tap an image to view it full screen.
+They transfer money externally and submit either a transaction ID or an evidence image,
+with optional transaction information. Pending submissions can be updated from payment history.
+Admins see the image and information in the expanded payment review before approving/rejecting.
+
+Deploy the companion API first (automatic migration 9), then rebuild the Android app:
+the higher-resolution payment image picker requires a native APK update.
+The existing Android system picker compresses QR/evidence to at most 1280 pixels and 300 KB;
+no new dependency or storage permission is required. Existing bKash/Rocket records remain available.
