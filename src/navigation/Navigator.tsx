@@ -38,6 +38,7 @@ import {
   RequestsScreen as OperationalRequestsScreen,
   CommunicationScreen,
   ReportsScreen,
+  DataBackupScreen,
   SettingsScreen,
   BannersScreen,
 } from '../screens/admin';
@@ -265,6 +266,11 @@ export function Navigator() {
                 name="Reports"
                 getComponent={() => ReportsScreen}
                 options={{ title: t('Reports') }}
+              />
+              <Stack.Screen
+                name="DataBackup"
+                getComponent={() => DataBackupScreen}
+                options={{ title: t('Data and backup') }}
               />
             </>
           ) : (

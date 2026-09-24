@@ -16,4 +16,5 @@ export {
   SettingsScreen,
 } from './office';
 export { ReportsScreen } from './ReportsScreen';
+export { DataBackupScreen } from './DataBackupScreen';
 export { BannersScreen } from './BannersScreen';

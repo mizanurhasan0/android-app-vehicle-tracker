@@ -178,7 +178,7 @@ it.each(['default', 'hermes-stable'])(
     };
     let tree = module.exports.Navigator();
     const initial = registered(tree);
-    expect(initial).toHaveLength(32);
+    expect(initial).toHaveLength(33);
     expect(resolutions).toEqual([]);
     const fleet = initial.find(node => node.props.name === 'Fleet')!;
     expect(fleet.props.component).toBeUndefined();
@@ -198,7 +198,7 @@ it.each(['default', 'hermes-stable'])(
       tree = module.exports.Navigator();
       expect(resolutions).toEqual([]);
       const routes = registered(tree);
-      expect(routes).toHaveLength(role === 'ADMIN' ? 32 : 24);
+      expect(routes).toHaveLength(role === 'ADMIN' ? 33 : 24);
       expect(
         routes.find(node => node.props.name === 'Bills')!.props.options!.title,
       ).toBe('bn:Payment');

@@ -79,6 +79,7 @@ const groups: {
     tint: '#EAF3FF',
     items: [
       ['settings', 'সেটিংস', 'Settings'],
+      ['document', 'ডাটা ও ব্যাকআপ', 'DataBackup'],
       ['emergency', 'জরুরি যোগাযোগ', 'Emergency'],
     ],
   },

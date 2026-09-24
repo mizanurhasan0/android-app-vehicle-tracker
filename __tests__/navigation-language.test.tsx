@@ -61,11 +61,7 @@ const commonRoutes = {
     'VehicleDetailsScreen',
     'Vehicle profile',
   ],
-  FleetMap: [
-    '../src/navigation/routeScreens',
-    'FleetMapScreen',
-    'Vehicles',
-  ],
+  FleetMap: ['../src/navigation/routeScreens', 'FleetMapScreen', 'Vehicles'],
   Routes: ['../src/screens/fleet', 'NoorRoutesScreen', 'Routes'],
   RouteDetails: [
     '../src/screens/fleet',
@@ -151,6 +147,7 @@ const adminRoutes = {
     'Communication',
   ],
   Reports: ['../src/screens/admin', 'ReportsScreen', 'Reports'],
+  DataBackup: ['../src/screens/admin', 'DataBackupScreen', 'Data and backup'],
 } as const;
 const parentRoutes = {
   Receipts: [

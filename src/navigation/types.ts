@@ -29,6 +29,7 @@ export type HomeStackParams = {
   OperationalRequests: { id?: string } | undefined;
   Communication: undefined;
   Reports: undefined;
+  DataBackup: undefined;
   Settings: undefined;
   ParentProfile: { id?: string } | undefined;
   Admission: { studentId?: string } | undefined;

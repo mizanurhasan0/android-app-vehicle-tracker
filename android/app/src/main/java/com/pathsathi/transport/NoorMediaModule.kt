@@ -13,10 +13,12 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.util.Base64
+import androidx.core.content.FileProvider
 import com.facebook.react.bridge.*
 import com.facebook.react.ReactPackage
 import com.facebook.react.uimanager.ViewManager
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 class NoorMediaModule(private val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
   private var pending: Promise? = null
@@ -25,12 +27,13 @@ class NoorMediaModule(private val context: ReactApplicationContext) : ReactConte
   private var photoSize = 480
   private val photoCode = 7612
   private val documentCode = 7613
+  private val dataFileCode = 7614
   override fun getName() = "NoorMedia"
 
   init {
     context.addActivityEventListener(object : BaseActivityEventListener() {
       override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode != photoCode && requestCode != documentCode) return
+        if (requestCode != photoCode && requestCode != documentCode && requestCode != dataFileCode) return
         val promise = pending ?: return
         pending = null
         val maxPhotoSize = photoSize
@@ -45,7 +48,37 @@ class NoorMediaModule(private val context: ReactApplicationContext) : ReactConte
         val uri = data.data!!
         Thread {
           try {
-            if (requestCode == documentCode) {
+            if (requestCode == dataFileCode) {
+              val metadata = context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (!cursor.moveToFirst()) null else Arguments.createMap().apply {
+                  val nameColumn = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                  val sizeColumn = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                  putString("uri", uri.toString())
+                  putString("name", if (nameColumn >= 0) cursor.getString(nameColumn) else "import-file")
+                  putString("mimeType", context.contentResolver.getType(uri) ?: "application/octet-stream")
+                  if (sizeColumn >= 0 && !cursor.isNull(sizeColumn)) putDouble("size", cursor.getLong(sizeColumn).toDouble())
+                }
+              } ?: Arguments.createMap().apply {
+                putString("uri", uri.toString())
+                putString("name", "import-file")
+                putString("mimeType", context.contentResolver.getType(uri) ?: "application/octet-stream")
+              }
+              val bytes = context.contentResolver.openInputStream(uri)?.use { stream ->
+                val output = ByteArrayOutputStream()
+                val buffer = ByteArray(8192)
+                var total = 0
+                while (true) {
+                  val read = stream.read(buffer)
+                  if (read < 0) break
+                  total += read
+                  if (total > 512 * 1024) throw IllegalArgumentException("The import file must be 512 KB or smaller")
+                  output.write(buffer, 0, read)
+                }
+                output.toByteArray()
+              } ?: throw IllegalArgumentException("Could not read the selected file")
+              metadata.putString("contentBase64", Base64.encodeToString(bytes, Base64.NO_WRAP))
+              promise.resolve(metadata)
+            } else if (requestCode == documentCode) {
               context.contentResolver.openOutputStream(uri, "wt")?.use { stream ->
                 if (mime == "application/pdf") {
                   val pdf = PdfDocument()
@@ -71,6 +104,8 @@ class NoorMediaModule(private val context: ReactApplicationContext) : ReactConte
                     }
                     pdf.writeTo(stream)
                   } finally { pdf.close() }
+                } else if (mime?.startsWith("base64:") == true) {
+                  stream.write(Base64.decode(content ?: "", Base64.DEFAULT))
                 } else stream.write((content ?: "").toByteArray(Charsets.UTF_8))
               }
                 ?: throw IllegalStateException("Could not open the selected file")
@@ -156,6 +191,61 @@ class NoorMediaModule(private val context: ReactApplicationContext) : ReactConte
       }
       activity.startActivityForResult(intent, documentCode)
     } catch (error: Exception) { pending = null; document = null; documentMime = null; promise.reject("MEDIA_ERROR", error.message, error) }
+  }
+
+  @ReactMethod
+  fun pickDataFile(promise: Promise) {
+    val activity = reactApplicationContext.currentActivity
+    if (activity == null || pending != null) { promise.reject("UNAVAILABLE", "Please try again when the app is ready"); return }
+    pending = promise
+    try {
+      val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        type = "*/*"
+        addCategory(Intent.CATEGORY_OPENABLE)
+        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf(
+          "text/csv",
+          "text/comma-separated-values",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ))
+      }
+      activity.startActivityForResult(intent, dataFileCode)
+    } catch (error: Exception) { pending = null; promise.reject("MEDIA_ERROR", error.message, error) }
+  }
+
+  @ReactMethod
+  fun saveBase64Document(filename: String, base64: String, mimeType: String, promise: Promise) {
+    val activity = reactApplicationContext.currentActivity
+    if (activity == null || pending != null) { promise.reject("UNAVAILABLE", "Please try again when the app is ready"); return }
+    pending = promise
+    document = base64
+    documentMime = "base64:$mimeType"
+    try {
+      val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+        type = mimeType; addCategory(Intent.CATEGORY_OPENABLE); putExtra(Intent.EXTRA_TITLE, filename)
+      }
+      activity.startActivityForResult(intent, documentCode)
+    } catch (error: Exception) { pending = null; document = null; documentMime = null; promise.reject("MEDIA_ERROR", error.message, error) }
+  }
+
+  @ReactMethod
+  fun shareBase64Document(filename: String, base64: String, mimeType: String, promise: Promise) {
+    val activity = reactApplicationContext.currentActivity
+    if (activity == null) { promise.reject("UNAVAILABLE", "Please try again when the app is ready"); return }
+    try {
+      val shareDir = File(context.cacheDir, "shared-exports").apply { mkdirs() }
+      shareDir.listFiles()?.forEach { it.delete() }
+      val safeName = filename.replace(Regex("[^A-Za-z0-9._-]"), "_")
+      val file = File(shareDir, safeName)
+      file.writeBytes(Base64.decode(base64, Base64.DEFAULT))
+      val uri = FileProvider.getUriForFile(context, context.packageName + ".files", file)
+      val intent = Intent(Intent.ACTION_SEND).apply {
+        type = mimeType
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+      }
+      activity.startActivity(Intent.createChooser(intent, "Share export"))
+      promise.resolve(true)
+    } catch (error: Exception) { promise.reject("MEDIA_ERROR", error.message, error) }
   }
 }
 
