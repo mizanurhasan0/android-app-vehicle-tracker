@@ -38,15 +38,17 @@ import {
 } from '../src/screens/admin/AdminUi';
 
 const mockMutate = jest.fn();
+const mockListArchivedStudents = jest.fn();
 const mockUpdateProfile = jest.fn();
 const mockRefresh = jest.fn();
+const mockGoBack = jest.fn();
 let mockRole = 'ADMIN';
 let mockParams: object = {};
 let mockData: DashboardData;
 let mockManagement: ManagementOverview;
 let screen: TestRenderer.ReactTestRenderer;
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: jest.fn() }),
+  useNavigation: () => ({ navigate: jest.fn(), goBack: mockGoBack }),
   useRoute: () => ({ params: mockParams }),
 }));
 jest.mock('../src/context/AuthContext', () => ({
@@ -80,6 +82,7 @@ jest.mock('../src/context/ManagementContext', () => ({
     error: '',
     refresh: mockRefresh,
     mutate: mockMutate,
+    listArchivedStudents: mockListArchivedStudents,
   }),
 }));
 jest.mock('../src/components/LanguageSwitcher', () => ({
@@ -134,6 +137,7 @@ beforeEach(async () => {
   mockRole = 'ADMIN';
   mockParams = {};
   mockMutate.mockResolvedValue({ id: 'new-item' });
+  mockListArchivedStudents.mockResolvedValue([]);
   mockUpdateProfile.mockResolvedValue(undefined);
   mockRefresh.mockResolvedValue(undefined);
   mockData = {
@@ -257,14 +261,12 @@ const changeLanguage = async (language: 'en' | 'bn') => {
 };
 const pressButton = async (title: string) => {
   await act(async () =>
-    (
-      screen.root
-        .findAllByType(SmallButton)
-        .find(item => item.props.title === i18n.t(title)) ||
+    (screen.root
+      .findAllByType(SmallButton)
+      .find(item => item.props.title === i18n.t(title)) ||
       screen.root
         .findAllByType(IconButton)
-        .find(item => item.props.title === i18n.t(title))
-    )!.props.onPress(),
+        .find(item => item.props.title === i18n.t(title)))!.props.onPress(),
   );
 };
 const openForm = async () => {
@@ -408,6 +410,65 @@ it('shows search inline and hides the vehicle filter while searching', async () 
       .some(item => item.props.accessibilityLabel === 'Filter by vehicle'),
   ).toBe(true);
 });
+it('keeps archive actions out of the student table', async () => {
+  await render(StudentsScreen);
+  expect(
+    screen.root.findAll(
+      node => node.props.accessibilityLabel === 'Archive Student One',
+    ),
+  ).toHaveLength(0);
+});
+it('archives a student from the profile only after confirmation', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  try {
+    mockParams = { id: 'student-1' };
+    await render(StudentProfileScreen);
+    await pressButton('Archive student');
+    expect(alert).toHaveBeenCalledWith(
+      'Archive student',
+      expect.stringContaining('All transport services will stop'),
+      expect.any(Array),
+    );
+    const actions = alert.mock.calls[0][2] as {
+      text: string;
+      onPress?: () => Promise<void>;
+    }[];
+    await act(async () =>
+      actions.find(item => item.text === 'Archive')!.onPress!(),
+    );
+    expect(mockMutate).toHaveBeenCalledWith(
+      '/admin/students/student-1/archive',
+      undefined,
+      'PATCH',
+    );
+  } finally {
+    alert.mockRestore();
+  }
+});
+it('loads archived students on demand and restores without reactivating an old service', async () => {
+  mockListArchivedStudents.mockResolvedValue([
+    {
+      ...student('archived-student', 'Archived Student'),
+      status: 'STOPPED',
+      archivedAt: '2026-09-25T00:00:00.000Z',
+    },
+  ]);
+  await render(StudentsScreen);
+  await act(async () =>
+    screen.root.findByType(Tabs).props.onChange('ARCHIVED'),
+  );
+  expect(mockListArchivedStudents).toHaveBeenCalledTimes(1);
+  expect(textContent()).toContain('Archived Student');
+  await pressAccessible('button', 'Restore Archived Student');
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/students/archived-student/restore',
+    undefined,
+    'PATCH',
+  );
+  expect(textContent()).toContain(
+    'Student restored. Add a new transport service to reactivate tracking.',
+  );
+});
 it.each([
   ['en', true],
   ['bn', true],
@@ -456,6 +517,11 @@ it.each([
 it('keeps guardian account details out of student profile edits', async () => {
   mockParams = { id: 'student-1' };
   await render(StudentProfileScreen);
+  const profileActions = screen.root
+    .findAllByType(IconButton)
+    .map(item => item.props.title);
+  expect(profileActions).toEqual(['Call', 'Edit', 'Archive student']);
+  expect(profileActions).not.toContain('WhatsApp');
   await pressButton('Edit');
   expect(
     screen.root

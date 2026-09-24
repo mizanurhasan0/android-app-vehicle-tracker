@@ -29,6 +29,7 @@ const adminStatusLabels: Record<string, string> = {
   MAINTENANCE: 'Maintenance',
   PLANNED: 'Planned',
   IN_PROGRESS: 'In progress',
+  ARCHIVED: 'Archived',
 };
 
 export const labelStatus = (value: string) => {

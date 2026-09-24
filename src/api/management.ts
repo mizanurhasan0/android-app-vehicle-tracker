@@ -35,6 +35,9 @@ export interface Student {
   monthlyAmount: number;
   status: 'ACTIVE' | 'STOPPED';
   startedAt: string;
+  /** Present only for a soft-archived canonical student profile. */
+  archivedAt?: string | null;
+  archivedBy?: string | null;
 }
 export interface StudentInput {
   studentId?: string;
@@ -266,6 +269,8 @@ export interface ManagementReport {
  * POST /admin/students returns StudentCreateResult; reuses the guardian phone or
  * creates a guardian with the initial password "password" when no account exists.
  * PATCH /admin/students/:id with Partial<StudentInput>
+ * PATCH /admin/students/:id/archive; PATCH /admin/students/:id/restore
+ * GET /admin/students/archived (admin-only archived enrollment rows)
  * POST /admin/drivers; PATCH /admin/drivers/:id with Partial<DriverInput>
  * PUT /admin/attendance {entries: AttendanceInput[]} (atomic batch)
  * POST /admin/maintenance; PATCH /admin/maintenance/:id with Partial<MaintenanceInput>

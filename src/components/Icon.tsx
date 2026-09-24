@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import type { LucideIcon } from './icons';
 import {
   ArrowLeft,
+  ArchiveRestore,
   Bell,
   Bus,
   CalendarDays,
@@ -38,6 +39,7 @@ import {
   Settings,
   ShieldCheck,
   Smartphone,
+  Trash,
   UserRound,
   Wallet,
   Wrench,
@@ -58,7 +60,7 @@ export type IconName =
   | 'communication' | 'whatsapp' | 'sms' | 'mail' | 'settings' | 'more'
   | 'menu' | 'plus' | 'add' | 'minus' | 'close' | 'check' | 'info' | 'search'
   | 'edit' | 'chevron' | 'chevronLeft' | 'download' | 'logout' | 'shield' | 'home'
-  | 'fit' | 'locate';
+  | 'fit' | 'locate' | 'delete' | 'restore';
 
 const icons: Record<IconName, LucideIcon> = {
   student: GraduationCap, students: GraduationCap, driver: UserRound, drivers: UserRound,
@@ -78,6 +80,8 @@ const icons: Record<IconName, LucideIcon> = {
   info: Info, search: Search,
   edit: Pencil, chevron: ChevronRight, chevronLeft: ChevronLeft, download: Download, logout: LogOut,
   shield: ShieldCheck, home: House, fit: Maximize2, locate: LocateFixed,
+  delete: Trash,
+  restore: ArchiveRestore,
 };
 
 export function Icon({

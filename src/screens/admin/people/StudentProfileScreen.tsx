@@ -6,8 +6,13 @@ import {
 } from '../../../utils/transport';
 import { NoorIcon } from '../../../components/Noor';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  NavigationProp,
+  ParamListBase,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import { useManagement } from '../../../context/ManagementContext';
 import { useCoreData } from '../../../context/DataContext';
 import { locale, useTranslation } from '../../../i18n';
@@ -17,29 +22,24 @@ import {
   Box,
   C,
   Choice,
-  ContactActions,
   Detail,
   EmptyState,
   Heading,
+  IconButton,
   Pill,
   Tabs,
+  contact,
   niceDate,
   s,
 } from '../AdminUi';
+import { useAction } from '../ui/useAction';
 import { StudentPhoto } from './StudentPhoto';
 import { StudentForm } from './StudentForm';
 
 const studentProfileTopStyles = StyleSheet.create({
   transportHeader: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  transportHeaderRight: {
-    alignItems: 'flex-end',
-    gap: 3,
-    flexShrink: 1,
+    gap: 2,
   },
   servicePanel: {
     gap: 10,
@@ -70,19 +70,28 @@ const studentProfileTopStyles = StyleSheet.create({
     gap: 8,
   },
   identityText: { flex: 1, minWidth: 0 },
+  profileNameLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  profileName: { flex: 1, minWidth: 0 },
   profileActions: { alignItems: 'flex-end', gap: 8 },
 });
 
 export function StudentProfileScreen() {
   const { t } = useTranslation();
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { params } = useRoute();
   const { id } = (params || {}) as { id?: string };
-  const { data, loading, error, refresh } = useManagement();
+  const { data, loading, error, refresh, mutate } = useManagement();
   const { data: transport } = useCoreData();
   const [edit, setEdit] = useState(false);
   const [addingService, setAddingService] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string>();
   const [tab, setTab] = useState('PAYMENTS');
+  const callAction = useAction();
+  const archiveAction = useAction();
   const profile = data?.students.find(item => item.id === id);
   const services = profile
     ? (data?.students || []).filter(
@@ -122,24 +131,45 @@ export function StudentProfileScreen() {
         (item.audience === 'VEHICLE' && item.targetId === student.vehicleId) ||
         (item.audience === 'ROUTE' && item.targetId === student.routeId),
     ) || [];
+  const archiveStudent = () =>
+    Alert.alert(
+      t('Archive student'),
+      t(
+        'Archive {{name}}? All transport services will stop, but payment and attendance history will be kept.',
+        { name: student.studentName },
+      ),
+      [
+        { text: t('Cancel'), style: 'cancel' },
+        {
+          text: t('Archive'),
+          style: 'destructive',
+          onPress: () =>
+            archiveAction.run(async () => {
+              await mutate(
+                `/admin/students/${student.id}/archive`,
+                undefined,
+                'PATCH',
+              );
+              navigation.goBack();
+            }, 'Student archived.'),
+        },
+      ],
+    );
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
       <Box>
         <View style={studentProfileTopStyles.transportHeader}>
           <Text style={s.heading}>{t('Transport services')}</Text>
-          <View style={studentProfileTopStyles.transportHeaderRight}>
-            <Pill value={student.status} />
-            {student.studentId ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('Add service in another shift')}
-                onPress={() => setAddingService(true)}
-                style={s.linkHit}
-              >
-                <Text style={s.link}>{t('Add service in another shift')}</Text>
-              </Pressable>
-            ) : null}
-          </View>
+          {student.studentId ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('Add service in another shift')}
+              onPress={() => setAddingService(true)}
+              style={s.linkHit}
+            >
+              <Text style={s.link}>{t('Add service in another shift')}</Text>
+            </Pressable>
+          ) : null}
         </View>
         <View style={studentProfileTopStyles.servicePanel}>
           <Choice
@@ -167,7 +197,15 @@ export function StudentProfileScreen() {
           <View style={studentProfileTopStyles.profileIdentity}>
             <StudentPhoto student={student} />
             <View style={studentProfileTopStyles.identityText}>
-              <Text style={s.title}>{student.studentName}</Text>
+              <View style={studentProfileTopStyles.profileNameLine}>
+                <Text
+                  numberOfLines={1}
+                  style={[s.title, studentProfileTopStyles.profileName]}
+                >
+                  {student.studentName}
+                </Text>
+                <Pill value={student.status} />
+              </View>
               <Text style={s.body}>{student.studentCode || '—'}</Text>
               <Text style={s.muted}>
                 {t('Class {{className}} | Roll: {{roll}}', {
@@ -179,11 +217,29 @@ export function StudentProfileScreen() {
             </View>
           </View>
           <View style={studentProfileTopStyles.profileActions}>
-            <ContactActions
-              phone={student.guardianPhone}
-              onEdit={() => setEdit(true)}
-              compact
-            />
+            <View style={s.compactActions}>
+              <IconButton
+                title="Call"
+                icon="phone"
+                disabled={!student.guardianPhone}
+                busy={callAction.busy}
+                onPress={() =>
+                  callAction.run(() => contact(student.guardianPhone, 'call'))
+                }
+              />
+              <IconButton
+                title="Edit"
+                icon="edit"
+                onPress={() => setEdit(true)}
+              />
+              <IconButton
+                title="Archive student"
+                icon="delete"
+                onPress={archiveStudent}
+                busy={archiveAction.busy}
+                danger
+              />
+            </View>
           </View>
         </View>
         <View style={s.line} />

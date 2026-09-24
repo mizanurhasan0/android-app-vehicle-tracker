@@ -52,12 +52,14 @@ export function IconButton({
   onPress,
   disabled,
   busy,
+  danger,
 }: {
   title: string;
   icon: string;
   onPress: () => void;
   disabled?: boolean;
   busy?: boolean;
+  danger?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -69,13 +71,18 @@ export function IconButton({
       onPress={onPress}
       style={({ pressed }) => [
         s.iconButton,
+        danger && s.dangerButton,
         (disabled || busy || pressed) && s.dim,
       ]}
     >
       {busy ? (
-        <ActivityIndicator size="small" color={C.green} />
+        <ActivityIndicator size="small" color={danger ? C.white : C.green} />
       ) : (
-        <NoorIcon name={icon} size={18} color={C.green} />
+        <NoorIcon
+          name={icon}
+          size={18}
+          color={danger ? C.white : C.green}
+        />
       )}
     </Pressable>
   );

@@ -10,5 +10,6 @@
   "Enter a message of at least 2 characters.": "Enter a message of at least 2 characters.",
   "Enter a description of at least 5 characters.": "Enter a description of at least 5 characters.",
   "Enter a name of at least 2 characters.": "Enter a name of at least 2 characters.",
-  "Dismiss notification": "Dismiss notification"
+  "Dismiss notification": "Dismiss notification",
+  "Review pending service requests before archiving this student": "Review pending service requests before archiving this student"
 }

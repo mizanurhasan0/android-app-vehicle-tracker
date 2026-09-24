@@ -3,6 +3,7 @@
 // Keep these names aligned with the installed package's barrel aliases.
 export type { LucideIcon } from 'lucide-react-native';
 export { default as ArrowLeft } from 'lucide-react-native/icons/arrow-left';
+export { default as ArchiveRestore } from 'lucide-react-native/icons/archive-restore';
 export { default as Bell } from 'lucide-react-native/icons/bell';
 export { default as Bus } from 'lucide-react-native/icons/bus';
 export { default as CalendarDays } from 'lucide-react-native/icons/calendar-days';
@@ -47,6 +48,7 @@ export { default as Share2 } from 'lucide-react-native/icons/share-2';
 export { default as ShieldCheck } from 'lucide-react-native/icons/shield-check';
 export { default as Smartphone } from 'lucide-react-native/icons/smartphone';
 export { default as Target } from 'lucide-react-native/icons/target';
+export { default as Trash } from 'lucide-react-native/icons/trash';
 export { default as UserRound } from 'lucide-react-native/icons/user-round';
 export { default as Wallet } from 'lucide-react-native/icons/wallet';
 export { default as Wrench } from 'lucide-react-native/icons/wrench';

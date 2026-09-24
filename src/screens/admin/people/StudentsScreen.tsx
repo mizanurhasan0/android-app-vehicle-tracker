@@ -1,7 +1,8 @@
 import { studentIdentity } from '../../../utils/transport';
 import { NoorIcon } from '../../../components/Noor';
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   ListRenderItemInfo,
   Pressable,
   StyleSheet,
@@ -24,6 +25,8 @@ import { useDhakaDate } from '../../../hooks/useDhakaDate';
 import { StudentPhoto } from './StudentPhoto';
 import { StudentForm } from './StudentForm';
 import { Student } from '../../../api/management';
+import { ToastMessage } from '../../../components/Toast';
+import { useAction } from '../ui/useAction';
 import {
   VirtualizedPage,
   VirtualizedCardSection,
@@ -33,41 +36,69 @@ const StudentRow = memo(function StudentListRow({
   student,
   status,
   onOpen,
+  archived,
+  busy,
+  onRestore,
 }: {
   student: Student;
   status: string;
   onOpen: (id: string) => void;
+  archived?: boolean;
+  busy?: boolean;
+  onRestore: (student: Student) => void;
 }) {
   const { t } = useTranslation();
   return (
     <VirtualizedCardSection style={s.box}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('{{name}} profile', {
-          name: student.studentName,
-        })}
-        style={[s.tableRow, s.personListRow]}
-        onPress={() => onOpen(student.id)}
-      >
-        <View style={[s.row, s.studentColumn]}>
-          <StudentPhoto student={student} compact />
-          <View style={s.flex}>
-            <Text
-              numberOfLines={1}
-              ellipsizeMode="tail"
-              style={[s.body, s.semibold]}
-            >
-              {student.studentName}
-            </Text>
-            <Text style={s.muted}>
-              {student.studentCode || student.className || '—'}
-            </Text>
+      <View style={studentListStyles.studentRow}>
+        <Pressable
+          accessibilityRole={archived ? undefined : 'button'}
+          accessibilityLabel={
+            archived
+              ? undefined
+              : t('{{name}} profile', { name: student.studentName })
+          }
+          disabled={archived}
+          style={[s.tableRow, s.personListRow, s.flex]}
+          onPress={archived ? undefined : () => onOpen(student.id)}
+        >
+          <View style={[s.row, s.studentColumn]}>
+            <StudentPhoto student={student} compact />
+            <View style={s.flex}>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[s.body, s.semibold]}
+              >
+                {student.studentName}
+              </Text>
+              <Text style={s.muted}>
+                {student.studentCode || student.className || '—'}
+              </Text>
+            </View>
           </View>
-        </View>
-        <Text style={s.cell}>{student.routeName}</Text>
-        <Text style={s.cell}>{student.vehicleName}</Text>
-        <Pill value={status} />
-      </Pressable>
+          <Text style={s.cell}>{student.routeName}</Text>
+          <Text style={s.cell}>{student.vehicleName}</Text>
+          <Pill value={status} />
+        </Pressable>
+        {archived ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('Restore {{name}}', {
+              name: student.studentName,
+            })}
+            accessibilityState={{ disabled: !!busy, busy: !!busy }}
+            disabled={busy}
+            onPress={() => onRestore(student)}
+            style={({ pressed }) => [
+              studentListStyles.rowAction,
+              (pressed || busy) && s.dim,
+            ]}
+          >
+            <NoorIcon name="restore" size={18} color={C.green} />
+          </Pressable>
+        ) : null}
+      </View>
     </VirtualizedCardSection>
   );
 });
@@ -75,13 +106,18 @@ const StudentRow = memo(function StudentListRow({
 export function StudentsScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
-  const { data, loading, error, refresh } = useManagement();
+  const { data, loading, error, refresh, mutate, listArchivedStudents } =
+    useManagement();
   const { data: transport } = useCoreData();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState('ALL');
   const [vehicleId, setVehicleId] = useState('');
   const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [archivedStudents, setArchivedStudents] = useState<Student[]>([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [archivedError, setArchivedError] = useState('');
+  const action = useAction();
   const { students, canonicalIds, activeCount } = useMemo(() => {
     const profiles = new Map<string, Student>();
     const ids = new Map<string, string>();
@@ -99,6 +135,36 @@ export function StudentsScreen() {
       activeCount: values.filter(student => student.status === 'ACTIVE').length,
     };
   }, [data?.students]);
+  const archivedProfiles = useMemo(() => {
+    const profiles = new Map<string, Student>();
+    archivedStudents.forEach(student => {
+      const identity = studentIdentity(student);
+      if (!profiles.has(identity)) profiles.set(identity, student);
+    });
+    return [...profiles.values()];
+  }, [archivedStudents]);
+  useEffect(() => {
+    if (tab !== 'ARCHIVED') return;
+    let current = true;
+    setArchivedLoading(true);
+    setArchivedError('');
+    listArchivedStudents()
+      .then(items => {
+        if (current) setArchivedStudents(items);
+      })
+      .catch(problem => {
+        if (current)
+          setArchivedError(
+            problem instanceof Error ? problem.message : 'Please try again.',
+          );
+      })
+      .finally(() => {
+        if (current) setArchivedLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [tab, listArchivedStudents]);
   const vehicleOptions = useMemo(() => {
     const names = new Map(
       transport.vehicles.map(vehicle => [vehicle.id, vehicle.name]),
@@ -128,38 +194,66 @@ export function StudentsScreen() {
   }, [data?.attendance, canonicalIds, date]);
   const matches = useMemo(
     () =>
-      students.filter(
+      (tab === 'ARCHIVED' ? archivedProfiles : students).filter(
         item =>
           `${item.studentName} ${item.studentCode} ${item.guardianName} ${item.routeName}`
             .toLowerCase()
             .includes(query.trim().toLowerCase()) &&
           (!vehicleId || item.vehicleId === vehicleId) &&
           (tab === 'ALL' ||
+            tab === 'ARCHIVED' ||
             (tab === 'ACTIVE' && item.status === 'ACTIVE') ||
             (tab === 'ABSENT' && absent.has(studentIdentity(item))) ||
             (tab === 'LEAVE' && leave.has(studentIdentity(item)))),
       ),
-    [students, query, vehicleId, tab, absent, leave],
+    [students, archivedProfiles, query, vehicleId, tab, absent, leave],
   );
   const openStudent = useCallback(
     (id: string) => navigation.navigate('StudentDetails', { id }),
     [navigation],
+  );
+  const restoreStudent = useCallback(
+    (student: Student) =>
+      action.run(async () => {
+        await mutate(
+          `/admin/students/${student.id}/restore`,
+          undefined,
+          'PATCH',
+        );
+        const identity = studentIdentity(student);
+        setArchivedStudents(current =>
+          current.filter(item => studentIdentity(item) !== identity),
+        );
+      }, 'Student restored. Add a new transport service to reactivate tracking.'),
+    [action, mutate],
   );
   const renderStudent = useCallback(
     ({ item }: ListRenderItemInfo<Student>) => (
       <StudentRow
         student={item}
         status={
-          leave.has(studentIdentity(item))
+          tab === 'ARCHIVED'
+            ? 'ARCHIVED'
+            : leave.has(studentIdentity(item))
             ? 'LEAVE'
             : absent.has(studentIdentity(item))
             ? 'ABSENT'
             : item.status
         }
         onOpen={openStudent}
+        archived={tab === 'ARCHIVED'}
+        busy={action.busy}
+        onRestore={restoreStudent}
       />
     ),
-    [openStudent, absent, leave],
+    [
+      openStudent,
+      absent,
+      leave,
+      tab,
+      action.busy,
+      restoreStudent,
+    ],
   );
   return (
     <VirtualizedPage
@@ -172,6 +266,7 @@ export function StudentsScreen() {
       renderItem={renderStudent}
       header={
         <>
+          <ToastMessage message={archivedError} />
           <View style={studentListStyles.toolbar}>
             {!searching ? (
               <View
@@ -289,6 +384,12 @@ export function StudentsScreen() {
                   number: numberLabel(leave.size),
                 }),
               },
+              {
+                value: 'ARCHIVED',
+                label: t('Archived ({{number}})', {
+                  number: numberLabel(archivedProfiles.length),
+                }),
+              },
             ]}
           />
           <VirtualizedCardSection style={s.box} first>
@@ -303,10 +404,27 @@ export function StudentsScreen() {
       }
       ListEmptyComponent={
         <VirtualizedCardSection style={s.box}>
-          <EmptyState
-            text={loading ? t('Loading students…') : t('No students found')}
-            detail={t('Add a new student or change your search.')}
-          />
+          {archivedLoading ? (
+            <ActivityIndicator
+              color={C.green}
+              accessibilityLabel={t('Loading archived students…')}
+            />
+          ) : (
+            <EmptyState
+              text={
+                loading
+                  ? t('Loading students…')
+                  : tab === 'ARCHIVED'
+                  ? t('No archived students')
+                  : t('No students found')
+              }
+              detail={
+                tab === 'ARCHIVED'
+                  ? t('Archived students can be restored here.')
+                  : t('Add a new student or change your search.')
+              }
+            />
+          )}
         </VirtualizedCardSection>
       }
       footer={
@@ -360,5 +478,13 @@ const studentListStyles = StyleSheet.create({
     backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  studentRow: { flexDirection: 'row', alignItems: 'center' },
+  rowAction: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
   },
 });

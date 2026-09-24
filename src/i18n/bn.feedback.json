@@ -10,5 +10,6 @@
   "Enter a message of at least 2 characters.": "কমপক্ষে ২ অক্ষরের একটি বার্তা লিখুন।",
   "Enter a description of at least 5 characters.": "কমপক্ষে ৫ অক্ষরের একটি বিবরণ লিখুন।",
   "Enter a name of at least 2 characters.": "কমপক্ষে ২ অক্ষরের একটি নাম লিখুন।",
-  "Dismiss notification": "বার্তা বন্ধ করুন"
+  "Dismiss notification": "বার্তা বন্ধ করুন",
+  "Review pending service requests before archiving this student": "শিক্ষার্থীকে আর্কাইভ করার আগে অপেক্ষমাণ সেবার অনুরোধগুলো পর্যালোচনা করুন।"
 }
