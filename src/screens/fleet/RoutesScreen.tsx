@@ -140,7 +140,7 @@ export function NoorRoutesScreen({
       ListEmptyComponent={
         <Empty
           title={t('No routes yet')}
-          detail={t('Add routes, vehicles and pickup stops.')}
+          detail={t('Add routes, vehicles and start points.')}
         />
       }
     />

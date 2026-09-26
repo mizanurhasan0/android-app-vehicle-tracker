@@ -11,5 +11,7 @@
   "Enter a description of at least 5 characters.": "Enter a description of at least 5 characters.",
   "Enter a name of at least 2 characters.": "Enter a name of at least 2 characters.",
   "Dismiss notification": "Dismiss notification",
-  "Review pending service requests before archiving this student": "Review pending service requests before archiving this student"
+  "Review pending service requests before archiving this student": "Review pending service requests before archiving this student",
+  "Select a vehicle.": "Select a vehicle.",
+  "No fare is configured for this start and end point pair.": "No fare is configured for this start and end point pair."
 }

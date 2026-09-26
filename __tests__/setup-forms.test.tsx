@@ -278,7 +278,7 @@ it('invokes the route addVehicle callback when no vehicle is available', async (
   expect(mockMutate).not.toHaveBeenCalled();
 });
 
-it('validates an empty route and rejects duplicate pickup stops', async () => {
+it('validates an empty route and rejects duplicate start points', async () => {
   mockData.vehicles = [
     {
       id: 'bus-1',
@@ -299,24 +299,24 @@ it('validates an empty route and rejects duplicate pickup stops', async () => {
   for (const label of [
     'Route / road name',
     'Monthly fee (৳)',
-    'Pickup stops — one per line',
+    'Start points — one per line',
   ]) {
     expect(field('routes', label).props.error).toBeTruthy();
   }
   await fill('routes', {
     'Route / road name': 'Central road',
     'Monthly fee (৳)': '1250.50',
-    'Pickup stops — one per line': 'Main gate\nMain gate',
+    'Start points — one per line': 'Main gate\nMain gate',
   });
   await act(async () => vehicle.props.onChange('bus-1'));
   await press('routes', 'Create route');
   expect(mockMutate).not.toHaveBeenCalled();
-  expect(field('routes', 'Pickup stops — one per line').props.error).toBe(
+  expect(field('routes', 'Start points — one per line').props.error).toBe(
     'Use different stop names, with no more than 50 stops.',
   );
 });
 
-it('creates a route with a fee in poisha and trimmed nonempty pickup stops', async () => {
+it('creates a route with a fee in poisha and trimmed nonempty start points', async () => {
   mockData.vehicles = [
     {
       id: 'bus-1',
@@ -329,7 +329,7 @@ it('creates a route with a fee in poisha and trimmed nonempty pickup stops', asy
   await fill('routes', {
     'Route / road name': '  Central road  ',
     'Monthly fee (৳)': '1250.50',
-    'Pickup stops — one per line':
+    'Start points — one per line':
       '  Main gate  \n\n Central road\n School entrance  ',
   });
   await act(async () => {

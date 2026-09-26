@@ -150,9 +150,9 @@ export function AdmissionScreen({
         scheduleValidation(shiftId, operatingDays, shifts, conflicts.duplicate),
       );
       if (!route) fields.routeId = 'Select a route.';
-      if (!stop) fields.stopId = 'Select a pickup stop.';
+      if (!stop) fields.stopId = 'Select a start point.';
       if (hasJourneyFares && (!destination || monthlyFare === undefined))
-        fields.dropoffStopId = 'Select a destination with a configured fare.';
+        fields.dropoffStopId = 'Select an end point with a configured fare.';
     }
     return Object.keys(fields).length ? new ValidationError(fields) : undefined;
   };
@@ -460,7 +460,7 @@ export function AdmissionScreen({
                 </View>
                 <Text style={local.routeFare}>
                   {item.fares?.length
-                    ? t('Fare by destination')
+                    ? t('Fare by end point')
                     : money(item.monthlyAmount)}
                 </Text>
               </Pressable>
@@ -469,7 +469,7 @@ export function AdmissionScreen({
           {route ? (
             <NoorCard>
               <Select
-                label={t('Pickup stop *')}
+                label={t('Start point *')}
                 value={stopId}
                 error={action.fieldErrors.stopId}
                 onChange={value => {
@@ -486,7 +486,7 @@ export function AdmissionScreen({
               {hasJourneyFares ? (
                 <>
                   <Select
-                    label={t('Destination stop *')}
+                    label={t('End point *')}
                     value={dropoffStopId}
                     error={action.fieldErrors.dropoffStopId}
                     onChange={value => {
@@ -501,7 +501,7 @@ export function AdmissionScreen({
                   {stopId && !availableDestinations.length ? (
                     <Text style={styles.muted}>
                       {t(
-                        'No fares are configured from this boarding stop. Choose another stop or contact the admin.',
+                        'No fares are configured from this start point. Choose another stop or contact the admin.',
                       )}
                     </Text>
                   ) : null}

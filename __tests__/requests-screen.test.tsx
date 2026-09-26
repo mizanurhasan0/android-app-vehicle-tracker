@@ -330,7 +330,7 @@ it('preserves all guardian form drafts while showing only the selected tab', asy
       'Moving to another school',
     );
   });
-  await act(async () => guardianSelect('Pickup stop').props.onChange('stop-1'));
+  await act(async () => guardianSelect('Start point').props.onChange('stop-1'));
   const labels = ['Form', 'Applications', 'Complaints', 'Stop requests'];
   for (const selected of labels) {
     await selectTab(selected);
@@ -349,7 +349,7 @@ it('preserves all guardian form drafts while showing only the selected tab', asy
   await selectTab('Form');
   expect(guardianField('Student name').props.value).toBe('Student Two');
   expect(guardianSelect('Route / road').props.value).toBe('route-1');
-  expect(guardianSelect('Pickup stop').props.value).toBe('stop-1');
+  expect(guardianSelect('Start point').props.value).toBe('stop-1');
   expect(guardianSelect('Active service').props.value).toBe('service-1');
   expect(guardianSelect('Complaint category').props.value).toBe('LATE_PICKUP');
   expect(guardianField('Tell us what happened').props.value).toBe(
@@ -370,10 +370,12 @@ it('keeps all three guardian submission flows available from the Form tab', asyn
     guardianField('Student name').props.onChangeText('Student Two');
     guardianSelect('Route / road').props.onChange('route-1');
   });
-  await act(async () => guardianSelect('Pickup stop').props.onChange('stop-1'));
+  await act(async () => guardianSelect('Start point').props.onChange('stop-1'));
   await pressGuardianButton('Send service request');
   expect(mockMutate).toHaveBeenLastCalledWith('/requests/guardian/new', {
-    studentId: undefined, shiftId: 'MORNING', operatingDays: [0, 1, 2, 3, 4, 6],
+    studentId: undefined,
+    shiftId: 'MORNING',
+    operatingDays: [0, 1, 2, 3, 4, 6],
     studentName: 'Student Two',
     routeId: 'route-1',
     stopId: 'stop-1',

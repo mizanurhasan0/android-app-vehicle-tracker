@@ -144,13 +144,13 @@ export function ParentStudentScreen({
             />
             <InfoRow
               icon="pin"
-              label={t('Boarding stop')}
+              label={t('Start point')}
               value={student.stopName}
             />
             {student.dropoffStopName ? (
               <InfoRow
                 icon="pin"
-                label={t('Destination stop')}
+                label={t('End point')}
                 value={student.dropoffStopName}
               />
             ) : null}

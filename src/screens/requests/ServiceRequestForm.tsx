@@ -126,7 +126,7 @@ export function ServiceRequestForm({
         options={data.routes.map(item => ({
           value: item.id,
           label: item.fares?.length
-            ? `${item.name} · ${t('Fare by destination')}`
+            ? `${item.name} · ${t('Fare by end point')}`
             : t('{{route}} · {{amount}}/month', {
                 route: item.name,
                 amount: money(item.monthlyAmount),
@@ -134,7 +134,7 @@ export function ServiceRequestForm({
         }))}
       />
       <Select
-        label={t('Pickup stop')}
+        label={t('Start point')}
         value={stopId}
         error={action.fieldErrors.stopId}
         onChange={value => {
@@ -151,7 +151,7 @@ export function ServiceRequestForm({
       {route?.fares?.length ? (
         <>
           <Select
-            label={t('Destination stop *')}
+            label={t('End point *')}
             value={dropoffStopId}
             error={action.fieldErrors.dropoffStopId}
             onChange={value => {
@@ -166,7 +166,7 @@ export function ServiceRequestForm({
           {stopId && !availableDestinations.length ? (
             <Text style={styles.muted}>
               {t(
-                'No fares are configured from this boarding stop. Choose another stop or contact the admin.',
+                'No fares are configured from this start point. Choose another stop or contact the admin.',
               )}
             </Text>
           ) : null}
@@ -208,14 +208,14 @@ export function ServiceRequestForm({
                     }
                   : {}),
                 ...(!routeId ? { routeId: 'Select a route.' } : {}),
-                ...(!stopId ? { stopId: 'Select a pickup stop.' } : {}),
+                ...(!stopId ? { stopId: 'Select a start point.' } : {}),
               });
             if (
               route?.fares?.length &&
               (!dropoffStopId || selectedFare === undefined)
             )
               throw new ValidationError({
-                dropoffStopId: 'Select a destination with a configured fare.',
+                dropoffStopId: 'Select an end point with a configured fare.',
               });
             const scheduleErrors = scheduleValidation(
               shiftId,

@@ -87,7 +87,7 @@ export function RouteDetailsScreen({
                 {student.stopName} →{' '}
                 {student.dropoffStopName ||
                   student.dropAddress ||
-                  t('Destination')}
+                  t('End point')}
               </Text>
             </View>
             <Text style={f.sub}>

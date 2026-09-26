@@ -43,10 +43,6 @@ it('maps validation arrays into named red fields and a readable toast summary', 
 });
 it.each([
   ['Phone number or password is incorrect', ['phone', 'password']],
-  [
-    'No fare is configured for this boarding and destination pair',
-    ['dropoffStopId'],
-  ],
   ['This transaction ID has already been submitted', ['transactionId']],
 ])('identifies the affected fields for %s', async (message, fields) => {
   reply(400, { message });
@@ -55,6 +51,18 @@ it.each([
   expect(error.fieldErrors).toEqual(
     Object.fromEntries(fields.map(field => [field, message])),
   );
+});
+it('renames legacy server journey terms before showing them', async () => {
+  reply(400, {
+    message: 'No fare is configured for this boarding and destination pair',
+  });
+  const error = await failure();
+  expect(error.message).toBe(
+    'No fare is configured for this start and end point pair.',
+  );
+  expect(error.fieldErrors).toEqual({
+    dropoffStopId: 'No fare is configured for this start and end point pair.',
+  });
 });
 it('keeps ordinary server error context without inventing a field association', async () => {
   reply(409, {

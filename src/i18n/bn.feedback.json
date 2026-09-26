@@ -11,5 +11,7 @@
   "Enter a description of at least 5 characters.": "কমপক্ষে ৫ অক্ষরের একটি বিবরণ লিখুন।",
   "Enter a name of at least 2 characters.": "কমপক্ষে ২ অক্ষরের একটি নাম লিখুন।",
   "Dismiss notification": "বার্তা বন্ধ করুন",
-  "Review pending service requests before archiving this student": "শিক্ষার্থীকে আর্কাইভ করার আগে অপেক্ষমাণ সেবার অনুরোধগুলো পর্যালোচনা করুন।"
+  "Review pending service requests before archiving this student": "শিক্ষার্থীকে আর্কাইভ করার আগে অপেক্ষমাণ সেবার অনুরোধগুলো পর্যালোচনা করুন।",
+  "Select a vehicle.": "একটি গাড়ি নির্বাচন করুন।",
+  "No fare is configured for this start and end point pair.": "এই শুরুর ও শেষ স্থানের জোড়ার জন্য ভাড়া নির্ধারণ করা নেই।"
 }

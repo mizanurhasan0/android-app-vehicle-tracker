@@ -302,28 +302,28 @@ it('creates a linked student with the selected stop and integer poisha, and rese
   await setInput('Student name *', ' New Student ');
   await setInput('Guardian mobile number *', '01700000001');
   await select('Route *', 'route-1');
-  await select('Pickup stop *', 'stop-1');
+  await select('Start point *', 'stop-1');
   await select('Route *', 'route-2');
   expect(
     screen.root
       .findAllByType(Choice)
-      .find(item => item.props.label === 'Pickup stop *')!.props.value,
+      .find(item => item.props.label === 'Start point *')!.props.value,
   ).toBe('');
   await save();
   expect(mockMutate).not.toHaveBeenCalled();
-  expect(textContent()).toContain('Select a pickup stop.');
+  expect(textContent()).toContain('Select a start point.');
   expect(
     screen.root
       .findAllByType(Choice)
-      .find(item => item.props.label === 'Pickup stop *')!.props.error,
-  ).toBe('Select a pickup stop.');
+      .find(item => item.props.label === 'Start point *')!.props.error,
+  ).toBe('Select a start point.');
   expect(
     screen.root
       .findAllByType(View)
       .some(node => node.props.testID === 'feedback-toast'),
   ).toBe(true);
   await changeLanguage('bn');
-  expect(textContent()).toContain('ওঠার স্টপ নির্বাচন করুন।');
+  expect(textContent()).toContain('শুরুর স্থান নির্বাচন করুন।');
   expect(
     screen.root
       .findAllByType(TextInput)
@@ -344,11 +344,11 @@ it('creates a linked student with the selected stop and integer poisha, and rese
           item.props.value === 'route-2',
       ),
   ).toBe(true);
-  await select('Pickup stop *', 'stop-2');
+  await select('Start point *', 'stop-2');
   expect(
     screen.root
       .findAllByType(Choice)
-      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props.error,
+      .find(item => item.props.label === i18n.t('Start point *'))!.props.error,
   ).toBeUndefined();
   await setInput('Monthly fee (৳) *', '2800.50');
   await save();
@@ -490,7 +490,7 @@ it.each([
       await setInput('Guardian name (optional)', ' New Guardian ');
       await setInput('Guardian mobile number *', '+8801700000001');
       await select('Route *', 'route-1');
-      await select('Pickup stop *', 'stop-1');
+      await select('Start point *', 'stop-1');
       await save();
       expect(mockMutate).toHaveBeenCalledWith(
         '/admin/students',
@@ -592,7 +592,7 @@ it('keeps the student form open with a recoverable server error', async () => {
   await setInput('Student name *', 'New Student');
   await setInput('Guardian mobile number *', '01700000001');
   await select('Route *', 'route-1');
-  await select('Pickup stop *', 'stop-1');
+  await select('Start point *', 'stop-1');
   await save();
   expect(screen.root.findByType(FormModal).props.visible).toBe(true);
   expect(screen.root.findByType(FormModal).props.error).toBe(
@@ -908,8 +908,8 @@ it('uses the selected destination fare for enrollment without submitting a clien
   await setInput('Student name *', 'Journey Student');
   await setInput('Guardian mobile number *', '01700000001');
   await select('Route *', 'route-1');
-  await select('Pickup stop *', 'stop-1');
-  await select('Destination stop', 'khilkhet');
+  await select('Start point *', 'stop-1');
+  await select('End point', 'khilkhet');
   const fareValue = () =>
     screen.root
       .findAllByType(Detail)
@@ -920,7 +920,7 @@ it('uses the selected destination fare for enrollment without submitting a clien
       .findAllByType(Input)
       .some(node => node.props.label === 'Monthly fee (৳) *'),
   ).toBe(false);
-  await select('Destination stop', 'mirpur');
+  await select('End point', 'mirpur');
   expect(fareValue()).toContain('1,500');
   await save();
   expect(mockMutate).toHaveBeenCalledWith(
@@ -1088,6 +1088,48 @@ it('updates a canonical enrollment without sending the create-only studentId fie
     'PATCH',
   );
   expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('studentId');
+});
+
+it('keeps another-shift enrollment transport-only and filters routes by vehicle', async () => {
+  mockManagement.students[0].studentId = 'canonical-child';
+  mockParams = { id: mockManagement.students[0].id };
+  await render(StudentProfileScreen);
+  await pressAccessible('button', 'Add service in another shift');
+
+  const modal = screen.root
+    .findAllByType(FormModal)
+    .find(item => item.props.visible)!;
+  expect(modal.props.title).toBe('Add service in another shift');
+  expect(
+    screen.root
+      .findAllByType(Input)
+      .some(item => item.props.label === 'Student name *'),
+  ).toBe(false);
+  expect(
+    screen.root
+      .findAllByType(Input)
+      .some(item => item.props.label === 'Guardian mobile number *'),
+  ).toBe(false);
+
+  await select('Vehicle *', 'bus-2');
+  const route = screen.root
+    .findAllByType(Choice)
+    .find(item => item.props.label === 'Route *')!;
+  expect(route.props.options).toEqual([
+    { value: 'route-2', label: 'North road · Bus 2' },
+  ]);
+  expect(
+    screen.root
+      .findAllByType(Choice)
+      .find(item => item.props.label === 'Start point *')!.props.options,
+  ).toEqual([]);
+
+  await select('Route *', 'route-2');
+  expect(
+    screen.root
+      .findAllByType(Choice)
+      .find(item => item.props.label === 'Start point *')!.props.options,
+  ).toEqual([{ value: 'stop-2', label: 'North gate' }]);
 });
 
 it('starts an active new service when reusing a stopped student profile', async () => {

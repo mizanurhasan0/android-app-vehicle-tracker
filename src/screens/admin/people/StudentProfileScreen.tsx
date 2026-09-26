@@ -38,17 +38,54 @@ import { StudentForm } from './StudentForm';
 
 const studentProfileTopStyles = StyleSheet.create({
   transportHeader: {
-    alignItems: 'flex-start',
-    gap: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  sectionTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  sectionIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.mint,
+  },
+  addService: {
+    minHeight: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    flexShrink: 1,
+  },
+  addServiceText: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: C.green,
+    fontWeight: '700',
+    textAlign: 'right',
   },
   servicePanel: {
-    gap: 10,
-    padding: 10,
-    borderRadius: 9,
+    gap: 9,
+    padding: 11,
+    borderRadius: 12,
     backgroundColor: C.background,
-    borderWidth: 1,
-    borderColor: C.line,
   },
+  serviceIdentity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  serviceIdentityText: { flex: 1, minWidth: 0 },
+  serviceName: { fontSize: 13, color: C.text, fontWeight: '700' },
+  serviceRoute: { fontSize: 11, lineHeight: 17, color: C.muted },
   schedule: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -76,8 +113,95 @@ const studentProfileTopStyles = StyleSheet.create({
     gap: 7,
   },
   profileName: { flex: 1, minWidth: 0 },
-  profileActions: { alignItems: 'flex-end', gap: 8 },
+  profileMetaLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  profileMeta: { flexShrink: 1 },
+  profileActions: { alignItems: 'flex-end', alignSelf: 'flex-start', gap: 8 },
+  guardianGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  guardianItem: {
+    width: '31%',
+    minHeight: 78,
+    padding: 9,
+    borderRadius: 11,
+    backgroundColor: C.background,
+    gap: 5,
+  },
+  guardianIcon: {
+    width: 25,
+    height: 25,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guardianLabel: { fontSize: 10, lineHeight: 13, color: C.muted },
+  guardianValue: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '600',
+    color: C.text,
+  },
 });
+
+const guardianTones = [
+  { background: '#E7F7EE', foreground: C.green },
+  { background: '#E8F2FC', foreground: C.blue },
+  { background: '#EAF7F2', foreground: '#23866A' },
+  { background: '#F0ECFC', foreground: '#6957B5' },
+  { background: '#E7F6F2', foreground: '#328A72' },
+  { background: '#E8F5F4', foreground: '#287D78' },
+  { background: '#FFF2DD', foreground: '#D88A15' },
+  { background: '#EAF1FB', foreground: '#4B74B8' },
+  { background: '#FDE9ED', foreground: C.red },
+];
+
+function GuardianItem({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: string;
+  label: string;
+  value?: string | number | null;
+  tone: number;
+}) {
+  const colors = guardianTones[tone % guardianTones.length];
+  const displayValue =
+    value === '' || value === undefined || value === null ? '—' : String(value);
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label}: ${displayValue}`}
+      style={studentProfileTopStyles.guardianItem}
+    >
+      <View
+        style={[
+          studentProfileTopStyles.guardianIcon,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <NoorIcon name={icon} size={14} color={colors.foreground} />
+      </View>
+      <Text numberOfLines={1} style={studentProfileTopStyles.guardianLabel}>
+        {label}
+      </Text>
+      <Text
+        selectable
+        numberOfLines={2}
+        style={studentProfileTopStyles.guardianValue}
+      >
+        {displayValue}
+      </Text>
+    </View>
+  );
+}
 
 export function StudentProfileScreen() {
   const { t } = useTranslation();
@@ -131,6 +255,33 @@ export function StudentProfileScreen() {
         (item.audience === 'VEHICLE' && item.targetId === student.vehicleId) ||
         (item.audience === 'ROUTE' && item.targetId === student.routeId),
     ) || [];
+  const shifts = transportShifts(data?.settings);
+  const selectedShift = shifts.find(
+    shift => shift.id === serviceShift(student),
+  );
+  const guardianItems = [
+    { icon: 'user', label: t('Name'), value: student.guardianName },
+    { icon: 'mobile', label: t('Mobile'), value: student.guardianPhone },
+    {
+      icon: 'address',
+      label: t('Address'),
+      value: student.pickupAddress || student.stopName,
+    },
+    { icon: 'routes', label: t('Route'), value: student.routeName },
+    { icon: 'pin', label: t('Start point'), value: student.stopName },
+    { icon: 'vehicles', label: t('Vehicle'), value: student.vehicleName },
+    { icon: 'drivers', label: t('Driver'), value: student.driverName },
+    {
+      icon: 'dropoff',
+      label: t('End point'),
+      value: student.dropoffStopName || student.dropAddress,
+    },
+    {
+      icon: 'emergency',
+      label: t('Emergency contact'),
+      value: student.emergencyContact,
+    },
+  ];
   const archiveStudent = () =>
     Alert.alert(
       t('Archive student'),
@@ -158,41 +309,6 @@ export function StudentProfileScreen() {
   return (
     <AdminPage loading={loading} error={error} refresh={refresh}>
       <Box>
-        <View style={studentProfileTopStyles.transportHeader}>
-          <Text style={s.heading}>{t('Transport services')}</Text>
-          {student.studentId ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('Add service in another shift')}
-              onPress={() => setAddingService(true)}
-              style={s.linkHit}
-            >
-              <Text style={s.link}>{t('Add service in another shift')}</Text>
-            </Pressable>
-          ) : null}
-        </View>
-        <View style={studentProfileTopStyles.servicePanel}>
-          <Choice
-            label={t('Transport service')}
-            value={student.id}
-            onChange={setSelectedServiceId}
-            options={services.map(item => ({
-              value: item.id,
-              label: `${t(
-                transportShifts(data?.settings).find(
-                  shift => shift.id === serviceShift(item),
-                )?.name || serviceShift(item),
-              )} · ${item.routeName} · ${t(item.status)}`,
-            }))}
-          />
-          <View style={studentProfileTopStyles.schedule}>
-            <NoorIcon name="calendar" size={18} color={C.green} />
-            <TransportScheduleSummary
-              service={student}
-              shifts={transportShifts(data?.settings)}
-            />
-          </View>
-        </View>
         <View style={studentProfileTopStyles.profileHeader}>
           <View style={studentProfileTopStyles.profileIdentity}>
             <StudentPhoto student={student} />
@@ -204,16 +320,21 @@ export function StudentProfileScreen() {
                 >
                   {student.studentName}
                 </Text>
-                <Pill value={student.status} />
               </View>
               <Text style={s.body}>{student.studentCode || '—'}</Text>
-              <Text style={s.muted}>
-                {t('Class {{className}} | Roll: {{roll}}', {
-                  className:
-                    student.className.replace(/^\s*class\s+/i, '') || '—',
-                  roll: student.roll || '—',
-                })}
-              </Text>
+              <View style={studentProfileTopStyles.profileMetaLine}>
+                <Text
+                  numberOfLines={1}
+                  style={[s.muted, studentProfileTopStyles.profileMeta]}
+                >
+                  {t('Class {{className}} | Roll: {{roll}}', {
+                    className:
+                      student.className.replace(/^\s*class\s+/i, '') || '—',
+                    roll: student.roll || '—',
+                  })}
+                </Text>
+                <Pill value={student.status} />
+              </View>
             </View>
           </View>
           <View style={studentProfileTopStyles.profileActions}>
@@ -242,42 +363,82 @@ export function StudentProfileScreen() {
             </View>
           </View>
         </View>
-        <View style={s.line} />
-        <Heading title={t('Guardian')} />
-        <Text style={s.body}>{student.guardianName}</Text>
-        <Detail
-          icon="mobile"
-          label={t('Mobile')}
-          value={student.guardianPhone}
-        />
-        <Detail
-          icon="address"
-          label={t('Address')}
-          value={student.pickupAddress || student.stopName}
-        />
-        <Detail icon="routes" label={t('Route')} value={student.routeName} />
-        <Detail
-          icon="pin"
-          label={t('Boarding stop')}
-          value={student.stopName}
-        />
-        <Detail
-          icon="vehicles"
-          label={t('Vehicle')}
-          value={student.vehicleName}
-        />
-        <Detail icon="drivers" label={t('Driver')} value={student.driverName} />
-        <Detail
-          icon="dropoff"
-          label={t('Drop-off stop')}
-          value={student.dropoffStopName || student.dropAddress}
-        />
-        <Detail
-          icon="emergency"
-          label={t('Emergency contact')}
-          value={student.emergencyContact}
-        />
-        <View style={s.line} />
+      </Box>
+      <Box>
+        <View style={studentProfileTopStyles.transportHeader}>
+          <View style={studentProfileTopStyles.sectionTitle}>
+            <View style={studentProfileTopStyles.sectionIcon}>
+              <NoorIcon name="bus" size={18} color={C.green} />
+            </View>
+            <Text style={s.heading}>{t('Transport services')}</Text>
+          </View>
+          {student.studentId ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('Add service in another shift')}
+              onPress={() => setAddingService(true)}
+              style={studentProfileTopStyles.addService}
+            >
+              <NoorIcon name="plus" size={15} color={C.green} />
+              <Text style={studentProfileTopStyles.addServiceText}>
+                {t('Add service in another shift')}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <View style={studentProfileTopStyles.servicePanel}>
+          {services.length > 1 ? (
+            <Choice
+              label={t('Transport service')}
+              value={student.id}
+              onChange={setSelectedServiceId}
+              options={services.map(item => ({
+                value: item.id,
+                label: `${t(
+                  shifts.find(shift => shift.id === serviceShift(item))?.name ||
+                    serviceShift(item),
+                )} · ${item.routeName} · ${t(item.status)}`,
+              }))}
+            />
+          ) : (
+            <View style={studentProfileTopStyles.serviceIdentity}>
+              <View style={studentProfileTopStyles.sectionIcon}>
+                <NoorIcon name="clock" size={17} color={C.green} />
+              </View>
+              <View style={studentProfileTopStyles.serviceIdentityText}>
+                <Text style={studentProfileTopStyles.serviceName}>
+                  {t(selectedShift?.name || serviceShift(student))}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={studentProfileTopStyles.serviceRoute}
+                >
+                  {student.routeName}
+                </Text>
+              </View>
+              <Pill value={student.status} />
+            </View>
+          )}
+          <View style={studentProfileTopStyles.schedule}>
+            <NoorIcon name="calendar" size={18} color={C.green} />
+            <TransportScheduleSummary service={student} shifts={shifts} />
+          </View>
+        </View>
+      </Box>
+      <Box>
+        <View style={studentProfileTopStyles.sectionTitle}>
+          <View style={studentProfileTopStyles.sectionIcon}>
+            <NoorIcon name="shield" size={18} color={C.green} />
+          </View>
+          <Heading title={t('Guardian')} />
+        </View>
+        <View style={studentProfileTopStyles.guardianGrid}>
+          {guardianItems.map((item, index) => (
+            <GuardianItem key={item.label} {...item} tone={index} />
+          ))}
+        </View>
+      </Box>
+      <Box>
         <Detail
           icon="payments"
           label={t('Monthly fee')}

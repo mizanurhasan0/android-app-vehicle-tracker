@@ -58,17 +58,27 @@ export async function api<T>(
           'dropoffStopId',
         ],
       };
+      const messageAliases: Record<string, string> = {
+        'No fare is configured for this boarding and destination pair':
+          'No fare is configured for this start and end point pair.',
+        'Select a destination to use the configured journey fare':
+          'Select an end point with a configured fare.',
+      };
+      const displayMessage =
+        typeof data?.message === 'string'
+          ? messageAliases[data.message] || data.message
+          : undefined;
       if (response.status < 500 && typeof data?.message === 'string') {
         for (const field of knownFields[data.message] || [])
-          fieldErrors[field] = data.message;
+          fieldErrors[field] = displayMessage!;
       }
       throw new ApiError(
         response.status >= 500
           ? 'The server could not complete this request. Please try again shortly.'
           : Array.isArray(data?.message) && Object.keys(fieldErrors).length
           ? 'Please check the highlighted fields.'
-          : typeof data?.message === 'string'
-          ? data.message
+          : displayMessage
+          ? displayMessage
           : 'Something went wrong. Please try again.',
         response.status,
         fieldErrors,

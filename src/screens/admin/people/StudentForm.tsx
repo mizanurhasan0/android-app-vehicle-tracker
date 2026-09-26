@@ -38,6 +38,7 @@ import { StudentPhoto } from './StudentPhoto';
 
 type StudentFormValue = {
   studentId?: string;
+  vehicleId: string;
   shiftId: string;
   operatingDays: number[];
   studentName: string;
@@ -59,6 +60,7 @@ type StudentFormValue = {
 
 const blankStudent = (): StudentFormValue => ({
   studentId: undefined,
+  vehicleId: '',
   shiftId: 'MORNING',
   operatingDays: defaultOperatingDays(),
   studentName: '',
@@ -100,6 +102,7 @@ export function StudentForm({
   );
   const action = useAction();
   const [form, setForm] = useState(blankStudent);
+  const addingService = !!existingStudent && !student;
   useEffect(() => {
     if (visible) {
       action.clearFeedback();
@@ -108,6 +111,7 @@ export function StudentForm({
         source
           ? {
               studentId: source.studentId,
+              vehicleId: source.vehicleId,
               shiftId: student
                 ? serviceShift(source)
                 : shifts.find(
@@ -159,6 +163,19 @@ export function StudentForm({
     { ...form, excludeId: student?.id },
     shifts,
   );
+  const vehicles = Array.from(
+    new Map(
+      [
+        ...transport.vehicles.map(item => [item.id, item.name] as const),
+        ...transport.routes.map(
+          item => [item.vehicleId, item.vehicleName] as const,
+        ),
+      ].filter(([id]) => !!id),
+    ),
+  ).map(([id, name]) => ({ id, name }));
+  const availableRoutes = form.vehicleId
+    ? transport.routes.filter(item => item.vehicleId === form.vehicleId)
+    : [];
   const selectedRoute = transport.routes.find(item => item.id === form.routeId);
   const sameJourney =
     !!student &&
@@ -184,9 +201,11 @@ export function StudentForm({
   }
   const save = () =>
     action.run(async () => {
+      const { amount, dropoffStopId, guardianName, vehicleId, ...rest } = form;
       if (
         !form.studentName.trim() ||
         !form.guardianPhone.trim() ||
+        !vehicleId ||
         !form.routeId ||
         !form.stopId
       )
@@ -197,13 +216,14 @@ export function StudentForm({
           ...(!form.guardianPhone.trim()
             ? { guardianPhone: 'Enter the guardian mobile number.' }
             : {}),
+          ...(!vehicleId ? { vehicleId: 'Select a vehicle.' } : {}),
           ...(!form.routeId ? { routeId: 'Select a route.' } : {}),
-          ...(!form.stopId ? { stopId: 'Select a pickup stop.' } : {}),
+          ...(!form.stopId ? { stopId: 'Select a start point.' } : {}),
         });
       if (form.dropoffStopId && !sameJourney && configuredAmount === undefined)
         throw new ValidationError({
           dropoffStopId:
-            'No fare is configured for this journey. Select another destination.',
+            'No fare is configured for this journey. Select another end point.',
         });
       const scheduleErrors = scheduleValidation(
         form.shiftId,
@@ -213,7 +233,6 @@ export function StudentForm({
       );
       if (Object.keys(scheduleErrors).length)
         throw new ValidationError(scheduleErrors);
-      const { amount, dropoffStopId, guardianName, ...rest } = form;
       const input: StudentInput = {
         ...rest,
         studentName: form.studentName.trim(),
@@ -249,7 +268,13 @@ export function StudentForm({
     });
   return (
     <FormModal
-      title={student ? t('Edit student details') : t('Add a new student')}
+      title={
+        student
+          ? t('Edit student details')
+          : addingService
+          ? t('Add service in another shift')
+          : t('Add a new student')
+      }
       visible={visible}
       onClose={onClose}
       busy={action.busy}
@@ -295,112 +320,116 @@ export function StudentForm({
           }}
         />
       ) : null}
-      <Heading title={t('Student details')} />
-      <Input
-        label={t('Student name *')}
-        value={form.studentName}
-        error={action.fieldErrors.studentName}
-        onChangeText={v => set('studentName', v)}
-        maxLength={100}
-      />
-      <View style={s.row}>
-        <View style={s.flex}>
+      {!addingService ? (
+        <>
+          <Heading title={t('Student details')} />
           <Input
-            label={t('Class')}
-            value={form.className}
-            error={action.fieldErrors.className}
-            onChangeText={v => set('className', v)}
+            label={t('Student name *')}
+            value={form.studentName}
+            error={action.fieldErrors.studentName}
+            onChangeText={v => set('studentName', v)}
+            maxLength={100}
+          />
+          <View style={s.row}>
+            <View style={s.flex}>
+              <Input
+                label={t('Class')}
+                value={form.className}
+                error={action.fieldErrors.className}
+                onChangeText={v => set('className', v)}
+                maxLength={40}
+              />
+            </View>
+            <View style={s.flex}>
+              <Input
+                label={t('Roll number')}
+                value={form.roll}
+                error={action.fieldErrors.roll}
+                onChangeText={v => set('roll', v)}
+                maxLength={20}
+              />
+            </View>
+          </View>
+          <Input
+            label={t('Student ID')}
+            value={form.studentCode}
+            error={action.fieldErrors.studentCode}
+            onChangeText={v => set('studentCode', v)}
             maxLength={40}
           />
-        </View>
-        <View style={s.flex}>
-          <Input
-            label={t('Roll number')}
-            value={form.roll}
-            error={action.fieldErrors.roll}
-            onChangeText={v => set('roll', v)}
-            maxLength={20}
-          />
-        </View>
-      </View>
-      <Input
-        label={t('Student ID')}
-        value={form.studentCode}
-        error={action.fieldErrors.studentCode}
-        onChangeText={v => set('studentCode', v)}
-        maxLength={40}
-      />
-      <View style={s.row}>
-        <StudentPhoto student={form} />
-        <SmallButton
-          title={t('Add photo')}
-          icon="plus"
-          secondary
-          busy={action.busy}
-          onPress={() =>
-            action.run(async () => {
-              const photo = await pickStudentPhoto();
-              if (photo) set('photoUrl', photo);
-            })
-          }
-        />
-        {form.photoUrl ? (
-          <SmallButton
-            title={t('Remove')}
-            secondary
-            onPress={() => set('photoUrl', '')}
-          />
-        ) : null}
-      </View>
-      <Heading title={t('Guardian details')} />
-      {!student && (
-        <Input
-          label={t('Guardian name (optional)')}
-          value={form.guardianName}
-          error={action.fieldErrors.guardianName}
-          onChangeText={v => set('guardianName', v)}
-          maxLength={80}
-        />
-      )}
-      <Input
-        label={t('Guardian mobile number *')}
-        editable={!student}
-        value={form.guardianPhone}
-        error={action.fieldErrors.guardianPhone}
-        onChangeText={v => set('guardianPhone', v)}
-        keyboardType="phone-pad"
-        maxLength={16}
-      />
-      {!student && (
-        <Text style={s.muted}>
-          {t(
-            'An existing guardian account will be linked using this number. Otherwise, a new account will be created with the default password "password".',
+          <View style={s.row}>
+            <StudentPhoto student={form} />
+            <SmallButton
+              title={t('Add photo')}
+              icon="plus"
+              secondary
+              busy={action.busy}
+              onPress={() =>
+                action.run(async () => {
+                  const photo = await pickStudentPhoto();
+                  if (photo) set('photoUrl', photo);
+                })
+              }
+            />
+            {form.photoUrl ? (
+              <SmallButton
+                title={t('Remove')}
+                secondary
+                onPress={() => set('photoUrl', '')}
+              />
+            ) : null}
+          </View>
+          <Heading title={t('Guardian details')} />
+          {!student && (
+            <Input
+              label={t('Guardian name (optional)')}
+              value={form.guardianName}
+              error={action.fieldErrors.guardianName}
+              onChangeText={v => set('guardianName', v)}
+              maxLength={80}
+            />
           )}
-        </Text>
-      )}
-      <Input
-        label={t('Emergency contact')}
-        value={form.emergencyContact}
-        error={action.fieldErrors.emergencyContact}
-        onChangeText={v => set('emergencyContact', v)}
-        keyboardType="phone-pad"
-        maxLength={16}
-      />
-      <Input
-        label={t('Pickup address')}
-        value={form.pickupAddress}
-        error={action.fieldErrors.pickupAddress}
-        onChangeText={v => set('pickupAddress', v)}
-        multiline
-        maxLength={400}
-      />
-      <Input
-        label={t('Drop-off address')}
-        value={form.dropAddress}
-        error={action.fieldErrors.dropAddress}
-        onChangeText={v => set('dropAddress', v)}
-        maxLength={400}
-      />
+          <Input
+            label={t('Guardian mobile number *')}
+            editable={!student}
+            value={form.guardianPhone}
+            error={action.fieldErrors.guardianPhone}
+            onChangeText={v => set('guardianPhone', v)}
+            keyboardType="phone-pad"
+            maxLength={16}
+          />
+          {!student && (
+            <Text style={s.muted}>
+              {t(
+                'An existing guardian account will be linked using this number. Otherwise, a new account will be created with the default password "password".',
+              )}
+            </Text>
+          )}
+          <Input
+            label={t('Emergency contact')}
+            value={form.emergencyContact}
+            error={action.fieldErrors.emergencyContact}
+            onChangeText={v => set('emergencyContact', v)}
+            keyboardType="phone-pad"
+            maxLength={16}
+          />
+          <Input
+            label={t('Pickup address')}
+            value={form.pickupAddress}
+            error={action.fieldErrors.pickupAddress}
+            onChangeText={v => set('pickupAddress', v)}
+            multiline
+            maxLength={400}
+          />
+          <Input
+            label={t('Drop-off address')}
+            value={form.dropAddress}
+            error={action.fieldErrors.dropAddress}
+            onChangeText={v => set('dropAddress', v)}
+            maxLength={400}
+          />
+        </>
+      ) : null}
       <TransportSchedule
         shiftId={form.shiftId}
         operatingDays={form.operatingDays}
@@ -412,10 +441,33 @@ export function StudentForm({
       />
       <Heading title={t('Route and fare')} />
       <Choice
+        label={t('Vehicle *')}
+        value={form.vehicleId}
+        error={action.fieldErrors.vehicleId}
+        options={vehicles.map(item => ({ value: item.id, label: item.name }))}
+        onChange={vehicleId => {
+          [
+            'routeId',
+            'stopId',
+            'dropoffStopId',
+            'amount',
+            'monthlyAmount',
+          ].forEach(action.clearFieldError);
+          setForm(current => ({
+            ...current,
+            vehicleId,
+            routeId: '',
+            stopId: '',
+            dropoffStopId: '',
+            amount: '',
+          }));
+        }}
+      />
+      <Choice
         label={t('Route *')}
         value={form.routeId}
         error={action.fieldErrors.routeId}
-        options={transport.routes.map(item => ({
+        options={availableRoutes.map(item => ({
           value: item.id,
           label: `${item.name} · ${item.vehicleName}`,
         }))}
@@ -430,6 +482,7 @@ export function StudentForm({
           const chosen = transport.routes.find(item => item.id === v);
           setForm(current => ({
             ...current,
+            vehicleId: chosen?.vehicleId || current.vehicleId,
             routeId: v,
             stopId: '',
             dropoffStopId: '',
@@ -438,7 +491,7 @@ export function StudentForm({
         }}
       />
       <Choice
-        label={t('Pickup stop *')}
+        label={t('Start point *')}
         value={form.stopId}
         error={action.fieldErrors.stopId}
         options={(selectedRoute?.stops || []).map(item => ({
@@ -460,7 +513,7 @@ export function StudentForm({
         }}
       />
       <Choice
-        label={t('Destination stop')}
+        label={t('End point')}
         value={form.dropoffStopId}
         error={action.fieldErrors.dropoffStopId}
         optional={false}
@@ -489,9 +542,7 @@ export function StudentForm({
             value={assignedAmount === undefined ? '—' : money(assignedAmount)}
           />
           <Text style={s.muted}>
-            {t(
-              'The monthly fee is set by the selected boarding and destination stops.',
-            )}
+            {t('The monthly fee is set by the selected start and end points.')}
           </Text>
           {sameJourney ? (
             <Text style={s.muted}>

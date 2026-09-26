@@ -31,5 +31,5 @@
   "Select at least one travel day.": "যাতায়াতের অন্তত একটি দিন নির্বাচন করুন।",
   "This student already has a pending request or active service in this shift.": "এই শিফটে শিক্ষার্থীর একটি অপেক্ষমাণ আবেদন বা চালু সেবা রয়েছে।",
   "Travel times overlap with another shift for this student. Please review the schedule.": "এই শিক্ষার্থীর অন্য শিফটের সঙ্গে সময় মিলে যাচ্ছে। সময়সূচি যাচাই করুন।",
-  "Destination": "গন্তব্য"
+  "End point": "শেষ স্থান"
 }

@@ -233,19 +233,19 @@ it('validates and submits the reviewed admission fields, using the authenticated
   await act(async () =>
     screen.root
       .findAllByType(Select)
-      .find(item => item.props.label === i18n.t('Pickup stop *'))!
+      .find(item => item.props.label === i18n.t('Start point *'))!
       .props.onChange('stop-1'),
   );
   await language('bn');
   expect(
     screen.root
       .findAllByType(Select)
-      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props.value,
+      .find(item => item.props.label === i18n.t('Start point *'))!.props.value,
   ).toBe('stop-1');
   expect(
     screen.root
       .findAllByType(Select)
-      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props
+      .find(item => item.props.label === i18n.t('Start point *'))!.props
       .options,
   ).toEqual([{ value: 'stop-1', label: 'Main gate' }]);
   await button('Next');
@@ -274,7 +274,7 @@ it('validates and submits the reviewed admission fields, using the authenticated
   });
 });
 
-it('clears the old pickup stop when changing route and preserves earlier student fields', async () => {
+it('clears the old start point when changing route and preserves earlier student fields', async () => {
   await act(async () => {
     screen = TestRenderer.create(
       <View>
@@ -292,19 +292,19 @@ it('clears the old pickup stop when changing route and preserves earlier student
   await act(async () =>
     screen.root
       .findAllByType(Select)
-      .find(item => item.props.label === i18n.t('Pickup stop *'))!
+      .find(item => item.props.label === i18n.t('Start point *'))!
       .props.onChange('stop-1'),
   );
   await selectRoute(1);
   expect(
     screen.root
       .findAllByType(Select)
-      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props.value,
+      .find(item => item.props.label === i18n.t('Start point *'))!.props.value,
   ).toBe('');
   expect(
     screen.root
       .findAllByType(Select)
-      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props
+      .find(item => item.props.label === i18n.t('Start point *'))!.props
       .options,
   ).toEqual([{ value: 'stop-2', label: 'North gate' }]);
   await button('Next');
@@ -312,8 +312,8 @@ it('clears the old pickup stop when changing route and preserves earlier student
   expect(
     screen.root
       .findAllByType(Select)
-      .find(item => item.props.label === i18n.t('Pickup stop *'))!.props.label,
-  ).toBe('Pickup stop *');
+      .find(item => item.props.label === i18n.t('Start point *'))!.props.label,
+  ).toBe('Start point *');
   await button('Previous step');
   await button('Previous step');
   expect(
@@ -739,22 +739,22 @@ it('requires a configured destination and previews its own fare before submittin
         .props.onChange(value),
     );
   };
-  await choose('Pickup stop *', 'stop-1');
+  await choose('Start point *', 'stop-1');
   await button('Next');
-  expect(text()).toContain('Select a destination with a configured fare.');
-  await choose('Destination stop *', 'khilkhet');
+  expect(text()).toContain('Select an end point with a configured fare.');
+  await choose('End point *', 'khilkhet');
   expect(text()).toContain('1,000');
-  await choose('Destination stop *', 'mirpur');
+  await choose('End point *', 'mirpur');
   expect(text()).toContain('1,500');
-  await choose('Pickup stop *', 'khilkhet');
+  await choose('Start point *', 'khilkhet');
   const destinationSelect = () =>
     screen.root
       .findAllByType(Select)
-      .find(node => node.props.label === 'Destination stop *')!;
+      .find(node => node.props.label === 'End point *')!;
   expect(destinationSelect().props.value).toBe('');
   expect(destinationSelect().props.options).toEqual([]);
-  await choose('Pickup stop *', 'stop-1');
-  await choose('Destination stop *', 'mirpur');
+  await choose('Start point *', 'stop-1');
+  await choose('End point *', 'mirpur');
   await button('Next');
   expect(text()).toContain('Mirpur');
   expect(text()).toContain('1,500');
@@ -834,7 +834,7 @@ it('reuses a pending student profile in another shift with independently selecte
   await act(async () =>
     screen.root
       .findAllByType(Select)
-      .find(item => item.props.label === 'Pickup stop *')!
+      .find(item => item.props.label === 'Start point *')!
       .props.onChange('stop-1'),
   );
   await button('Next');

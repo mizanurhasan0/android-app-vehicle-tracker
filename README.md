@@ -47,7 +47,7 @@ numbers are included.
 
 1. Bootstrap an admin in the API using `ADMIN_PHONE` / `ADMIN_PASSWORD`.
 2. Sign in as admin. Open **Payment accounts** to add any payment method: name, receiving account number, optional QR image and instructions. Use **Create vehicle**, then **Routes** to
-   add a route with pickup stops.
+   add a route with start points.
 3. A guardian creates an account with their phone and password, then submits a
    student name, route and stop from **Requested → Request forms**.
 4. Admin reviews the route/vehicle and approves. The assigned vehicle becomes
@@ -79,18 +79,18 @@ API validation errors are mapped to field keys by the API client. Use
 
 ### Monthly fares by journey
 
-In admin **Routes**, create a route with the boarding and destination stops in
+In admin **Routes**, create a route with the start and end points in
 travel order, then open **Manage route fares** on that route. Save a monthly fee for each
-boarding/destination pair. For example, Uttara → Khilkhet can cost ৳1,000 while
+start/end point pair. For example, Uttara → Khilkhet can cost ৳1,000 while
 Uttara → Mirpur costs ৳1,500 on the same vehicle. Enter taka in the app; the API
 stores integer poisha. Reverse journeys need their own fare entry.
 
 When admitting a student or editing their transport assignment, select the route,
-boarding stop and destination. The configured fee is shown before saving and is
+start and end points. The configured fee is shown before saving and is
 verified by the API. Guardian applications carry the chosen stops; approval
-uses the fare configured at that time. Routes with configured fares require a
-destination for new guardian applications. Admins can retain a flat fee by leaving
-the destination empty. Routes without fare entries retain their default monthly fee.
+uses the fare configured at that time. Routes with configured fares require an
+end point for new guardian applications. Admins can retain a flat fee by leaving
+the end point empty. Routes without fare entries retain their default monthly fee.
 
 Changing the route's fare table does not automatically change existing students'
 agreed fees. A changed student journey uses its configured fare for bills generated
@@ -209,7 +209,6 @@ APK. The next native build regenerates them and takes longer.
 
 See [verification notes and emulator screenshots](docs/qa/verification.md) for
 checks performed and the Android activity-restoration issue fixed during QA.
-
 
 ## Admin travel history
 

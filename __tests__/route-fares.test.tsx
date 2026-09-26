@@ -89,13 +89,13 @@ async function save() {
 
 it('saves different monthly amounts for two destinations on the same route in poisha', async () => {
   await open();
-  await choose('Boarding stop', 'uttara');
+  await choose('Start point', 'uttara');
   expect(
     screen.root
       .findAllByType(Select)
-      .find(node => node.props.label === 'Destination stop')!.props.options,
+      .find(node => node.props.label === 'End point')!.props.options,
   ).not.toContainEqual({ value: 'uttara', label: 'Uttara' });
-  await choose('Destination stop', 'mirpur');
+  await choose('End point', 'mirpur');
   await field('Journey monthly fee (৳)', '1500.50');
   await press('Add fare');
   expect(mockMutate).not.toHaveBeenCalled();
@@ -123,8 +123,8 @@ it('saves different monthly amounts for two destinations on the same route in po
 
 it('prevents duplicate pairs and keeps an unsaved new fare from being silently discarded', async () => {
   await open();
-  await choose('Boarding stop', 'uttara');
-  await choose('Destination stop', 'khilkhet');
+  await choose('Start point', 'uttara');
+  await choose('End point', 'khilkhet');
   await field('Journey monthly fee (৳)', '1200');
   await press('Add fare');
   expect(screen.root.findByType(FormModal).props.error).toContain(

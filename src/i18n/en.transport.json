@@ -31,5 +31,5 @@
   "Select at least one travel day.": "Select at least one travel day.",
   "This student already has a pending request or active service in this shift.": "This student already has a pending request or active service in this shift.",
   "Travel times overlap with another shift for this student. Please review the schedule.": "Travel times overlap with another shift for this student. Please review the schedule.",
-  "Destination": "Destination"
+  "End point": "End point"
 }

@@ -1,6 +1,6 @@
 # Student transport shifts and weekly travel days
 
-A student has one shared identity and can hold separate transport services in different shifts. Each service has its own route, boarding/destination stops, vehicle assignment, monthly fare and selected travel days. The vehicle's assigned driver continues to supply the driver for that service.
+A student has one shared identity and can hold separate transport services in different shifts. Each service has its own route, start/end points, vehicle assignment, monthly fare and selected travel days. The vehicle's assigned driver continues to supply the driver for that service.
 
 ## Using the app
 

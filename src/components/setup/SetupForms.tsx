@@ -286,7 +286,7 @@ export function RouteForm({ onAddVehicle }: { onAddVehicle: () => void }) {
       <FormHeading
         title={t('Create a route')}
         detail={t(
-          'Choose a vehicle and list boarding and destination stops in order. After creating the route, use Manage route fares to set each journey fee.',
+          'Choose a vehicle and list start and end points in order. After creating the route, use Manage route fares to set each journey fee.',
         )}
       />
       <View style={form.group}>
@@ -330,7 +330,7 @@ export function RouteForm({ onAddVehicle }: { onAddVehicle: () => void }) {
       </View>
       <View style={form.dividedGroup}>
         <Field
-          label={t('Pickup stops — one per line')}
+          label={t('Start points — one per line')}
           value={stops}
           error={action.fieldErrors.stops}
           onChangeText={value => {

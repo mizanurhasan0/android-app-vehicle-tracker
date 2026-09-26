@@ -190,7 +190,7 @@ export function ReportsScreen() {
       ];
     else if (selected === 'ROUTES')
       body = [
-        [t('Route'), t('Vehicle'), t('Monthly fee (৳)'), t('Pickup stops')],
+        [t('Route'), t('Vehicle'), t('Monthly fee (৳)'), t('Start points')],
         ...transport.routes.map(item => [
           item.name,
           item.vehicleName,

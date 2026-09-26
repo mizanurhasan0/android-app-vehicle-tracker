@@ -254,7 +254,7 @@ it.each([
   'marks invalid %s pickers red and clears the accessible error after selection',
   async (_name, Control, danger) => {
     const common = {
-      label: 'Destination',
+      label: 'End point',
       value: '',
       options: [{ value: 'mirpur', label: 'Mirpur' }],
       onChange: jest.fn(),
@@ -262,13 +262,13 @@ it.each([
     await render(
       <Control
         {...common}
-        error="Select a destination with a configured fare."
+        error="Select an end point with a configured fare."
       />,
     );
     const picker = () => screen.root.findByType(Picker);
     expect(picker().props['aria-invalid']).toBe(true);
     expect(picker().props.accessibilityHint).toBe(
-      'Select a destination with a configured fare.',
+      'Select an end point with a configured fare.',
     );
     expect(
       screen.root
@@ -314,7 +314,7 @@ it.each([
       action.run(async () => {
         throw new ValidationError({
           studentName: 'Please enter your name.',
-          dropoffStopId: 'Select a destination with a configured fare.',
+          dropoffStopId: 'Select an end point with a configured fare.',
         });
       }),
     );
@@ -322,12 +322,12 @@ it.each([
     expect(action.busy).toBe(false);
     expect(action.fieldErrors).toEqual({
       studentName: 'Please enter your name.',
-      dropoffStopId: 'Select a destination with a configured fare.',
+      dropoffStopId: 'Select an end point with a configured fare.',
     });
     expect(toasts()).toHaveLength(1);
     await act(async () => action.clearFieldError('studentName'));
     expect(action.fieldErrors).toEqual({
-      dropoffStopId: 'Select a destination with a configured fare.',
+      dropoffStopId: 'Select an end point with a configured fare.',
     });
     await act(async () => action.run(save));
     expect(save).toHaveBeenCalledTimes(1);

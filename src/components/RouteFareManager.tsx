@@ -68,7 +68,7 @@ export function RouteFareManager({
       {!route.fares?.length ? (
         <Text style={styles.muted}>
           {t(
-            'No stop-to-stop fares yet. The default fee applies without a destination.',
+            'No stop-to-stop fares yet. The default fee applies without an end point.',
           )}
         </Text>
       ) : null}
@@ -125,7 +125,7 @@ export function RouteFareManager({
             <Text style={styles.heading}>{route.name}</Text>
             <Text style={styles.muted}>
               {t(
-                'Set a monthly fee for each boarding and destination pair. The reverse journey needs its own fare.',
+                'Set a monthly fee for each start and end point pair. The reverse journey needs its own fare.',
               )}
             </Text>
             <Text style={styles.muted}>
@@ -169,12 +169,12 @@ export function RouteFareManager({
             {route.stops.length < 2 ? (
               <Text style={styles.muted}>
                 {t(
-                  'This route needs at least two stops. Create a route with boarding and destination stops first.',
+                  'This route needs at least two stops. Create a route with start and end points first.',
                 )}
               </Text>
             ) : null}
             <Select
-              label={t('Boarding stop')}
+              label={t('Start point')}
               value={boardingStopId}
               error={action.fieldErrors.boardingStopId}
               disabled={action.busy}
@@ -190,7 +190,7 @@ export function RouteFareManager({
               }))}
             />
             <Select
-              label={t('Destination stop')}
+              label={t('End point')}
               value={dropoffStopId}
               error={action.fieldErrors.dropoffStopId}
               disabled={action.busy}
@@ -225,12 +225,11 @@ export function RouteFareManager({
                   )
                     throw new ValidationError({
                       ...(!boardingStopId
-                        ? { boardingStopId: 'Select a boarding stop.' }
+                        ? { boardingStopId: 'Select a start point.' }
                         : {}),
                       ...(!dropoffStopId || boardingStopId === dropoffStopId
                         ? {
-                            dropoffStopId:
-                              'Select a different destination stop.',
+                            dropoffStopId: 'Select a different end point.',
                           }
                         : {}),
                     });
