@@ -30,6 +30,7 @@ export function AdminBillTable({
       {bills.map(bill => (
         <View key={bill.id} style={desk.tableItem}>
           {(() => {
+            const settled = ['PAID', 'WAIVED'].includes(bill.status);
             const pendingSubmissionId =
               bill.pendingSubmissionId ||
               pending.find(payment => payment.billId === bill.id)?.id;
@@ -55,16 +56,9 @@ export function AdminBillTable({
                     accessibilityLabel={readable(
                       pendingSubmissionId ? 'PENDING' : bill.status,
                     )}
-                    style={[
-                      desk.billStatus,
-                      bill.status !== 'PAID' && desk.billStatusDue,
-                    ]}
+                    style={[desk.billStatus, !settled && desk.billStatusDue]}
                   >
-                    {bill.status === 'PAID'
-                      ? '✓'
-                      : pendingSubmissionId
-                      ? '◷'
-                      : '!'}
+                    {settled ? '✓' : pendingSubmissionId ? '◷' : '!'}
                   </Text>
                 </View>
               </View>

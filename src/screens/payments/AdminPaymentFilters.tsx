@@ -97,6 +97,7 @@ export function AdminPaymentFilters({
                         { value: 'UNPAID', label: t('Due') },
                         { value: 'PENDING', label: t('Pending') },
                         { value: 'PAID', label: t('Paid') },
+                        { value: 'WAIVED', label: t('Waived') },
                       ]
                     : [
                         { value: 'APPROVED', label: t('Approved') },

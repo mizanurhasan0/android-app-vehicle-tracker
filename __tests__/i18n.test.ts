@@ -11,6 +11,7 @@ import {
   readable,
   toPoisha,
 } from '../src/utils/format';
+import { labelStatus } from '../src/screens/admin/ui/formatting';
 
 const placeholders = (text: string) =>
   (text.match(/{{\s*\w+\s*}}/g) || []).sort();
@@ -112,6 +113,8 @@ it('localizes money, dates and statuses while preserving exact payment amounts',
   expect(money(150029)).toBe('৳১,৫০০.২৯');
   expect(dateLabel('2026-09-08T12:00:00Z')).not.toBe(englishDate);
   expect(readable('APPROVED')).toBe('অনুমোদিত');
+  expect(readable('WAIVED')).toBe('মওকুফ');
+  expect(labelStatus('WAIVED')).toBe('মওকুফ');
   expect(readable('lastKnown')).toBe('সর্বশেষ তথ্য');
   expect(normalizeDigits('০১৭১২৩৪৫৬৭৮')).toBe('01712345678');
   expect(toPoisha('১৫০০.২৯')).toBe(150029);
@@ -122,6 +125,19 @@ it('translates known errors and notifications without translating entered names 
   await i18n.changeLanguage('bn');
   expect(translateMessage('Phone number or password is incorrect')).toBe(
     'ফোন নম্বর বা পাসওয়ার্ড সঠিক নয়',
+  );
+  expect(
+    translateMessage('Stop date must be in the current billing month'),
+  ).toBe('বন্ধের তারিখ চলতি বিলিং মাসের মধ্যে হতে হবে');
+  expect(
+    translateMessage('Review the pending payment before stopping this service'),
+  ).toBe('সেবা বন্ধের আগে অপেক্ষমাণ পেমেন্টটি পর্যালোচনা করুন');
+  expect(
+    translateMessage(
+      'A paid bill cannot be changed; use its paid amount as the final monthly fee',
+    ),
+  ).toBe(
+    'পরিশোধিত বিল পরিবর্তন করা যাবে না; শেষ মাসের চূড়ান্ত ভাড়া হিসেবে পরিশোধিত পরিমাণ দিন',
   );
   expect(translateMessage('A custom note from school')).toBe(
     'A custom note from school',

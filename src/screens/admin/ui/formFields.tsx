@@ -87,6 +87,7 @@ export function Input({
 
 export function Choice({
   label,
+  labelAction,
   value,
   options,
   onChange,
@@ -94,6 +95,7 @@ export function Choice({
   error,
 }: {
   label: string;
+  labelAction?: React.ReactNode;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
@@ -103,7 +105,10 @@ export function Choice({
   const { t } = useTranslation();
   return (
     <View style={s.field}>
-      <Text style={s.label}>{t(label)}</Text>
+      <View style={s.fieldLabelRow}>
+        <Text style={s.label}>{t(label)}</Text>
+        {labelAction}
+      </View>
       <View style={[s.select, !!error && s.invalid]}>
         <Picker
           accessibilityHint={error ? translateMessage(error) : undefined}

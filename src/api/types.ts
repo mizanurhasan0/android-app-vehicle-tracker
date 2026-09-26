@@ -4,6 +4,7 @@ export type Status =
   | 'REJECTED'
   | 'UNPAID'
   | 'PAID'
+  | 'WAIVED'
   | 'ACTIVE'
   | 'STOPPED'
   | 'OPEN'
@@ -161,6 +162,8 @@ export interface StopRequest {
   reason: string;
   status: Status;
   note: string;
+  monthlyAmount?: number;
+  startedAt?: string;
 }
 export interface Notification {
   id: string;

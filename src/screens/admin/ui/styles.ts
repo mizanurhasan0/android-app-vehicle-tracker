@@ -166,6 +166,13 @@ export const s = StyleSheet.create({
     textAlign: 'center',
   },
   field: { gap: 5 },
+  fieldLabelRow: {
+    minHeight: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   label: { fontSize: 12, color: C.text, fontWeight: '600' },
   input: {
     backgroundColor: C.white,

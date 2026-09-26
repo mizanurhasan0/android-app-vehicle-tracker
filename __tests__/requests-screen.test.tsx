@@ -4,6 +4,7 @@ import { Alert, StyleSheet } from 'react-native';
 import { DashboardData, User } from '../src/api/types';
 import { Button, Field, Select } from '../src/components/ui';
 import { RequestsScreen } from '../src/screens/RequestsScreen';
+import { dhakaDate } from '../src/utils/dates';
 
 const mockMutate = jest.fn();
 let mockRole: User['role'] = 'ADMIN';
@@ -253,6 +254,102 @@ it('keeps approval confirmation and submits the selected request after expansion
     },
     'PATCH',
   );
+});
+
+it('approves a stop request with an explicit current-month settlement', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  mockData.stops[0].monthlyAmount = 150000;
+  await renderScreen();
+  await selectTab('Stop requests');
+  await act(async () => disclosures()[2].props.onPress());
+  const panel = actionPanels()[2];
+  const field = (label: string) =>
+    panel.findAllByType(Field).find(item => item.props.label === label)!;
+  expect(field('Stop date (YYYY-MM-DD) *').props.value).toBe(dhakaDate());
+  expect(field('Final monthly fee (৳) *').props.value).toBe('1500');
+  await act(async () => {
+    field('Final monthly fee (৳) *').props.onChangeText('425.50');
+    field('Admin note / rejection reason').props.onChangeText(
+      'Guardian confirmed',
+    );
+  });
+  await act(async () => {
+    panel
+      .findAllByType(Button)
+      .find(button => button.props.title === 'Approve and stop service')!
+      .props.onPress();
+  });
+  expect(mockMutate).not.toHaveBeenCalled();
+  const confirm = alert.mock.calls[0][2]!.find(
+    button => button.text === 'Confirm',
+  )!;
+  await act(async () => confirm.onPress!());
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/stop-requests/stop-1/decision',
+    {
+      decision: 'APPROVED',
+      stopDate: dhakaDate(),
+      finalMonthlyFee: 42550,
+      note: 'Guardian confirmed',
+    },
+    'PATCH',
+  );
+});
+
+it('requires a reason before rejecting a stop request', async () => {
+  await renderScreen();
+  await selectTab('Stop requests');
+  await act(async () => disclosures()[2].props.onPress());
+  const panel = actionPanels()[2];
+  const reject = () =>
+    panel
+      .findAllByType(Button)
+      .find(button => button.props.title === 'Reject with reason')!
+      .props.onPress();
+  await act(async () => reject());
+  expect(mockMutate).not.toHaveBeenCalled();
+  const note = panel
+    .findAllByType(Field)
+    .find(item => item.props.label === 'Admin note / rejection reason')!;
+  expect(note.props.error).toBe('Add a rejection reason first.');
+  await act(async () =>
+    note.props.onChangeText('Request could not be verified'),
+  );
+  await act(async () => reject());
+  expect(mockMutate).toHaveBeenCalledWith(
+    '/admin/stop-requests/stop-1/decision',
+    { decision: 'REJECTED', note: 'Request could not be verified' },
+    'PATCH',
+  );
+});
+
+it('rejects a stop date before the requested service started', async () => {
+  mockData.stops[0] = {
+    ...mockData.stops[0],
+    monthlyAmount: 150000,
+    startedAt: `${dhakaDate().slice(0, 7)}-20`,
+  };
+  await renderScreen();
+  await selectTab('Stop requests');
+  await act(async () => disclosures()[2].props.onPress());
+  const panel = actionPanels()[2];
+  const field = (label: string) =>
+    panel.findAllByType(Field).find(item => item.props.label === label)!;
+  await act(async () =>
+    field('Stop date (YYYY-MM-DD) *').props.onChangeText(
+      `${dhakaDate().slice(0, 7)}-01`,
+    ),
+  );
+  await act(async () => {
+    panel
+      .findAllByType(Button)
+      .find(button => button.props.title === 'Approve and stop service')!
+      .props.onPress();
+  });
+  expect(field('Stop date (YYYY-MM-DD) *').props.error).toBe(
+    'Stop date cannot be before the service start date.',
+  );
+  expect(mockMutate).not.toHaveBeenCalled();
 });
 
 it('does not expose admin actions in the guardian view', async () => {

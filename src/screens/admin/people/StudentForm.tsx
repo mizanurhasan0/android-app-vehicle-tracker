@@ -247,6 +247,8 @@ export function StudentForm({
       };
       if (student) {
         delete input.studentId;
+        // Service state changes require the dedicated settlement flow.
+        delete input.status;
         await mutate<Student>(`/admin/students/${student.id}`, input, 'PATCH');
       } else {
         const result = await mutate<StudentCreateResult>(
@@ -562,20 +564,9 @@ export function StudentForm({
         />
       )}
       {student ? (
-        <Choice
+        <Detail
           label={t('Status')}
-          value={form.status}
-          error={action.fieldErrors.status}
-          optional={false}
-          options={
-            student.status === 'STOPPED'
-              ? [{ value: 'STOPPED', label: t('Inactive') }]
-              : [
-                  { value: 'ACTIVE', label: t('Active') },
-                  { value: 'STOPPED', label: t('Inactive') },
-                ]
-          }
-          onChange={v => set('status', v as Student['status'])}
+          value={t(student.status === 'STOPPED' ? 'Inactive' : 'Active')}
         />
       ) : null}
       {student?.status === 'STOPPED' ? (
@@ -584,10 +575,10 @@ export function StudentForm({
             'Add a new admission to restart service while preserving previous billing history.',
           )}
         </Text>
-      ) : form.status === 'STOPPED' ? (
+      ) : student ? (
         <Text style={s.note}>
           {t(
-            "Saving will stop this student's transport service and vehicle tracking. Previous billing history will remain.",
+            'Use Stop service from the profile to close this shift and settle its final monthly fee.',
           )}
         </Text>
       ) : null}

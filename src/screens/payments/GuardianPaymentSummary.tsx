@@ -51,7 +51,7 @@ export function GuardianPaymentSummary({
         <View style={local.summaryStatus}>
           <Badge
             status={
-              monthBills.every(bill => bill.status === 'PAID')
+              monthBills.every(bill => ['PAID', 'WAIVED'].includes(bill.status))
                 ? 'PAID'
                 : 'UNPAID'
             }

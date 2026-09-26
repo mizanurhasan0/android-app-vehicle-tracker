@@ -71,6 +71,34 @@ beforeEach(() => {
   };
 });
 afterEach(() => jest.restoreAllMocks());
+it('shows a waived bill as settled and never offers another payment', async () => {
+  mockData.bills[0] = {
+    ...mockData.bills[0],
+    amount: 0,
+    status: 'WAIVED',
+  };
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    screen = TestRenderer.create(<PaymentsScreen />);
+  });
+  const text = screen.root
+    .findAllByType(Text)
+    .flatMap(node => node.props.children)
+    .join(' ');
+  expect(text).toContain('Waived');
+  expect(
+    screen.root
+      .findAllByType(Button)
+      .some(button => button.props.title === 'I’ve paid · submit details'),
+  ).toBe(false);
+  expect(
+    screen.root
+      .findAllByType(Button)
+      .find(button => button.props.title === 'Pay now')!.props.disabled,
+  ).toBe(true);
+  expect(mockMutate).not.toHaveBeenCalled();
+  await act(async () => screen.unmount());
+});
 it('submits the selected bill amount and transaction details without marking it paid locally', async () => {
   let screen!: TestRenderer.ReactTestRenderer;
   await act(async () => {

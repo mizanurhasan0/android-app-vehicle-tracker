@@ -15,6 +15,7 @@ const statusLabels: Record<string, string> = {
   REJECTED: 'Rejected',
   UNPAID: 'Unpaid',
   PAID: 'Paid',
+  WAIVED: 'Waived',
   ACTIVE: 'Active',
   STOPPED: 'Stopped',
   OPEN: 'Open',

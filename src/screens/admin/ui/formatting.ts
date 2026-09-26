@@ -20,6 +20,7 @@ const adminStatusLabels: Record<string, string> = {
   INACTIVE: 'Inactive',
   STOPPED: 'Inactive',
   UNPAID: 'Due',
+  WAIVED: 'Waived',
   PRESENT: 'Present',
   ABSENT: 'Absent',
   LEAVE: 'Leave',

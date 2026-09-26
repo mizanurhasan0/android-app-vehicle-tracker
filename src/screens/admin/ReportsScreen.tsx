@@ -205,7 +205,7 @@ export function ReportsScreen() {
           .filter(
             item =>
               item.month === report.month &&
-              (selected !== 'DUE' || item.status !== 'PAID'),
+              (selected !== 'DUE' || item.status === 'UNPAID'),
           )
           .map(item => [
             item.studentName,

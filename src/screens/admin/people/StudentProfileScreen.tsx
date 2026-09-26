@@ -35,6 +35,7 @@ import {
 import { useAction } from '../ui/useAction';
 import { StudentPhoto } from './StudentPhoto';
 import { StudentForm } from './StudentForm';
+import { StopServiceForm } from './StopServiceForm';
 
 const studentProfileTopStyles = StyleSheet.create({
   transportHeader: {
@@ -86,6 +87,30 @@ const studentProfileTopStyles = StyleSheet.create({
   serviceIdentityText: { flex: 1, minWidth: 0 },
   serviceName: { fontSize: 13, color: C.text, fontWeight: '700' },
   serviceRoute: { fontSize: 11, lineHeight: 17, color: C.muted },
+  serviceIdentityActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  stopServiceAction: {
+    minHeight: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F7C8D0',
+    backgroundColor: '#FFF0F2',
+    paddingHorizontal: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  stopServiceActionText: {
+    color: C.red,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+  },
+  stopServiceActionPressed: { opacity: 0.55 },
   schedule: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -148,6 +173,28 @@ const studentProfileTopStyles = StyleSheet.create({
     color: C.text,
   },
 });
+
+function StopServiceAction({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('Stop this service')}
+      accessibilityHint={t('Review the final fee before stopping this service')}
+      hitSlop={8}
+      onPress={onPress}
+      style={({ pressed }) => [
+        studentProfileTopStyles.stopServiceAction,
+        pressed && studentProfileTopStyles.stopServiceActionPressed,
+      ]}
+    >
+      <NoorIcon name="minus" size={14} color={C.red} />
+      <Text style={studentProfileTopStyles.stopServiceActionText}>
+        {t('Stop this service')}
+      </Text>
+    </Pressable>
+  );
+}
 
 const guardianTones = [
   { background: '#E7F7EE', foreground: C.green },
@@ -212,6 +259,7 @@ export function StudentProfileScreen() {
   const { data: transport } = useCoreData();
   const [edit, setEdit] = useState(false);
   const [addingService, setAddingService] = useState(false);
+  const [stoppingService, setStoppingService] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string>();
   const [tab, setTab] = useState('PAYMENTS');
   const callAction = useAction();
@@ -241,7 +289,7 @@ export function StudentProfileScreen() {
     .filter(item => item.status === 'PAID')
     .reduce((sum, item) => sum + item.amount, 0);
   const due = bills
-    .filter(item => item.status !== 'PAID')
+    .filter(item => item.status === 'UNPAID')
     .reduce((sum, item) => sum + item.amount, 0);
   const attendance =
     data?.attendance
@@ -390,6 +438,11 @@ export function StudentProfileScreen() {
           {services.length > 1 ? (
             <Choice
               label={t('Transport service')}
+              labelAction={
+                student.status === 'ACTIVE' ? (
+                  <StopServiceAction onPress={() => setStoppingService(true)} />
+                ) : undefined
+              }
               value={student.id}
               onChange={setSelectedServiceId}
               options={services.map(item => ({
@@ -416,13 +469,42 @@ export function StudentProfileScreen() {
                   {student.routeName}
                 </Text>
               </View>
-              <Pill value={student.status} />
+              <View style={studentProfileTopStyles.serviceIdentityActions}>
+                <Pill value={student.status} />
+                {student.status === 'ACTIVE' ? (
+                  <StopServiceAction onPress={() => setStoppingService(true)} />
+                ) : null}
+              </View>
             </View>
           )}
           <View style={studentProfileTopStyles.schedule}>
             <NoorIcon name="calendar" size={18} color={C.green} />
             <TransportScheduleSummary service={student} shifts={shifts} />
           </View>
+          {student.status === 'STOPPED' && student.stoppedOn ? (
+            <>
+              <Detail
+                icon="calendar"
+                label={t('Stopped on')}
+                value={niceDate(student.stoppedOn)}
+              />
+              {student.finalMonthlyFee !== null &&
+              student.finalMonthlyFee !== undefined ? (
+                <Detail
+                  icon="payments"
+                  label={t('Final monthly fee')}
+                  value={money(student.finalMonthlyFee)}
+                />
+              ) : null}
+              {student.stopReason ? (
+                <Detail
+                  icon="info"
+                  label={t('Stop reason')}
+                  value={student.stopReason}
+                />
+              ) : null}
+            </>
+          ) : null}
         </View>
       </Box>
       <Box>
@@ -513,6 +595,11 @@ export function StudentProfileScreen() {
         visible={addingService}
         existingStudent={student}
         onClose={() => setAddingService(false)}
+      />
+      <StopServiceForm
+        visible={stoppingService}
+        student={student}
+        onClose={() => setStoppingService(false)}
       />
       <StudentForm
         visible={edit}

@@ -6,9 +6,14 @@ import { useTranslation } from '../../i18n';
 
 export function Badge({ status }: { status: string }) {
   const { t } = useTranslation();
-  const positive = ['PAID', 'APPROVED', 'ACTIVE', 'RESOLVED', 'live'].includes(
-    status,
-  );
+  const positive = [
+    'PAID',
+    'WAIVED',
+    'APPROVED',
+    'ACTIVE',
+    'RESOLVED',
+    'live',
+  ].includes(status);
   const negative = ['REJECTED', 'STOPPED', 'offline'].includes(status);
   return (
     <View

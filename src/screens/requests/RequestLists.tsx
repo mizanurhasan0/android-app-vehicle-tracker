@@ -11,6 +11,7 @@ import { styles } from '../../theme';
 import { RequestCard, RequestSection, RequestTab } from './RequestLayout';
 import { CallGuardian, RequestActions } from './RequestReview';
 import { local } from './styles';
+import { StopRequestReviewActions } from './StopRequestReviewActions';
 
 export function RequestLists({
   data,
@@ -163,11 +164,10 @@ export function RequestLists({
                   initiallyExpanded={stop.id === targetId}
                   label={`${t('Stop requests')} · ${stop.studentName}`}
                 >
-                  <ReviewActions
-                    path={`/admin/stop-requests/${stop.id}/decision`}
-                    confirmation={t(
-                      'Stop this service now? Tracking access will end, and existing bills will remain in payment history.',
-                    )}
+                  <StopRequestReviewActions
+                    requestId={stop.id}
+                    monthlyAmount={stop.monthlyAmount}
+                    startedAt={stop.startedAt}
                   />
                 </RequestActions>
               ) : null}

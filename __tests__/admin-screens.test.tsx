@@ -1149,3 +1149,76 @@ it('starts an active new service when reusing a stopped student profile', async 
     'POST',
   );
 });
+
+it('stops only the selected transport service after reviewing its settlement', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  try {
+    mockManagement.students[0].studentId = 'canonical-child';
+    mockParams = { id: mockManagement.students[0].id };
+    await render(StudentProfileScreen);
+    await pressAccessible('button', 'Stop this service');
+
+    const modal = screen.root
+      .findAllByType(FormModal)
+      .find(item => item.props.visible)!;
+    expect(modal.props.title).toBe('Stop transport service');
+    await setInput('Stop date (YYYY-MM-DD) *', today());
+    await setInput('Final monthly fee (৳) *', '375.50');
+    await setInput('Reason (optional)', 'Moved near school');
+    await save();
+
+    expect(alert).toHaveBeenCalledWith(
+      'Confirm stop service',
+      expect.stringContaining('৳375.50'),
+      expect.any(Array),
+    );
+    const actions = alert.mock.calls[0][2] as {
+      text: string;
+      onPress?: () => Promise<void>;
+    }[];
+    await act(async () =>
+      actions.find(item => item.text === 'Stop service')!.onPress!(),
+    );
+    expect(mockMutate).toHaveBeenCalledWith(
+      '/admin/students/student-1/stop',
+      {
+        stopDate: today(),
+        finalMonthlyFee: 37550,
+        reason: 'Moved near school',
+      },
+      'PATCH',
+    );
+  } finally {
+    alert.mockRestore();
+  }
+});
+
+it('keeps stopped service state read-only while allowing a new shift service', async () => {
+  mockManagement.students[0] = {
+    ...mockManagement.students[0],
+    studentId: 'canonical-child',
+    status: 'STOPPED',
+    stoppedOn: '2026-09-10',
+    finalMonthlyFee: 40000,
+    stopReason: 'No longer needed',
+  };
+  mockParams = { id: mockManagement.students[0].id };
+  await render(StudentProfileScreen);
+
+  expect(
+    screen.root.findAll(
+      node =>
+        node.props.accessibilityRole === 'button' &&
+        node.props.accessibilityLabel === 'Stop this service',
+      { deep: false },
+    ),
+  ).toHaveLength(0);
+  expect(textContent()).toContain('Final monthly fee');
+  await pressButton('Edit');
+  expect(
+    screen.root
+      .findAllByType(Choice)
+      .some(item => item.props.label === 'Status'),
+  ).toBe(false);
+  expect(textContent()).toContain('Add a new admission to restart service');
+});

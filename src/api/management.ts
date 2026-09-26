@@ -35,6 +35,11 @@ export interface Student {
   monthlyAmount: number;
   status: 'ACTIVE' | 'STOPPED';
   startedAt: string;
+  /** Settlement details present after this individual transport service stops. */
+  stoppedAt?: string | null;
+  stoppedOn?: string | null;
+  stopReason?: string | null;
+  finalMonthlyFee?: number | null;
   /** Present only for a soft-archived canonical student profile. */
   archivedAt?: string | null;
   archivedBy?: string | null;
