@@ -4,6 +4,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -12,12 +13,12 @@ import { useCoreData, useDataActions } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useManagement } from '../../context/ManagementContext';
 import { NoorIcon, NoorCard } from '../../components/Noor';
-import { Button, Field, Empty } from '../../components/ui';
+import { Button, Empty } from '../../components/ui';
 import { VirtualizedPage } from '../../components/VirtualizedPage';
 import { Route } from '../../api/types';
 import { RouteForm } from '../../components/setup/SetupForms';
 import { money, numberLabel } from '../../utils/format';
-import { colors, styles } from '../../theme';
+import { colors } from '../../theme';
 import { useTranslation } from '../../i18n';
 import { f } from './styles';
 
@@ -115,8 +116,20 @@ export function NoorRoutesScreen({
       renderItem={renderRoute}
       header={
         <>
-          <View style={f.toolbar}>
-            <Text style={styles.heading}>{t('Routes')}</Text>
+          <View style={f.searchToolbar}>
+            <View style={f.searchBox}>
+              <NoorIcon name="search" size={18} color={colors.muted} />
+              <TextInput
+                accessibilityLabel={t('Search routes')}
+                value={query}
+                onChangeText={setQuery}
+                placeholder={t('Route name')}
+                placeholderTextColor={colors.muted}
+                autoCorrect={false}
+                returnKeyType="search"
+                style={f.searchInput}
+              />
+            </View>
             {session?.user.role === 'ADMIN' ? (
               <Button
                 title={adding ? t('Close') : t('+ Add')}
@@ -124,12 +137,6 @@ export function NoorRoutesScreen({
               />
             ) : null}
           </View>
-          <Field
-            label={t('Search routes')}
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('Route name')}
-          />
           {adding ? (
             <RouteForm
               onAddVehicle={() => navigation.navigate('CreateVehicle')}
