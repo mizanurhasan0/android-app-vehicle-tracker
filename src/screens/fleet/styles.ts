@@ -33,6 +33,14 @@ export const f = StyleSheet.create({
     color: colors.ink,
     fontSize: 14,
   },
+  closeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.danger,
+  },
   mapButton: {
     width: 42,
     height: 42,

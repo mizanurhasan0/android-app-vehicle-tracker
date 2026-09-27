@@ -130,10 +130,22 @@ export function NoorRoutesScreen({
                 style={f.searchInput}
               />
             </View>
-            {session?.user.role === 'ADMIN' ? (
+            {session?.user.role === 'ADMIN' && adding ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('Close')}
+                onPress={() => setAdding(false)}
+                style={({ pressed }) => [
+                  f.closeButton,
+                  pressed && f.pressed,
+                ]}
+              >
+                <NoorIcon name="close" size={21} color="#FFFFFF" />
+              </Pressable>
+            ) : session?.user.role === 'ADMIN' ? (
               <Button
-                title={adding ? t('Close') : t('+ Add')}
-                onPress={() => setAdding(!adding)}
+                title={t('+ Add')}
+                onPress={() => setAdding(true)}
               />
             ) : null}
           </View>
