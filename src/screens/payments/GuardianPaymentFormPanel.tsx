@@ -12,6 +12,7 @@ import { PaymentPanel } from './PaymentPanel';
 export function GuardianPaymentFormPanel({
   active,
   hasAccounts,
+  creditBalance,
   payableBills,
   selected,
   shifts,
@@ -21,6 +22,7 @@ export function GuardianPaymentFormPanel({
 }: {
   active: boolean;
   hasAccounts: boolean;
+  creditBalance: number;
   payableBills: Bill[];
   selected?: Bill;
   shifts: TransportShift[];
@@ -31,11 +33,16 @@ export function GuardianPaymentFormPanel({
   const { t } = useTranslation();
   // Keep the selected form's draft and submission lock across tab changes.
   // PaymentPanel conditionally mounts its native children.
-  if (hasAccounts && payableBills.length && selected) {
+  if (
+    payableBills.length &&
+    selected &&
+    (hasAccounts || creditBalance >= selected.amount)
+  ) {
     return (
       <PaymentForm
         key={selected.id}
         bill={selected}
+        creditBalance={creditBalance}
         shifts={shifts}
         active={active}
         onBusyChange={onBusyChange}
@@ -45,7 +52,8 @@ export function GuardianPaymentFormPanel({
   }
   return (
     <PaymentPanel label="Payment form" active={active}>
-      {!hasAccounts ? (
+      {!hasAccounts &&
+      !payableBills.some(bill => creditBalance >= bill.amount) ? (
         <Empty
           title={t('Payment numbers are not set yet')}
           detail={t(
@@ -61,18 +69,20 @@ export function GuardianPaymentFormPanel({
         />
       ) : (
         <>
-          <PaymentInstructions />
+          {hasAccounts ? <PaymentInstructions /> : null}
           <Card>
             <Select
               label={t('Select a bill')}
               value=""
               onChange={value => onSelect(value || null)}
-              options={payableBills.map(bill => ({
-                value: bill.id,
-                label: `${bill.studentName}${
-                  bill.shiftId ? ` · ${paymentShiftLabel(bill, shifts)}` : ''
-                } · ${bill.month} · ${money(bill.amount)}`,
-              }))}
+              options={payableBills
+                .filter(bill => hasAccounts || creditBalance >= bill.amount)
+                .map(bill => ({
+                  value: bill.id,
+                  label: `${bill.studentName}${
+                    bill.shiftId ? ` · ${paymentShiftLabel(bill, shifts)}` : ''
+                  } · ${bill.month} · ${money(bill.amount)}`,
+                }))}
             />
           </Card>
         </>

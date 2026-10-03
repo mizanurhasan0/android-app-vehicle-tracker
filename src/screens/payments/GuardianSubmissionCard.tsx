@@ -33,6 +33,20 @@ export function GuardianSubmissionCard({
         {payment.methodName || readable(payment.method)} ·{' '}
         {payment.transactionId}
       </Text>
+      {payment.creditApplied ? (
+        <Text style={styles.body}>
+          {t('Advance applied')}: {money(payment.creditApplied)}
+        </Text>
+      ) : null}
+      {payment.billAmount &&
+      payment.amount + (payment.creditApplied || 0) > payment.billAmount ? (
+        <Text style={styles.body}>
+          {t('Added to advance balance')}:{' '}
+          {money(
+            payment.amount + (payment.creditApplied || 0) - payment.billAmount,
+          )}
+        </Text>
+      ) : null}
       <Text selectable style={styles.muted}>
         {t('From {{sender}}\nTo {{recipient}}', {
           sender: payment.senderNumber,

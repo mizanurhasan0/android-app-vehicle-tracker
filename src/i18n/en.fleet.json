@@ -178,5 +178,19 @@
   "Exit radius must be greater than enter radius.": "Exit radius must be greater than enter radius.",
   "Expenses": "Expenses",
   "Show all on map": "Show all on map",
-  "Vehicle details": "Vehicle details"
+  "Vehicle details": "Vehicle details",
+  "Route & Schedule": "Route & Schedule",
+  "Manage your transport route and schedule": "Manage your transport route and schedule",
+  "Monthly transport fees": "Monthly transport fees",
+  "Manage monthly fees": "Manage monthly fees",
+  "View monthly fees": "View monthly fees",
+  "Fee depends on destination": "Fee depends on destination",
+  "Not set": "Not set",
+  "more": "more",
+  "Set pickup alerts and distances": "Set pickup alerts and distances",
+  "Change locations": "Change locations",
+  "Set or update pickup points": "Set or update pickup points",
+  "Pickup locations along this route": "Pickup locations along this route",
+  "Vehicle schedule": "Vehicle schedule",
+  "monthly fee": "monthly fee"
 }

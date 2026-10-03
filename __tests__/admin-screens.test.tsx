@@ -557,6 +557,9 @@ it('shows exactly three profile tabs and saves birth date and blood group', asyn
   expect(textContent()).toContain(niceDate('2015-01-12'));
   await pressAccessible('tab', 'Payment');
   expect(textContent()).toContain('Payment history');
+  expect(textContent()).toContain('Month');
+  expect(textContent()).toContain('Amount');
+  expect(textContent()).toContain('Status');
   expect(textContent()).toContain('September 2026');
   expect(textContent()).not.toContain('Payments keep education moving forward.');
   await pressAccessible('tab', 'Transport');

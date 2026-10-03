@@ -26,6 +26,7 @@ export async function loadDashboard(
     stops,
     notifications,
     telegram,
+    credit,
   ] = await Promise.all([
     get<{ vehicles: Vehicle[] }>('/vehicles'),
     get<{ devices: Location[] }>('/locations'),
@@ -46,6 +47,13 @@ export async function loadDashboard(
           throw error;
         })
       : Promise.resolve(undefined),
+    options.includeTelegram
+      ? get<NonNullable<DashboardData['credit']>>('/payments/credit').catch(error => {
+          if (error instanceof ApiError && [404, 405].includes(error.status))
+            return undefined;
+          throw error;
+        })
+      : Promise.resolve(undefined),
   ]);
   return {
     vehicles: vehicles.vehicles,
@@ -60,6 +68,7 @@ export async function loadDashboard(
     stops,
     notifications,
     ...(telegram ? { telegram } : {}),
+    ...(credit ? { credit } : {}),
   };
 }
 

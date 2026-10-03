@@ -42,7 +42,7 @@ export function GuardianBillCard({
       ) : null}
       {bill.status === 'UNPAID' && !bill.pendingSubmissionId ? (
         <Button
-          title={t('I’ve paid · submit details')}
+          title={t('Pay bill')}
           disabled={!canSubmit}
           onPress={onPay}
         />

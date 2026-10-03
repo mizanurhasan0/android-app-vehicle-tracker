@@ -89,7 +89,7 @@ it('shows a waived bill as settled and never offers another payment', async () =
   expect(
     screen.root
       .findAllByType(Button)
-      .some(button => button.props.title === 'I’ve paid · submit details'),
+      .some(button => button.props.title === 'Pay bill'),
   ).toBe(false);
   expect(
     screen.root
@@ -107,7 +107,7 @@ it('submits the selected bill amount and transaction details without marking it 
   await act(async () => {
     screen.root
       .findAllByType(Button)
-      .find(button => button.props.title === 'I’ve paid · submit details')!
+      .find(button => button.props.title === 'Pay bill')!
       .props.onPress();
   });
   await act(async () => {
@@ -145,6 +145,59 @@ it('submits the selected bill amount and transaction details without marking it 
   expect(mockData.bills[0].status).toBe('UNPAID');
   await act(async () => screen.unmount());
 });
+it('applies available advance and records the actual transfer amount', async () => {
+  mockData.credit = { balance: 50000, entries: [] };
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => { screen = TestRenderer.create(<PaymentsScreen />); });
+  await act(async () => {
+    screen.root.findAllByType(Button).find(button => button.props.title === 'Pay bill')!
+      .props.onPress();
+  });
+  const amountField = screen.root.findAllByType(Field)
+    .find(field => field.props.label === 'Amount sent (৳)')!;
+  expect(amountField.props.value).toBe('1000.00');
+  await act(async () => {
+    screen.root.findAllByType(Select)
+      .find(select => select.props.label === 'Payment method')!
+      .props.onChange('BKASH');
+    amountField.props.onChangeText('1500.00');
+    screen.root.findAllByType(Field)
+      .find(field => field.props.label === 'Number you sent money from')!
+      .props.onChangeText('01700000002');
+    screen.root.findAllByType(Field)
+      .find(field => field.props.label === 'Transaction ID')!
+      .props.onChangeText('ADVANCE123');
+  });
+  await act(async () => {
+    screen.root.findAllByType(Button)
+      .find(button => button.props.title === 'Submit for verification')!
+      .props.onPress();
+  });
+  expect(mockMutate).toHaveBeenCalledWith('/payments/submissions', expect.objectContaining({
+    billId: 'bill-1', amount: 150000, creditApplied: 50000,
+  }));
+  await act(async () => screen.unmount());
+});
+
+it('pays fully from advance without an external transfer', async () => {
+  mockData.credit = { balance: 150000, entries: [] };
+  mockData.accounts = [];
+  let screen!: TestRenderer.ReactTestRenderer;
+  await act(async () => { screen = TestRenderer.create(<PaymentsScreen />); });
+  await act(async () => {
+    screen.root.findAllByType(Button).find(button => button.props.title === 'Pay bill')!
+      .props.onPress();
+  });
+  expect(screen.root.findAllByType(Button)
+    .some(button => button.props.title === 'Submit for verification')).toBe(false);
+  await act(async () => {
+    screen.root.findAllByType(Button)
+      .find(button => button.props.title === 'Pay with advance balance')!
+      .props.onPress();
+  });
+  expect(mockMutate).toHaveBeenCalledWith('/payments/bills/bill-1/pay-with-credit', {});
+  await act(async () => screen.unmount());
+});
 it('prevents switching bills while a submission is still in progress', async () => {
   mockData.bills.push({ ...mockData.bills[0], id: 'bill-2', month: '2026-10' });
   let finish!: () => void;
@@ -161,7 +214,7 @@ it('prevents switching bills while a submission is still in progress', async () 
   await act(async () => {
     screen.root
       .findAllByType(Button)
-      .find(button => button.props.title === 'I’ve paid · submit details')!
+      .find(button => button.props.title === 'Pay bill')!
       .props.onPress();
   });
   await act(async () => {
@@ -188,7 +241,7 @@ it('prevents switching bills while a submission is still in progress', async () 
   const billButtons = () =>
     screen.root
       .findAllByType(Button)
-      .filter(button => button.props.title === 'I’ve paid · submit details');
+      .filter(button => button.props.title === 'Pay bill');
   expect(billButtons()).toHaveLength(2);
   expect(billButtons().every(button => button.props.disabled)).toBe(true);
   await act(async () => finish());
@@ -206,7 +259,7 @@ it('hides submission for a bill already awaiting review', async () => {
   expect(
     screen.root
       .findAllByType(Button)
-      .some(button => button.props.title === 'I’ve paid · submit details'),
+      .some(button => button.props.title === 'Pay bill'),
   ).toBe(false);
   await act(async () => screen.unmount());
 });
@@ -336,7 +389,7 @@ it('shows one guardian tab at a time and preserves payment drafts and history fi
   await act(async () => {
     panel('Your bills')
       .findAllByType(Button)
-      .find(button => button.props.title === 'I’ve paid · submit details')!
+      .find(button => button.props.title === 'Pay bill')!
       .props.onPress();
   });
   expectActive('Payment form');
@@ -430,7 +483,7 @@ it('removes a stale form when the selected bill begins awaiting review', async (
   await act(async () => {
     screen.root
       .findAllByType(Button)
-      .find(button => button.props.title === 'I’ve paid · submit details')!
+      .find(button => button.props.title === 'Pay bill')!
       .props.onPress();
   });
   await act(async () => {
@@ -864,7 +917,7 @@ it('highlights invalid payment fields, clears each corrected field, and submits 
   };
   const field = (label: string) =>
     screen.root.findAllByType(Field).find(node => node.props.label === label)!;
-  await press('I’ve paid · submit details');
+  await press('Pay bill');
   expect(
     screen.root
       .findAllByType(Button)
@@ -1079,7 +1132,7 @@ it('shows a custom QR account and submits image evidence without a transaction I
   await act(async () =>
     screen.root
       .findAllByType(Button)
-      .find(item => item.props.title === 'I’ve paid · submit details')!
+      .find(item => item.props.title === 'Pay bill')!
       .props.onPress(),
   );
   const method = screen.root

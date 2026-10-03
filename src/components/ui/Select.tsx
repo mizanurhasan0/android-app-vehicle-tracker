@@ -22,6 +22,7 @@ export function Select({
   disabled = false,
   error,
   compact = false,
+  hideLabel = false,
 }: {
   label: string;
   value: string;
@@ -30,6 +31,7 @@ export function Select({
   disabled?: boolean;
   error?: string;
   compact?: boolean;
+  hideLabel?: boolean;
 }) {
   const { t } = useTranslation();
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -39,7 +41,9 @@ export function Select({
       t('Select an option');
     return (
       <View style={[ui.field, ui.compactField]}>
-        <Text style={[ui.fieldLabel, ui.compactFieldLabel]}>{label}</Text>
+        {!hideLabel ? (
+          <Text style={[ui.fieldLabel, ui.compactFieldLabel]}>{label}</Text>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={label}

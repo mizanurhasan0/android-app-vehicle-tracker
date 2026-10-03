@@ -43,14 +43,14 @@ function paidDate(timestamp: string | null) {
     : i18n.t('Date not recorded');
 }
 
-/** A submission supplements the paid bill only when the approved amount matches. */
+/** An approved submission can include advance credit and an overpayment. */
 export function approvedReceiptPayment(bill: Bill, payments: Payment[]) {
   if (bill.status !== 'PAID') return undefined;
   return payments.find(
     payment =>
       payment.billId === bill.id &&
       payment.status === 'APPROVED' &&
-      payment.amount === bill.amount,
+      payment.amount + (payment.creditApplied || 0) >= bill.amount,
   );
 }
 
@@ -88,6 +88,9 @@ export function receiptDocument(
       month: oneLine(billingMonthLabel(bill.month)),
     }),
     t('Amount paid: {{amount}}', { amount: money(bill.amount) }),
+    ...(bill.creditApplied
+      ? [`${t('Advance applied')}: ${money(bill.creditApplied)}`]
+      : []),
     t('Paid on: {{date}}', { date: paidDate(bill.paidAt) }),
     ...(approved
       ? [
@@ -95,13 +98,19 @@ export function receiptDocument(
           t('Method: {{method}}', {
             method: oneLine(approved.methodName || readable(approved.method)),
           }),
-          t('Transaction ID: {{id}}', { id: oneLine(approved.transactionId) }),
-          t('Sender number: {{number}}', {
-            number: oneLine(approved.senderNumber),
-          }),
-          t('Recipient number: {{number}}', {
-            number: oneLine(approved.recipientNumber),
-          }),
+          ...(approved.amount > 0 ? [
+            `${t('Amount sent (৳)')}: ${money(approved.amount)}`,
+            t('Transaction ID: {{id}}', { id: oneLine(approved.transactionId) }),
+            t('Sender number: {{number}}', {
+              number: oneLine(approved.senderNumber),
+            }),
+            t('Recipient number: {{number}}', {
+              number: oneLine(approved.recipientNumber),
+            }),
+          ] : []),
+          ...(approved.amount + (approved.creditApplied || 0) > bill.amount
+            ? [`${t('Added to advance balance')}: ${money(approved.amount + (approved.creditApplied || 0) - bill.amount)}`]
+            : []),
         ]
       : []),
     '',

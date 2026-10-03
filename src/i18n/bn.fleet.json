@@ -178,5 +178,19 @@
   "Exit radius must be greater than enter radius.": "বের হওয়ার ব্যাসার্ধ প্রবেশ ব্যাসার্ধের চেয়ে বেশি হতে হবে।",
   "Expenses": "খরচ",
   "Show all on map": "ম্যাপে সব দেখুন",
-  "Vehicle details": "গাড়ির বিস্তারিত"
+  "Vehicle details": "গাড়ির বিস্তারিত",
+  "Route & Schedule": "রুট ও সময়সূচি",
+  "Manage your transport route and schedule": "আপনার পরিবহন রুট ও সময়সূচি পরিচালনা করুন",
+  "Monthly transport fees": "মাসিক পরিবহন ভাড়া",
+  "Manage monthly fees": "মাসিক ভাড়া পরিচালনা করুন",
+  "View monthly fees": "মাসিক ভাড়া দেখুন",
+  "Fee depends on destination": "গন্তব্য অনুযায়ী ভাড়া নির্ধারিত হয়",
+  "Not set": "সেট করা নেই",
+  "more": "আরও",
+  "Set pickup alerts and distances": "পিকআপ অ্যালার্ট ও দূরত্ব সেট করুন",
+  "Change locations": "লোকেশন পরিবর্তন করুন",
+  "Set or update pickup points": "পিকআপ পয়েন্ট সেট বা পরিবর্তন করুন",
+  "Pickup locations along this route": "এই রুটের পিকআপ লোকেশনগুলো",
+  "Vehicle schedule": "গাড়ির সময়সূচি",
+  "monthly fee": "মাসিক ভাড়া"
 }

@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { Text, View } from 'react-native';
 import { useTranslation } from '../../i18n';
 import { TransportShift } from '../../api/management';
-import { Button, Empty, Page, Select } from '../../components/ui';
+import { Button, Card, Empty, Page, Select } from '../../components/ui';
+import { styles } from '../../theme';
+import { dateLabel, money } from '../../utils/format';
 import { useCoreData } from '../../context/DataContext';
 import { GuardianBillCard } from './GuardianBillCard';
 import { GuardianSubmissionCard } from './GuardianSubmissionCard';
@@ -71,9 +74,22 @@ export function GuardianPaymentsScreen({
       ) : null}
       <GuardianPaymentSummary
         bills={data.bills}
-        canPay={!!payableBills.length && !!data.accounts.length && !submitting}
+        creditBalance={data.credit?.balance ?? 0}
+        canPay={
+          payableBills.some(
+            bill =>
+              !!data.accounts.length ||
+              (data.credit?.balance ?? 0) >= bill.amount,
+          ) && !submitting
+        }
         onPay={() => {
-          setSelectedBill(payableBills[0]?.id || null);
+          setSelectedBill(
+            payableBills.find(
+              bill =>
+                !!data.accounts.length ||
+                (data.credit?.balance ?? 0) >= bill.amount,
+            )?.id || null,
+          );
           setTab('Payment form');
         }}
       />
@@ -94,7 +110,11 @@ export function GuardianPaymentsScreen({
               key={bill.id}
               bill={bill}
               shifts={shifts}
-              canSubmit={!!data.accounts.length && !submitting}
+              canSubmit={
+                (!!data.accounts.length ||
+                  (data.credit?.balance ?? 0) >= bill.amount) &&
+                !submitting
+              }
               onPay={() => {
                 setSelectedBill(bill.id);
                 setTab('Payment form');
@@ -104,6 +124,30 @@ export function GuardianPaymentsScreen({
         )}
       </PaymentPanel>
       <PaymentPanel label="Payment history" active={tab === 'Payment history'}>
+        {data.credit?.entries.length ? (
+          <Card>
+            <Text style={styles.heading}>{t('Advance activity')}</Text>
+            {data.credit.entries.map(entry => (
+              <View key={entry.id} style={styles.section}>
+                <Text style={styles.body}>
+                  {entry.kind === 'OVERPAYMENT'
+                    ? t('Extra payment credited')
+                    : entry.kind === 'RETURNED'
+                    ? t('Returned after rejection')
+                    : entry.kind === 'CREDIT_PAYMENT'
+                    ? t('Bill paid from advance')
+                    : t('Reserved for pending payment')}
+                  {' · '}
+                  {money(Math.abs(entry.amount))}
+                </Text>
+                <Text style={styles.muted}>
+                  {entry.studentName} · {entry.month} ·{' '}
+                  {dateLabel(entry.createdAt)}
+                </Text>
+              </View>
+            ))}
+          </Card>
+        ) : null}
         <Select
           label={t('Filter submissions')}
           value={filter}
@@ -141,6 +185,7 @@ export function GuardianPaymentsScreen({
       <GuardianPaymentFormPanel
         active={tab === 'Payment form'}
         hasAccounts={!!data.accounts.length}
+        creditBalance={data.credit?.balance ?? 0}
         payableBills={payableBills}
         selected={selected}
         shifts={shifts}

@@ -125,15 +125,17 @@ export function RouteAlertSettings({
   stops,
   value,
   onChange,
+  initiallyOpen = false,
 }: {
   stops: RouteStop[];
   value: AlertRadiusSettings;
   onChange: (value: AlertRadiusSettings) => void;
+  initiallyOpen?: boolean;
 }) {
   const { t } = useTranslation();
   const { mutate } = useManagement();
   const action = useAction();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const configuredStops = stops.filter(stop => stop.pickupPoint);
   const set = (key: keyof AlertRadiusSettings, next: string) => {
     action.clearFieldError(key);

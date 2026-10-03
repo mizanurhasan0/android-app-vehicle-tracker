@@ -8,10 +8,12 @@ import { money } from '../../utils/format';
 
 export function GuardianPaymentSummary({
   bills,
+  creditBalance,
   canPay,
   onPay,
 }: {
   bills: Bill[];
+  creditBalance: number;
   canPay: boolean;
   onPay: () => void;
 }) {
@@ -47,6 +49,11 @@ export function GuardianPaymentSummary({
           </Text>
         </View>
       </View>
+      {creditBalance > 0 ? (
+        <Text style={styles.body}>
+          {t('Available advance balance')}: {money(creditBalance)}
+        </Text>
+      ) : null}
       {monthBills.length > 0 ? (
         <View style={local.summaryStatus}>
           <Badge

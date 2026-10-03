@@ -55,6 +55,23 @@ export function SubmissionCard({
           value={payment.methodName || readable(payment.method)}
         />
         <Detail label={t('Transaction ID')} value={payment.transactionId} />
+        {payment.creditApplied ? (
+          <Detail
+            label={t('Advance applied')}
+            value={money(payment.creditApplied)}
+          />
+        ) : null}
+        {payment.billAmount &&
+        payment.amount + (payment.creditApplied || 0) > payment.billAmount ? (
+          <Detail
+            label={t('Added to advance balance')}
+            value={money(
+              payment.amount +
+                (payment.creditApplied || 0) -
+                payment.billAmount,
+            )}
+          />
+        ) : null}
       </View>
       <Text style={styles.muted}>
         {t('Submitted on')} {dateLabel(payment.createdAt)}

@@ -267,6 +267,34 @@ it('rejects unpaid document creation and excludes mismatched or unapproved payme
   expect(document).not.toContain('Invalid Date');
 });
 
+it('shows the external transfer and advance adjustment without treating credit as new cash', () => {
+  const withCredit = { ...paidBill, creditApplied: 100000 };
+  const partialTransfer = { ...approvedPayment, amount: 150000, creditApplied: 100000 };
+  expect(approvedReceiptPayment(withCredit, [partialTransfer])).toEqual(partialTransfer);
+  const adjusted = receiptDocument(withCredit, partialTransfer, business);
+  expect(adjusted).toContain('Advance applied: ৳1,000');
+  expect(adjusted).toContain('Amount sent (৳): ৳1,500');
+
+  const fromCredit = {
+    ...approvedPayment,
+    amount: 0,
+    creditApplied: paidBill.amount,
+    method: 'CREDIT',
+    methodName: 'Advance balance',
+    transactionId: '',
+  };
+  const creditReceipt = receiptDocument(
+    { ...paidBill, creditApplied: paidBill.amount }, fromCredit, business,
+  );
+  expect(creditReceipt).toContain('Advance applied: ৳2,500');
+  expect(creditReceipt).not.toContain('Transaction ID:');
+
+  const overpaid = receiptDocument(
+    paidBill, { ...approvedPayment, amount: 350000 }, business,
+  );
+  expect(overpaid).toContain('Added to advance balance: ৳1,000');
+});
+
 it('switches mounted receipt labels, dates and exports while preserving the selected bill and payment data', async () => {
   const original = JSON.stringify(mockData);
   await render();

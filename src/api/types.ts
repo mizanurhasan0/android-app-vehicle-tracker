@@ -89,6 +89,7 @@ export interface Bill {
   guardianName: string;
   month: string;
   amount: number;
+  creditApplied?: number;
   status: Status;
   pendingSubmissionId: string | null;
   paidAt: string | null;
@@ -105,6 +106,7 @@ export interface Payment {
   shiftId?: string;
   id: string;
   billId: string;
+  billAmount?: number;
   guardianName: string;
   guardianPhone: string;
   studentName: string;
@@ -113,6 +115,7 @@ export interface Payment {
   senderNumber: string;
   recipientNumber: string;
   amount: number;
+  creditApplied?: number;
   transactionId: string;
   methodName?: string;
   evidenceImageUrl?: string;
@@ -238,6 +241,19 @@ export interface DashboardData {
   bills: Bill[];
   accounts: PaymentAccount[];
   payments: Payment[];
+  credit?: {
+    balance: number;
+    entries: {
+      id: string;
+      billId: string;
+      submissionId: string;
+      kind: 'RESERVED' | 'RETURNED' | 'OVERPAYMENT' | 'CREDIT_PAYMENT';
+      amount: number;
+      createdAt: string;
+      month: string;
+      studentName: string;
+    }[];
+  };
   requests: ServiceRequest[];
   complaints: Complaint[];
   stops: StopRequest[];

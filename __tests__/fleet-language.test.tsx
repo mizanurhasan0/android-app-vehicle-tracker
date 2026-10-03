@@ -289,7 +289,7 @@ it('retains the selected route period and edits, retranslates validation, and sa
   expect(select('Transport shift').props.value).toBe('MORNING');
   await press('Return schedule', 'tab');
   expect(textValues()).toContain('14:30');
-  await submit('Edit schedule');
+  await press('Edit schedule');
   await act(async () => {
     field('Stop 1').props.onChangeText('School gate ০১');
     screen.root
@@ -351,10 +351,8 @@ it('keeps an overlong schedule stop name on-device and does not submit it', asyn
   await render(
     <RouteDetailsScreen navigation={navigation} route={routeRoute} />,
   );
-  await submit('Edit schedule');
-  await act(async () =>
-    field('Stop 1').props.onChangeText('a'.repeat(101)),
-  );
+  await press('Edit schedule');
+  await act(async () => field('Stop 1').props.onChangeText('a'.repeat(101)));
   await submit('Save schedule');
   expect(textValues()).toContain('Stop names can be at most 100 characters.');
   expect(mockManagementMutate).not.toHaveBeenCalled();
@@ -364,9 +362,10 @@ it('saves pickup coordinates and geofence radii for an admin route stop', async 
   await render(
     <RouteDetailsScreen navigation={navigation} route={routeRoute} />,
   );
+  await press('Change locations');
   await submit('Set location');
   await submit('Enter coordinates manually');
-  await submit('Alert settings');
+  await press('Alert settings');
   await act(async () => {
     field('Latitude').props.onChangeText('23.8103');
     field('Longitude').props.onChangeText('90.4125');
@@ -400,6 +399,7 @@ it('searches for a pickup point and uses the selected coordinates', async () => 
   await render(
     <RouteDetailsScreen navigation={navigation} route={routeRoute} />,
   );
+  await press('Change locations');
   await submit('Set location');
   await act(async () =>
     field('Search location').props.onChangeText('Mirpur 10'),

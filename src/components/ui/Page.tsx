@@ -16,6 +16,7 @@ export function Page({
   title,
   subtitle,
   children,
+  footer,
   loading = false,
   refresh,
   error,
@@ -24,6 +25,7 @@ export function Page({
   dashboard?: boolean;
   title?: string;
   subtitle?: string;
+  footer?: React.ReactNode;
   loading?: boolean;
   refresh?: () => Promise<void>;
   error?: string;
@@ -69,6 +71,7 @@ export function Page({
             {children}
           </View>
         </ScrollView>
+        {footer}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

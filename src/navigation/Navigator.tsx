@@ -138,7 +138,7 @@ export function Navigator() {
           <Stack.Screen
             name="RouteDetails"
             getComponent={() => RouteDetailsScreen}
-            options={{ title: t('Route and schedule') }}
+            options={{ title: t('Route and schedule'), headerShown: false }}
           />
           <Stack.Screen
             name="Bills"

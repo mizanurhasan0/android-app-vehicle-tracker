@@ -123,7 +123,21 @@ export function StudentProfileScreen() {
           <View style={[styles.paymentTile, styles.totalTile]}><Text style={styles.tileLabel}>{t('Total')}</Text><Text style={styles.tileValue}>{money(total)}</Text></View>
         </View>
       </Card>
-      <Card style={styles.historyCard}><TitleRow title={t('Payment history')} />{bills.length ? bills.map(item => <View key={item.id} style={styles.billRow}><View style={styles.billText}><Text style={styles.mutedText}>{new Date(`${item.month}-01T00:00:00+06:00`).toLocaleDateString(locale(), { month: 'long', year: 'numeric', timeZone: 'Asia/Dhaka' })}</Text><Text style={styles.rowStrong}>{money(item.amount)}</Text></View><Pill value={item.status} /><NoorIcon name="receipt" size={19} color="#496577" /></View>) : <EmptyState text={t('No payment history yet')} />}</Card>
+      <Card style={styles.historyCard}>
+        <TitleRow title={t('Payment history')} />
+        {bills.length ? <View style={styles.historyTable}>
+          <View style={styles.historyHead}>
+            <Text style={[styles.historyHeaderText, styles.historyMonth]}>{t('Month')}</Text>
+            <Text style={[styles.historyHeaderText, styles.historyAmount]}>{t('Amount')}</Text>
+            <Text style={[styles.historyHeaderText, styles.historyStatus]}>{t('Status')}</Text>
+          </View>
+          {bills.map(item => <View key={item.id} style={styles.historyRow}>
+            <Text style={[styles.historyCellText, styles.historyMonth]}>{new Date(`${item.month}-01T00:00:00+06:00`).toLocaleDateString(locale(), { month: 'long', year: 'numeric', timeZone: 'Asia/Dhaka' })}</Text>
+            <Text style={[styles.historyCellText, styles.historyAmount, styles.historyAmountValue]}>{money(item.amount)}</Text>
+            <View style={styles.historyStatus}><Pill value={item.status} /></View>
+          </View>)}
+        </View> : <EmptyState text={t('No payment history yet')} />}
+      </Card>
     </> : null}
     {tab === 'TRANSPORT' ? <>
       <Card style={styles.servicesCard}><View style={styles.servicesHeader}><View style={styles.serviceHeading}><IconTile name="bus" size={20} /><Text style={styles.cardTitle}>{t('Transport services')}</Text></View>{student.studentId ? <Pressable accessibilityRole="button" accessibilityLabel={t('Add service in another shift')} onPress={() => setAddingService(true)} style={styles.addService}><NoorIcon name="plus" size={16} color="#FFFFFF" /><Text style={styles.addServiceText}>{t('Add service')}</Text></Pressable> : null}</View>
@@ -187,9 +201,16 @@ const styles = StyleSheet.create({
   paidValue: { color: green },
   dueLabel: { color: '#DA7A00' },
   dueValue: { color: '#E88400' },
-  historyCard: { gap: 2 },
-  billRow: { minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 13, borderTopColor: '#EFF3F3', borderTopWidth: 1 },
-  billText: { flex: 1, gap: 4 },
+  historyCard: { gap: 10 },
+  historyTable: { borderWidth: 1, borderColor: '#E8EFED', borderRadius: 11, overflow: 'hidden' },
+  historyHead: { minHeight: 39, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F8F6', paddingHorizontal: 9, gap: 5 },
+  historyHeaderText: { color: muted, fontSize: 11, fontWeight: '700' },
+  historyRow: { minHeight: 53, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 9, gap: 5, borderTopWidth: 1, borderTopColor: '#E8EFED' },
+  historyCellText: { color: ink, fontSize: 12, lineHeight: 17 },
+  historyAmountValue: { fontWeight: '700' },
+  historyMonth: { flex: 1.45 },
+  historyAmount: { flex: 1 },
+  historyStatus: { flex: 0.9, alignItems: 'center' },
   servicesCard: { paddingHorizontal: 10, gap: 0 },
   servicesHeader: { minHeight: 67, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   serviceHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
