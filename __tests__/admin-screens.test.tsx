@@ -521,6 +521,7 @@ it('keeps guardian account details out of student profile edits', async () => {
     .findAllByType(IconButton)
     .map(item => item.props.title);
   expect(profileActions).toEqual(['Call', 'Edit', 'Archive student']);
+  expect(screen.root.findAll(node => node.props.accessibilityLabel === 'More options')).toHaveLength(0);
   expect(profileActions).not.toContain('WhatsApp');
   await pressButton('Edit');
   expect(

@@ -17,7 +17,6 @@ export { default as CircleStop } from 'lucide-react-native/icons/circle-stop';
 export { default as Clock3 } from 'lucide-react-native/icons/clock-3';
 export { default as Compass } from 'lucide-react-native/icons/compass';
 export { default as Download } from 'lucide-react-native/icons/download';
-export { default as EllipsisVertical } from 'lucide-react-native/icons/ellipsis-vertical';
 export { default as Eye } from 'lucide-react-native/icons/eye';
 export { default as FilePlus } from 'lucide-react-native/icons/file-plus';
 export { default as FileText } from 'lucide-react-native/icons/file-text';

@@ -77,12 +77,6 @@ export function StudentProfileScreen() {
     t('Archive {{name}}? All transport services will stop. Payment history will be kept.', { name: student.studentName }),
     [{ text: t('Cancel'), style: 'cancel' }, { text: t('Archive'), style: 'destructive', onPress: () => archiveAction.run(async () => { await mutate(`/admin/students/${student.id}/archive`, undefined, 'PATCH'); navigation.goBack(); }, 'Student archived.') }],
   );
-  const openMore = () => Alert.alert(t('Student profile'), undefined, [
-    { text: t('Edit'), onPress: () => setEdit(true) },
-    { text: t('Add service in another shift'), onPress: () => setAddingService(true) },
-    { text: t('Archive student'), style: 'destructive', onPress: archiveStudent },
-    { text: t('Cancel'), style: 'cancel' },
-  ]);
   return <AdminPage topSafe scrollKey={tab} loading={loading} error={error} refresh={refresh}>
     <StatusBar backgroundColor="#075443" barStyle="light-content" />
     <View style={styles.hero}>
@@ -90,7 +84,6 @@ export function StudentProfileScreen() {
       <View style={styles.heroTop}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Back')} onPress={() => navigation.goBack()} hitSlop={10} style={styles.backButton}><NoorIcon name="chevronLeft" size={25} color="#FFFFFF" /></Pressable>
         <Text style={styles.heroTitle}>{t('Student profile')}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('More options')} onPress={openMore} hitSlop={10} style={styles.moreButton}><NoorIcon name="moreVertical" size={21} color="#FFFFFF" /></Pressable>
       </View>
       <View style={styles.heroBody}>
         <View style={styles.avatarRing}><NoorAvatar name={student.studentName} photoUrl={student.photoUrl} size={58} /></View>
@@ -156,7 +149,6 @@ const styles = StyleSheet.create({
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   backButton: { width: 27, height: 30, justifyContent: 'center' },
   heroTitle: { flex: 1, color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  moreButton: { width: 27, height: 30, alignItems: 'flex-end', justifyContent: 'center' },
   heroBody: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   avatarRing: { width: 64, height: 64, borderWidth: 2, borderColor: '#FFFFFF', borderRadius: 32, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   heroInfo: { flex: 1, minWidth: 0, gap: 4 },

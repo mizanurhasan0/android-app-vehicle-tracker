@@ -14,7 +14,6 @@ import {
   CircleHelp,
   Clock3,
   Download,
-  EllipsisVertical,
   Eye,
   FilePlus,
   FileText,
@@ -58,7 +57,7 @@ export type IconName =
   | 'clock' | 'maintenance' | 'expenses' | 'mobile' | 'address' | 'emergency'
   | 'odometer' | 'duration'
   | 'dropoff' | 'location' | 'pin' | 'phone' | 'call' | 'contact'
-  | 'communication' | 'whatsapp' | 'sms' | 'mail' | 'settings' | 'more' | 'moreVertical'
+  | 'communication' | 'whatsapp' | 'sms' | 'mail' | 'settings' | 'more'
   | 'menu' | 'plus' | 'add' | 'minus' | 'close' | 'check' | 'info' | 'search'
   | 'edit' | 'chevron' | 'chevronLeft' | 'download' | 'logout' | 'shield' | 'home'
   | 'fit' | 'locate' | 'delete' | 'restore';
@@ -77,7 +76,7 @@ const icons: Record<IconName, LucideIcon> = {
   mobile: Smartphone, address: House, emergency: CircleAlert, dropoff: Flag,
   location: MapPin, pin: MapPin, phone: Phone, call: Phone, contact: Phone,
   communication: Phone, whatsapp: Phone, sms: Mail, mail: Mail, settings: Settings,
-  more: Menu, moreVertical: EllipsisVertical, menu: Menu, plus: Plus, add: Plus, minus: Minus, close: X, check: Check,
+  more: Menu, menu: Menu, plus: Plus, add: Plus, minus: Minus, close: X, check: Check,
   info: Info, search: Search,
   edit: Pencil, chevron: ChevronRight, chevronLeft: ChevronLeft, download: Download, logout: LogOut,
   shield: ShieldCheck, home: House, fit: Maximize2, locate: LocateFixed,
