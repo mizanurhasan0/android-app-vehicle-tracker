@@ -21,7 +21,7 @@ import { useCoreData } from '../../../context/DataContext';
 import { useTranslation } from '../../../i18n';
 import { money } from '../../../utils/format';
 import { journeyFare, journeyDestinations } from '../../../utils/routeFares';
-import { ValidationError } from '../../../utils/validation';
+import { isValidDate, ValidationError } from '../../../utils/validation';
 import { pickStudentPhoto } from '../../../utils/photo';
 import {
   Choice,
@@ -45,6 +45,8 @@ type StudentFormValue = {
   studentCode: string;
   className: string;
   roll: string;
+  dateOfBirth: string;
+  bloodGroup: string;
   guardianName: string;
   guardianPhone: string;
   pickupAddress: string;
@@ -67,6 +69,8 @@ const blankStudent = (): StudentFormValue => ({
   studentCode: '',
   className: '',
   roll: '',
+  dateOfBirth: '',
+  bloodGroup: '',
   guardianName: '',
   guardianPhone: '',
   pickupAddress: '',
@@ -130,6 +134,8 @@ export function StudentForm({
               studentCode: source.studentCode,
               className: source.className,
               roll: source.roll,
+              dateOfBirth: source.dateOfBirth || '',
+              bloodGroup: source.bloodGroup || '',
               guardianName: source.guardianName,
               guardianPhone: source.guardianPhone,
               pickupAddress: source.pickupAddress,
@@ -225,6 +231,8 @@ export function StudentForm({
           dropoffStopId:
             'No fare is configured for this journey. Select another end point.',
         });
+      if (form.dateOfBirth && !isValidDate(form.dateOfBirth))
+        throw new ValidationError({ dateOfBirth: 'Enter a date in YYYY-MM-DD format.' });
       const scheduleErrors = scheduleValidation(
         form.shiftId,
         form.operatingDays,
@@ -311,6 +319,8 @@ export function StudentForm({
                 studentCode: selected.studentCode || '',
                 className: selected.className || '',
                 roll: selected.roll || '',
+                dateOfBirth: selected.dateOfBirth || '',
+                bloodGroup: selected.bloodGroup || '',
                 photoUrl: selected.photoUrl || '',
                 guardianName: selected.guardianName,
                 guardianPhone: selected.guardianPhone,
@@ -359,6 +369,25 @@ export function StudentForm({
             onChangeText={v => set('studentCode', v)}
             maxLength={40}
           />
+          <View style={s.row}>
+            <View style={s.flex}>
+              <Input
+                label={t('Date of birth (YYYY-MM-DD)')}
+                value={form.dateOfBirth}
+                error={action.fieldErrors.dateOfBirth}
+                onChangeText={v => set('dateOfBirth', v)}
+                maxLength={10}
+              />
+            </View>
+            <View style={s.flex}>
+              <Choice
+                label={t('Blood group')}
+                value={form.bloodGroup}
+                options={['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(value => ({ value, label: value || t('Not specified') }))}
+                onChange={v => set('bloodGroup', v)}
+              />
+            </View>
+          </View>
           <View style={s.row}>
             <StudentPhoto student={form} />
             <SmallButton

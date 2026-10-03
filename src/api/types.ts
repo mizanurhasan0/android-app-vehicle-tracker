@@ -122,6 +122,8 @@ export interface Payment {
   createdAt: string;
 }
 export interface ServiceRequest {
+  dateOfBirth?: string;
+  bloodGroup?: string;
   studentCode?: string;
   className?: string;
   roll?: string;

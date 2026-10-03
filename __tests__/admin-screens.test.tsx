@@ -537,6 +537,37 @@ it('keeps guardian account details out of student profile edits', async () => {
   );
   expect(mockMutate.mock.calls[0][1]).not.toHaveProperty('guardianName');
 });
+it('shows exactly three profile tabs and saves birth date and blood group', async () => {
+  mockParams = { id: 'student-1' };
+  mockManagement.students[0].dateOfBirth = '2015-01-12';
+  mockManagement.students[0].bloodGroup = 'B+';
+  mockData.bills = [{
+    id: 'bill-1', subscriptionId: 'student-1', studentName: 'Student One',
+    guardianName: 'Guardian', month: '2026-09', amount: 250000,
+    status: 'PAID', pendingSubmissionId: null, paidAt: '2026-09-05',
+  }];
+  await render(StudentProfileScreen);
+  expect(screen.root.findAll(node => node.props.accessibilityRole === 'tab', { deep: false }).map(node => node.props.accessibilityLabel)).toEqual(['Overview', 'Payment', 'Transport']);
+  expect(textContent()).not.toContain('Quick summary');
+  expect(textContent()).not.toContain('Notices');
+  expect(textContent()).not.toContain('Attendance');
+  expect(textContent()).not.toContain('A brighter tomorrow');
+  expect(textContent()).toContain('B+');
+  expect(textContent()).toContain(niceDate('2015-01-12'));
+  await pressAccessible('tab', 'Payment');
+  expect(textContent()).toContain('Payment history');
+  expect(textContent()).toContain('September 2026');
+  expect(textContent()).not.toContain('Payments keep education moving forward.');
+  await pressAccessible('tab', 'Transport');
+  expect(textContent()).toContain('South road');
+  expect(textContent()).not.toContain('Safe Rides, Brighter Days');
+  expect(textContent()).not.toContain('Transport safety tips');
+  await pressButton('Edit');
+  await setInput('Date of birth (YYYY-MM-DD)', '2014-02-20');
+  await select('Blood group', 'O+');
+  await save();
+  expect(mockMutate).toHaveBeenCalledWith('/admin/students/student-1', expect.objectContaining({ dateOfBirth: '2014-02-20', bloodGroup: 'O+' }), 'PATCH');
+});
 it('saves only explicitly selected attendance and never silently marks remaining students present', async () => {
   await render(AttendanceScreen);
   expect(
@@ -780,12 +811,14 @@ it('translates account categories while preserving amounts, notes and API enums'
 });
 
 it.each([
-  [StudentProfileScreen, 'student-1', 'Payment summary', 'পেমেন্ট সারাংশ'],
+  [StudentProfileScreen, 'student-1', 'Basic information', 'মৌলিক তথ্য'],
   [DriverProfileScreen, 'driver-1', 'Monthly salary', 'মাসিক বেতন'],
 ] as const)(
   'updates profile labels, statuses and dates on a mounted screen %p',
   async (Component, id, english, bangla) => {
     mockParams = { id };
+    if (Component === StudentProfileScreen)
+      mockManagement.students[0].dateOfBirth = '2015-01-12';
     mockManagement.attendance = [
       {
         id: 'attendance-1',
@@ -798,26 +831,32 @@ it.each([
       },
     ];
     await render(Component);
-    await act(async () =>
-      screen.root.findByType(Tabs).props.onChange('ATTENDANCE'),
-    );
+    if (Component !== StudentProfileScreen)
+      await act(async () =>
+        screen.root.findByType(Tabs).props.onChange('ATTENDANCE'),
+      );
     expect(textContent()).toContain(english);
-    expect(textContent()).toContain('Present');
-    const englishDate = niceDate('2026-09-01');
+    if (Component !== StudentProfileScreen)
+      expect(textContent()).toContain('Present');
+    const profileDate = Component === StudentProfileScreen ? '2015-01-12' : '2026-09-01';
+    const englishDate = niceDate(profileDate);
     expect(textContent()).toContain(englishDate);
     await changeLanguage('bn');
     expect(textContent()).toContain(bangla);
-    expect(textContent()).toContain('উপস্থিত');
-    expect(textContent()).toContain(niceDate('2026-09-01'));
-    expect(niceDate('2026-09-01')).not.toBe(englishDate);
-    expect(niceDate('2026-09-01')).toBe(
-      new Date('2026-09-01T00:00:00+06:00').toLocaleDateString(locale(), {
+    if (Component !== StudentProfileScreen)
+      expect(textContent()).toContain('উপস্থিত');
+    expect(textContent()).toContain(niceDate(profileDate));
+    expect(niceDate(profileDate)).not.toBe(englishDate);
+    expect(niceDate(profileDate)).toBe(
+      new Date(`${profileDate}T00:00:00+06:00`).toLocaleDateString(locale(), {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
         timeZone: 'Asia/Dhaka',
       }),
     );
+    if (Component === StudentProfileScreen)
+      await pressAccessible('tab', 'পরিবহন');
     expect(textContent()).toContain('South road');
     expect(textContent()).toContain('Bus 1');
     expect(mockMutate).not.toHaveBeenCalled();
@@ -913,7 +952,8 @@ it('uses the selected destination fare for enrollment without submitting a clien
   const fareValue = () =>
     screen.root
       .findAllByType(Detail)
-      .find(node => node.props.label === 'Journey monthly fee')!.props.value;
+      .find(node => node.props.label === i18n.t('Journey monthly fee'))!.props
+      .value;
   expect(fareValue()).toContain('1,000');
   expect(
     screen.root
@@ -952,7 +992,8 @@ it('keeps an existing agreed journey fee when editing a profile after route pric
   expect(
     screen.root
       .findAllByType(Detail)
-      .find(node => node.props.label === 'Journey monthly fee')!.props.value,
+      .find(node => node.props.label === i18n.t('Journey monthly fee'))!.props
+      .value,
   ).toContain('1,500');
   await setInput('Roll number', '22');
   await save();
@@ -1094,6 +1135,7 @@ it('keeps another-shift enrollment transport-only and filters routes by vehicle'
   mockManagement.students[0].studentId = 'canonical-child';
   mockParams = { id: mockManagement.students[0].id };
   await render(StudentProfileScreen);
+  await pressAccessible('tab', 'Transport');
   await pressAccessible('button', 'Add service in another shift');
 
   const modal = screen.root
@@ -1137,6 +1179,7 @@ it('starts an active new service when reusing a stopped student profile', async 
   mockManagement.students[0].status = 'STOPPED';
   mockParams = { id: mockManagement.students[0].id };
   await render(StudentProfileScreen);
+  await pressAccessible('tab', 'Transport');
   await pressAccessible('button', 'Add service in another shift');
   await save();
   expect(mockMutate).toHaveBeenCalledWith(
@@ -1156,6 +1199,7 @@ it('stops only the selected transport service after reviewing its settlement', a
     mockManagement.students[0].studentId = 'canonical-child';
     mockParams = { id: mockManagement.students[0].id };
     await render(StudentProfileScreen);
+    await pressAccessible('tab', 'Transport');
     await pressAccessible('button', 'Stop this service');
 
     const modal = screen.root
@@ -1204,6 +1248,7 @@ it('keeps stopped service state read-only while allowing a new shift service', a
   };
   mockParams = { id: mockManagement.students[0].id };
   await render(StudentProfileScreen);
+  await pressAccessible('tab', 'Transport');
 
   expect(
     screen.root.findAll(

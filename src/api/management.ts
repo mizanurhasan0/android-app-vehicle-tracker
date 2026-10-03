@@ -16,6 +16,8 @@ export interface Student {
   studentCode: string;
   className: string;
   roll: string;
+  dateOfBirth?: string;
+  bloodGroup?: string;
   photoUrl: string;
   guardianName: string;
   guardianPhone: string;
@@ -58,6 +60,8 @@ export interface StudentInput {
   studentCode?: string;
   className?: string;
   roll?: string;
+  dateOfBirth?: string;
+  bloodGroup?: string;
   photoUrl?: string;
   pickupAddress?: string;
   dropAddress?: string;

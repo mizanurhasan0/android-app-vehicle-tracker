@@ -215,7 +215,7 @@ export function Navigator() {
               <Stack.Screen
                 name="StudentDetails"
                 getComponent={() => StudentProfileScreen}
-                options={{ title: t('Student profile') }}
+                options={{ title: t('Student profile'), headerShown: false }}
               />
               <Stack.Screen
                 name="Drivers"

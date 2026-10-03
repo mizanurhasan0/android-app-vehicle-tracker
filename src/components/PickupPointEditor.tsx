@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Route } from '../api/types';
 import { useManagement } from '../context/ManagementContext';
@@ -15,6 +15,9 @@ type RouteStop = Route['stops'][number];
 type FormValue = {
   latitude: string;
   longitude: string;
+};
+
+export type AlertRadiusSettings = {
   enterRadiusMeters: string;
   exitRadiusMeters: string;
 };
@@ -30,29 +33,201 @@ function initialValue(stop: RouteStop): FormValue {
   return {
     latitude: point ? String(point.latitude) : '',
     longitude: point ? String(point.longitude) : '',
+  };
+}
+
+export function initialAlertRadiusSettings(
+  stops: RouteStop[],
+): AlertRadiusSettings {
+  const point = stops.find(stop => stop.pickupPoint)?.pickupPoint;
+  return {
     enterRadiusMeters: String(point?.enterRadiusMeters ?? DEFAULT_ENTER_RADIUS),
     exitRadiusMeters: String(point?.exitRadiusMeters ?? DEFAULT_EXIT_RADIUS),
   };
 }
 
-export function PickupPointEditor({ stop }: { stop: RouteStop }) {
+function alertRadiusValues(settings: AlertRadiusSettings) {
+  const enterRadiusMeters = Number(settings.enterRadiusMeters);
+  const exitRadiusMeters = Number(settings.exitRadiusMeters);
+  const errors: Record<string, string> = {};
+  if (
+    !Number.isInteger(enterRadiusMeters) ||
+    enterRadiusMeters < 10 ||
+    enterRadiusMeters > 10000
+  )
+    errors.enterRadiusMeters =
+      'Enter radius must be an integer from 10 to 10000 metres.';
+  if (
+    !Number.isInteger(exitRadiusMeters) ||
+    exitRadiusMeters < 11 ||
+    exitRadiusMeters > 20000
+  )
+    errors.exitRadiusMeters =
+      'Exit radius must be an integer from 11 to 20000 metres.';
+  else if (exitRadiusMeters <= enterRadiusMeters)
+    errors.exitRadiusMeters = 'Exit radius must be greater than enter radius.';
+  if (Object.keys(errors).length) throw new ValidationError(errors);
+  return { enterRadiusMeters, exitRadiusMeters };
+}
+
+function locationLabel(properties: Record<string, unknown>) {
+  return [
+    properties.name,
+    properties.street,
+    properties.district,
+    properties.city,
+    properties.county,
+    properties.state,
+    properties.country,
+  ]
+    .filter((value, index, all) =>
+      typeof value === 'string' && value.trim()
+        ? all.indexOf(value) === index
+        : false,
+    )
+    .join(', ');
+}
+
+function locationResults(payload: unknown): SearchResult[] {
+  if (Array.isArray(payload))
+    return payload.flatMap(item => {
+      if (!item || typeof item !== 'object') return [];
+      const value = item as Record<string, unknown>;
+      const latitude = Number(value.lat);
+      const longitude = Number(value.lon);
+      return typeof value.display_name === 'string' &&
+        value.display_name.trim() &&
+        Number.isFinite(latitude) &&
+        Number.isFinite(longitude)
+        ? [{ label: value.display_name, latitude, longitude }]
+        : [];
+    });
+  if (!payload || typeof payload !== 'object') return [];
+  const features = (payload as Record<string, unknown>).features;
+  if (!Array.isArray(features)) return [];
+  return features.flatMap(feature => {
+    if (!feature || typeof feature !== 'object') return [];
+    const value = feature as Record<string, unknown>;
+    const geometry = value.geometry as Record<string, unknown> | undefined;
+    const properties = value.properties as Record<string, unknown> | undefined;
+    const coordinates = geometry?.coordinates;
+    if (!properties || !Array.isArray(coordinates)) return [];
+    const longitude = Number(coordinates[0]);
+    const latitude = Number(coordinates[1]);
+    const label = locationLabel(properties);
+    return label && Number.isFinite(latitude) && Number.isFinite(longitude)
+      ? [{ label, latitude, longitude }]
+      : [];
+  });
+}
+
+export function RouteAlertSettings({
+  stops,
+  value,
+  onChange,
+}: {
+  stops: RouteStop[];
+  value: AlertRadiusSettings;
+  onChange: (value: AlertRadiusSettings) => void;
+}) {
+  const { t } = useTranslation();
+  const { mutate } = useManagement();
+  const action = useAction();
+  const [open, setOpen] = useState(false);
+  const configuredStops = stops.filter(stop => stop.pickupPoint);
+  const set = (key: keyof AlertRadiusSettings, next: string) => {
+    action.clearFieldError(key);
+    onChange({ ...value, [key]: next });
+  };
+  return (
+    <View style={ui.sharedSettings}>
+      <Button
+        title={open ? t('Hide alert settings') : t('Alert settings')}
+        secondary
+        onPress={() => setOpen(current => !current)}
+      />
+      {open ? (
+        <View style={ui.setup}>
+          <Text style={styles.muted}>
+            {t('These alert distances are used for every pickup point on this route.')}
+          </Text>
+          <View style={ui.row}>
+            <View style={ui.field}>
+              <Field
+                label={t('Alert starts within (m)')}
+                value={value.enterRadiusMeters}
+                error={action.fieldErrors.enterRadiusMeters}
+                keyboardType="number-pad"
+                onChangeText={next => set('enterRadiusMeters', next)}
+              />
+            </View>
+            <View style={ui.field}>
+              <Field
+                label={t('Alert resets after (m)')}
+                value={value.exitRadiusMeters}
+                error={action.fieldErrors.exitRadiusMeters}
+                keyboardType="number-pad"
+                onChangeText={next => set('exitRadiusMeters', next)}
+              />
+            </View>
+          </View>
+          {configuredStops.length ? (
+            <Button
+              title={t('Apply to all pickup points')}
+              busy={action.busy}
+              onPress={() =>
+                action.run(
+                  async () => {
+                    const radii = alertRadiusValues(value);
+                    await Promise.all(
+                      configuredStops.map(stop =>
+                        mutate(
+                          `/admin/stops/${stop.id}/pickup-point`,
+                          {
+                            latitude: stop.pickupPoint!.latitude,
+                            longitude: stop.pickupPoint!.longitude,
+                            ...radii,
+                          },
+                          'PUT',
+                        ),
+                      ),
+                    );
+                  },
+                  t('Alert settings saved for every pickup point.'),
+                )
+              }
+            />
+          ) : null}
+          <Notice text={action.error} kind="error" />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+export function PickupPointEditor({
+  stop,
+  alertSettings,
+}: {
+  stop: RouteStop;
+  alertSettings: AlertRadiusSettings;
+}) {
   const { t } = useTranslation();
   const { mutate } = useManagement();
   const action = useAction();
   const [form, setForm] = useState<FormValue>(() => initialValue(stop));
   const [locationOpen, setLocationOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const searchRequest = useRef(0);
 
   useEffect(() => {
     setForm(initialValue(stop));
     setLocationOpen(false);
     setManualOpen(false);
-    setAdvancedOpen(false);
     setSearch('');
     setResults([]);
     setSearchError('');
@@ -84,54 +259,49 @@ export function PickupPointEditor({ stop }: { stop: RouteStop }) {
     setResults([]);
   };
 
-  const searchLocation = async () => {
-    const query = search.trim();
+  const searchLocation = useCallback(async (requestedQuery?: string) => {
+    const query = (requestedQuery ?? search).trim();
     if (!query) {
       setSearchError('Enter a location to search.');
       return;
     }
+    const request = ++searchRequest.current;
     setSearching(true);
     setSearchError('');
     setResults([]);
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`,
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=en&lat=23.8103&lon=90.4125&countrycode=BD`,
         { headers: { Accept: 'application/json' } },
       );
       if (!response.ok) throw new Error('Location search failed.');
       const payload: unknown = await response.json();
-      const found = Array.isArray(payload)
-        ? payload.flatMap(item => {
-            if (!item || typeof item !== 'object') return [];
-            const value = item as Record<string, unknown>;
-            const latitude = Number(value.lat);
-            const longitude = Number(value.lon);
-            return typeof value.display_name === 'string' &&
-              value.display_name.trim() &&
-              Number.isFinite(latitude) &&
-              Number.isFinite(longitude) &&
-              Math.abs(latitude) <= 90 &&
-              Math.abs(longitude) <= 180
-              ? [{ label: value.display_name, latitude, longitude }]
-              : [];
-          })
-        : [];
+      if (request !== searchRequest.current) return;
+      const found = locationResults(payload);
       setResults(found);
       if (!found.length) setSearchError('No locations found. Try a more specific search.');
     } catch {
+      if (request !== searchRequest.current) return;
       setSearchError('Location search is unavailable. Check your internet connection.');
     } finally {
-      setSearching(false);
+      if (request === searchRequest.current) setSearching(false);
     }
-  };
+  }, [search]);
+
+  useEffect(() => {
+    const query = search.trim();
+    if (query.length < 3) return;
+    const timer = setTimeout(() => searchLocation(query), 650);
+    return () => clearTimeout(timer);
+  }, [search, searchLocation]);
 
   const save = () =>
     action.run(
       async () => {
         const latitude = Number(form.latitude);
         const longitude = Number(form.longitude);
-        const enterRadiusMeters = Number(form.enterRadiusMeters);
-        const exitRadiusMeters = Number(form.exitRadiusMeters);
+        const { enterRadiusMeters, exitRadiusMeters } =
+          alertRadiusValues(alertSettings);
         const errors: Record<string, string> = {};
 
         if (
@@ -148,22 +318,6 @@ export function PickupPointEditor({ stop }: { stop: RouteStop }) {
           longitude > 180
         )
           errors.longitude = 'Enter a valid longitude between -180 and 180.';
-        if (
-          !Number.isInteger(enterRadiusMeters) ||
-          enterRadiusMeters < 10 ||
-          enterRadiusMeters > 10000
-        )
-          errors.enterRadiusMeters =
-            'Enter radius must be an integer from 10 to 10000 metres.';
-        if (
-          !Number.isInteger(exitRadiusMeters) ||
-          exitRadiusMeters < 11 ||
-          exitRadiusMeters > 20000
-        )
-          errors.exitRadiusMeters =
-            'Exit radius must be an integer from 11 to 20000 metres.';
-        else if (exitRadiusMeters <= enterRadiusMeters)
-          errors.exitRadiusMeters = 'Exit radius must be greater than enter radius.';
         if (Object.keys(errors).length) throw new ValidationError(errors);
 
         await mutate(
@@ -210,17 +364,19 @@ export function PickupPointEditor({ stop }: { stop: RouteStop }) {
             maxLength={160}
             returnKeyType="search"
             onChangeText={value => {
+              searchRequest.current += 1;
               setSearch(value);
+              setResults([]);
               setSearchError('');
             }}
-            onSubmitEditing={searchLocation}
+            onSubmitEditing={() => searchLocation()}
           />
           <Button
             title={t('Search')}
             secondary
             busy={searching}
             disabled={!search.trim()}
-            onPress={searchLocation}
+            onPress={() => searchLocation()}
           />
           {searchError ? (
             <Text style={ui.searchError}>{t(searchError)}</Text>
@@ -287,48 +443,14 @@ export function PickupPointEditor({ stop }: { stop: RouteStop }) {
           ) : null}
         </View>
       ) : null}
-      <Button
-        title={
-          advancedOpen ? t('Hide alert settings') : t('Alert settings')
-        }
-        secondary
-        onPress={() => setAdvancedOpen(open => !open)}
-      />
-      {advancedOpen ? (
-        <View style={ui.setup}>
-          <Text style={styles.muted}>
-            {t('The default alert area is 100 metres. Change this only when needed.')}
-          </Text>
-          <View style={ui.row}>
-            <View style={ui.field}>
-              <Field
-                label={t('Enter radius (m)')}
-                value={form.enterRadiusMeters}
-                error={action.fieldErrors.enterRadiusMeters}
-                keyboardType="number-pad"
-                onChangeText={value => set('enterRadiusMeters', value)}
-              />
-            </View>
-            <View style={ui.field}>
-              <Field
-                label={t('Exit radius (m)')}
-                value={form.exitRadiusMeters}
-                error={action.fieldErrors.exitRadiusMeters}
-                keyboardType="number-pad"
-                onChangeText={value => set('exitRadiusMeters', value)}
-              />
-            </View>
-          </View>
-        </View>
-      ) : null}
       <Notice text={action.error} kind="error" />
-      {(locationOpen || advancedOpen) && (
+      {locationOpen ? (
         <Button
           title={t('Save pickup point')}
           busy={action.busy}
           onPress={save}
         />
-      )}
+      ) : null}
     </View>
   );
 }
@@ -368,6 +490,7 @@ const ui = StyleSheet.create({
     fontWeight: '700',
   },
   setup: { gap: 8 },
+  sharedSettings: { gap: 8, paddingBottom: 8 },
   searchError: { color: colors.danger, fontSize: 13 },
   searchResult: {
     borderWidth: 1,

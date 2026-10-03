@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -6,6 +6,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -22,19 +23,28 @@ export function AdminPage({
   loading,
   refresh,
   error,
+  topSafe = false,
+  scrollKey,
 }: React.PropsWithChildren<{
   loading?: boolean;
   refresh?: () => Promise<void>;
   error?: string;
+  topSafe?: boolean;
+  scrollKey?: string;
 }>) {
   const { t } = useTranslation();
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => {
+    if (scrollKey !== undefined) scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+  }, [scrollKey]);
   return (
-    <SafeAreaView style={s.safe} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={[s.safe, topSafe && pageStyles.topSafe]} edges={topSafe ? ['top', 'left', 'right', 'bottom'] : ['left', 'right', 'bottom']}>
       <KeyboardAvoidingView
         style={s.safe}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          ref={scrollRef}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={s.page}
           refreshControl={
@@ -60,6 +70,8 @@ export function AdminPage({
     </SafeAreaView>
   );
 }
+
+const pageStyles = StyleSheet.create({ topSafe: { backgroundColor: '#075443' } });
 
 export function Box({ children }: React.PropsWithChildren) {
   return <View style={s.box}>{children}</View>;

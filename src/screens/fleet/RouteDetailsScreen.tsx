@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParams } from '../../navigation/types';
@@ -21,7 +21,12 @@ import { f } from './styles';
 import { VehicleMark } from './FleetUI';
 import { scheduleTime } from './format';
 import { ScheduleEditor } from './ScheduleEditor';
-import { PickupPointEditor } from '../../components/PickupPointEditor';
+import {
+  AlertRadiusSettings,
+  initialAlertRadiusSettings,
+  PickupPointEditor,
+  RouteAlertSettings,
+} from '../../components/PickupPointEditor';
 
 export function RouteDetailsScreen({
   route,
@@ -34,8 +39,18 @@ export function RouteDetailsScreen({
   const management = useManagement();
   const [editing, setEditing] = useState(false);
   const [period, setPeriod] = useState<'MORNING' | 'AFTERNOON'>('MORNING');
-  const [shiftId, setShiftId] = useState('');
+  const [shiftId, setShiftId] = useState('MORNING');
   const selected = data.routes.find(r => r.id === route.params.id);
+  const [alertSettings, setAlertSettings] = useState<AlertRadiusSettings>(() =>
+    initialAlertRadiusSettings(selected?.stops || []),
+  );
+  const shifts = transportShifts(management.data?.settings);
+  useEffect(() => {
+    if (!shifts.some(shift => shift.id === shiftId))
+      setShiftId(
+        shifts.find(shift => shift.id === 'MORNING')?.id || shifts[0]?.id || '',
+      );
+  }, [shiftId, shifts]);
   if (!selected)
     return (
       <Page>
@@ -52,7 +67,6 @@ export function RouteDetailsScreen({
   const students = (management.data?.students || []).filter(
     s => s.routeId === selected.id && s.status === 'ACTIVE',
   );
-  const shifts = transportShifts(management.data?.settings);
   const scheduled = students.filter(
     student =>
       isServiceScheduled(
@@ -112,10 +126,19 @@ export function RouteDetailsScreen({
         <NoorCard>
           <Text style={f.title}>{t('Pickup points')}</Text>
           <Text style={f.sub}>
-            {t('Set the location and geofence radius for each stop.')}
+            {t('Set each pickup location. Alert distances are shared across this route.')}
           </Text>
+          <RouteAlertSettings
+            stops={selected.stops}
+            value={alertSettings}
+            onChange={setAlertSettings}
+          />
           {selected.stops.map(stop => (
-            <PickupPointEditor key={stop.id} stop={stop} />
+            <PickupPointEditor
+              key={stop.id}
+              stop={stop}
+              alertSettings={alertSettings}
+            />
           ))}
         </NoorCard>
       ) : null}

@@ -286,6 +286,7 @@ it('retains the selected route period and edits, retranslates validation, and sa
   await render(
     <RouteDetailsScreen navigation={navigation} route={routeRoute} />,
   );
+  expect(select('Transport shift').props.value).toBe('MORNING');
   await press('Return schedule', 'tab');
   expect(textValues()).toContain('14:30');
   await submit('Edit schedule');
@@ -369,8 +370,8 @@ it('saves pickup coordinates and geofence radii for an admin route stop', async 
   await act(async () => {
     field('Latitude').props.onChangeText('23.8103');
     field('Longitude').props.onChangeText('90.4125');
-    field('Enter radius (m)').props.onChangeText('100');
-    field('Exit radius (m)').props.onChangeText('150');
+    field('Alert starts within (m)').props.onChangeText('100');
+    field('Alert resets after (m)').props.onChangeText('150');
   });
   await submit('Save pickup point');
   expect(mockManagementMutate).toHaveBeenCalledWith(

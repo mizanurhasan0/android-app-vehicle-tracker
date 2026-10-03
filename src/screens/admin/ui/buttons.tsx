@@ -1,5 +1,12 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleProp,
+  Text,
+  View,
+  ViewStyle,
+} from 'react-native';
 import { NoorIcon } from '../../../components/Noor';
 import { useTranslation } from '../../../i18n';
 import { s } from './styles';
@@ -53,6 +60,9 @@ export function IconButton({
   disabled,
   busy,
   danger,
+  style,
+  iconColor,
+  iconSize = 18,
 }: {
   title: string;
   icon: string;
@@ -60,6 +70,9 @@ export function IconButton({
   disabled?: boolean;
   busy?: boolean;
   danger?: boolean;
+  style?: StyleProp<ViewStyle>;
+  iconColor?: string;
+  iconSize?: number;
 }) {
   const { t } = useTranslation();
   return (
@@ -67,11 +80,13 @@ export function IconButton({
       accessibilityRole="button"
       accessibilityLabel={t(title)}
       accessibilityState={{ disabled: !!disabled || !!busy, busy: !!busy }}
+      hitSlop={7}
       disabled={disabled || busy}
       onPress={onPress}
       style={({ pressed }) => [
         s.iconButton,
         danger && s.dangerButton,
+        style,
         (disabled || busy || pressed) && s.dim,
       ]}
     >
@@ -80,8 +95,8 @@ export function IconButton({
       ) : (
         <NoorIcon
           name={icon}
-          size={18}
-          color={danger ? C.white : C.green}
+          size={iconSize}
+          color={iconColor || (danger ? C.white : C.green)}
         />
       )}
     </Pressable>
