@@ -367,21 +367,15 @@ export function VehicleDetailsScreen({
                 {admin ? (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={
-                      metadata
-                        ? t('Close')
-                        : t('Edit vehicle documents and status')
-                    }
-                    onPress={() => setMetadata(value => !value)}
+                    accessibilityLabel={t('Edit vehicle documents and status')}
+                    onPress={() => setMetadata(true)}
                     style={({ pressed }) => [
                       ui.smallEdit,
                       pressed && ui.pressed,
                     ]}
                   >
                     <Pencil size={15} color={GREEN} />
-                    <Text style={ui.smallEditText}>
-                      {metadata ? t('Close') : t('Edit')}
-                    </Text>
+                    <Text style={ui.smallEditText}>{t('Edit')}</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -396,12 +390,6 @@ export function VehicleDetailsScreen({
                 ))}
               </View>
             </View>
-            {metadata && admin ? (
-              <VehicleMetadata
-                vehicle={vehicle}
-                onDone={() => setMetadata(false)}
-              />
-            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -411,6 +399,10 @@ export function VehicleDetailsScreen({
         onSaved={async () => {
           await Promise.all([core.refresh(), management.refresh()]);
         }}
+      />
+      <VehicleMetadata
+        vehicle={metadata && admin ? vehicle : null}
+        onDone={() => setMetadata(false)}
       />
     </SafeAreaView>
   );

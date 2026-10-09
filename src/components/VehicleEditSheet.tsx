@@ -1,16 +1,6 @@
 import { ValidationError } from '../utils/validation';
-import { ToastHost } from './Toast';
 import React, { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Vehicle } from '../api/types';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +9,7 @@ import { useAction } from '../hooks/useAction';
 import { useTranslation } from '../i18n';
 import { colors, styles } from '../theme';
 import { AppIcon } from './AppIcon';
+import { VehicleBottomSheet } from './VehicleBottomSheet';
 import { Button, Field, Notice } from './ui';
 
 interface VehicleEditSheetProps {
@@ -68,10 +59,7 @@ function VehicleEditor({
   const changed = (Object.keys(draft) as Array<keyof typeof draft>).some(
     key => draft[key] !== (vehicle[key] ?? '').trim(),
   );
-  const requestClose = () => {
-    if (!action.busy) onClose();
-  };
-  const save = () => {
+  const save = (closeAfterSave: () => void) => {
     if (!changed) return;
     action.run(async () => {
       const errors: Record<string, string> = {};
@@ -86,30 +74,14 @@ function VehicleEditor({
         'PATCH',
       );
       await onSaved();
-      onClose();
+      closeAfterSave();
     }, 'Vehicle details updated.');
   };
 
   return (
-    <Modal
-      visible
-      transparent
-      animationType="slide"
-      onRequestClose={requestClose}
-      statusBarTranslucent
-    >
-      <KeyboardAvoidingView
-        style={local.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <Pressable
-          accessible={false}
-          importantForAccessibility="no"
-          disabled={action.busy}
-          onPress={requestClose}
-          style={local.scrim}
-        />
-        <View style={local.sheet} accessibilityViewIsModal>
+    <VehicleBottomSheet busy={action.busy} onClose={onClose}>
+      {({ requestClose, closeAfterSave }) => (
+        <>
           <View accessible={false} style={local.handle} />
           <View style={local.header}>
             <View style={local.vehicleIcon}>
@@ -223,7 +195,7 @@ function VehicleEditor({
           >
             <Button
               title={t('Save changes')}
-              onPress={save}
+              onPress={() => save(closeAfterSave)}
               busy={action.busy}
               disabled={!changed}
             />
@@ -234,26 +206,13 @@ function VehicleEditor({
               disabled={action.busy}
             />
           </SafeAreaView>
-        </View>
-      </KeyboardAvoidingView>
-      <ToastHost modal />
-    </Modal>
+        </>
+      )}
+    </VehicleBottomSheet>
   );
 }
 
 const local = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', paddingTop: 48 },
-  scrim: { ...StyleSheet.absoluteFill, backgroundColor: '#102A3280' },
-  sheet: {
-    width: '100%',
-    maxWidth: 640,
-    maxHeight: '100%',
-    alignSelf: 'center',
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
-  },
   handle: {
     width: 36,
     height: 4,
