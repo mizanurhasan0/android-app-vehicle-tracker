@@ -123,7 +123,11 @@ export function Navigator() {
           <Stack.Screen
             name="VehicleDetails"
             getComponent={() => VehicleDetailsScreen}
-            options={{ title: t('Vehicle profile') }}
+            options={{
+              title: t('Vehicle profile'),
+              headerTintColor: '#102944',
+              headerStyle: { backgroundColor: '#F8FAFD' },
+            }}
           />
           <Stack.Screen
             name="FleetMap"
