@@ -7,7 +7,12 @@ import React, {
 } from 'react';
 import { AppState } from 'react-native';
 import { api, ApiError } from '../api/client';
-import { ManagementOverview, Student } from '../api/management';
+import {
+  ManagementOverview,
+  Student,
+  StudentListQuery,
+  StudentListResponse,
+} from '../api/management';
 import { useRefreshResource } from '../hooks/useRefreshResource';
 import { useCredentialScope } from '../hooks/useCredentialScope';
 import { useAuth } from './AuthContext';
@@ -20,6 +25,7 @@ interface ManagementValue {
   refresh: () => Promise<void>;
   mutate: <T>(path: string, body?: unknown, method?: string) => Promise<T>;
   listArchivedStudents: () => Promise<Student[]>;
+  listStudents: (query: StudentListQuery) => Promise<StudentListResponse>;
 }
 const ManagementContext = createContext<ManagementValue | null>(null);
 const selectOverview = (snapshot: ManagementOverview | null) => snapshot;
@@ -109,9 +115,30 @@ function ManagementScope({
       throw problem;
     }
   }, [baseUrl, token, expire, isCurrent]);
+  const listStudents = useCallback(
+    async (query: StudentListQuery): Promise<StudentListResponse> => {
+      if (!token || !isCurrent()) throw new Error('Please sign in again.');
+      const params = Object.entries(query)
+        .filter(([, value]) => value !== undefined && value !== '')
+        .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
+        .join('&');
+      try {
+        return await api<StudentListResponse>(
+          baseUrl,
+          `/admin/students?${params}`,
+          token,
+        );
+      } catch (problem) {
+        if (isCurrent() && problem instanceof ApiError && problem.status === 401)
+          await expire();
+        throw problem;
+      }
+    },
+    [baseUrl, token, expire, isCurrent],
+  );
   const value = useMemo(
-    () => ({ data, loading, error, refresh, mutate, listArchivedStudents }),
-    [data, loading, error, refresh, mutate, listArchivedStudents],
+    () => ({ data, loading, error, refresh, mutate, listArchivedStudents, listStudents }),
+    [data, loading, error, refresh, mutate, listArchivedStudents, listStudents],
   );
   return (
     <ManagementContext.Provider value={value}>

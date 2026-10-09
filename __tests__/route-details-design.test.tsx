@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { RouteDetailsScreen } from '../src/screens/fleet/RouteDetailsScreen';
-import { Select, Field } from '../src/components/ui';
+import { Field } from '../src/components/ui';
 import { ToastHost } from '../src/components/Toast';
 import { i18n } from '../src/i18n';
 import { RouteScheduleOverview } from '../src/screens/fleet/RouteScheduleTop';
@@ -219,25 +219,14 @@ async function pressLabel(value: string) {
   await act(async () => target!.props.onPress());
 }
 
-it('filters today’s active passengers by the selected configured transport shift', async () => {
+it('shows active passengers scheduled for today without a shift dropdown', async () => {
   await renderRoute();
-  const shift = screen.root
-    .findAllByType(Select)
-    .find(node => node.props.label === 'Transport shift')!;
-  expect(shift.props.value).toBe('MORNING');
   expect(hasText('Morning child')).toBe(true);
-  expect(hasText('Day child')).toBe(false);
+  expect(hasText('Day child')).toBe(true);
   expect(hasText('Other day child')).toBe(false);
   expect(hasText('Inactive child')).toBe(false);
-
-  await act(async () => shift.props.onChange('DAY'));
-  expect(hasText('Morning child')).toBe(false);
-  expect(hasText('Day child')).toBe(true);
-
-  await act(async () => shift.props.onChange(''));
-  expect(hasText('Morning child')).toBe(true);
-  expect(hasText('Day child')).toBe(true);
-  expect(hasText('Other day child')).toBe(false);
+  expect(hasText("Today's passengers")).toBe(false);
+  expect(hasText('Transport Shift')).toBe(true);
 });
 
 it('keeps both map actions connected to live tracking for this route’s vehicle', async () => {

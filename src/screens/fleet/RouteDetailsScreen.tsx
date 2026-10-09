@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { StatusBar } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { HomeStackParams } from '../../navigation/types';
@@ -6,12 +6,7 @@ import { useCoreData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useManagement } from '../../context/ManagementContext';
 import { Page, Button, Empty } from '../../components/ui';
-import {
-  isServiceScheduled,
-  serviceShift,
-  transportShifts,
-  uniqueStudents,
-} from '../../utils/transport';
+import { isServiceScheduled, uniqueStudents } from '../../utils/transport';
 import { useDhakaDate } from '../../hooks/useDhakaDate';
 import { useTranslation } from '../../i18n';
 import {
@@ -33,20 +28,11 @@ export function RouteDetailsScreen({
   const { data } = useCoreData();
   const { session } = useAuth();
   const management = useManagement();
-  const [shiftId, setShiftId] = useState('MORNING');
   const [editing, setEditing] = useState(false);
   const selected = data.routes.find(item => item.id === route.params.id);
   const [alertSettings, setAlertSettings] = useState<AlertRadiusSettings>(() =>
     initialAlertRadiusSettings(selected?.stops || []),
   );
-  const shifts = transportShifts(management.data?.settings);
-  useEffect(() => {
-    if (shiftId && !shifts.some(shift => shift.id === shiftId))
-      setShiftId(
-        shifts.find(shift => shift.id === 'MORNING')?.id || shifts[0]?.id || '',
-      );
-  }, [shiftId, shifts]);
-
   if (!selected)
     return (
       <Page dashboard>
@@ -70,14 +56,8 @@ export function RouteDetailsScreen({
   const students = (management.data?.students || []).filter(
     item => item.routeId === selected.id && item.status === 'ACTIVE',
   );
-  const scheduled = students.filter(
-    student =>
-      isServiceScheduled(
-        student,
-        today,
-        management.data?.settings.operatingDays,
-      ) &&
-      (!shiftId || serviceShift(student) === shiftId),
+  const scheduled = students.filter(student =>
+    isServiceScheduled(student, today, management.data?.settings.operatingDays),
   );
   const isAdmin = session?.user.role === 'ADMIN';
   const onViewMap = () =>
@@ -107,9 +87,6 @@ export function RouteDetailsScreen({
       <RouteScheduleOverview
         route={selected}
         scheduled={scheduled}
-        shifts={shifts}
-        shiftId={shiftId}
-        onShiftChange={setShiftId}
         editable={isAdmin}
         alertSettings={alertSettings}
         onAlertSettingsChange={setAlertSettings}

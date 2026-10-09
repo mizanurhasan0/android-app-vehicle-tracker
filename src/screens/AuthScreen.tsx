@@ -54,8 +54,8 @@ export function AuthScreen({
       const errors: Record<string, string> = {};
       if (!/^01[3-9]\d{8}$/.test(phone.trim()))
         errors.phone = 'Enter a valid 11-digit Bangladesh phone number.';
-      if (password.length < 8)
-        errors.password = 'Your password needs at least 8 characters.';
+      if (!password)
+        errors.password = 'Enter your password.';
       if (register && name.trim().length < 2)
         errors.name = 'Please enter your name.';
       if (Object.keys(errors).length) throw new ValidationError(errors);

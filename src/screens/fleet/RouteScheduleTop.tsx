@@ -14,15 +14,11 @@ import {
   ChevronDown,
   ChevronRight,
   CircleAlert,
-  Info,
   Map,
   MapPin,
-  Settings,
-  Sun,
   UsersRound,
-  Wallet,
 } from 'lucide-react-native';
-import type { Student, TransportShift } from '../../api/management';
+import type { Student } from '../../api/management';
 import type { Route } from '../../api/types';
 import {
   AlertRadiusSettings,
@@ -30,10 +26,8 @@ import {
   RouteAlertSettings,
 } from '../../components/PickupPointEditor';
 import { RouteFareManager } from '../../components/RouteFareManager';
-import { Select } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { money } from '../../utils/format';
-import { serviceShift } from '../../utils/transport';
 
 const ink = '#12243A';
 const green = '#006E52';
@@ -81,9 +75,6 @@ export function RouteScheduleHeader({
 type RouteScheduleOverviewProps = {
   route: Route;
   scheduled: Student[];
-  shifts: TransportShift[];
-  shiftId: string;
-  onShiftChange: (shiftId: string) => void;
   editable: boolean;
   alertSettings: AlertRadiusSettings;
   onAlertSettingsChange: (settings: AlertRadiusSettings) => void;
@@ -92,9 +83,6 @@ type RouteScheduleOverviewProps = {
 export function RouteScheduleOverview({
   route,
   scheduled,
-  shifts,
-  shiftId,
-  onShiftChange,
   editable,
   alertSettings,
   onAlertSettingsChange,
@@ -124,27 +112,7 @@ export function RouteScheduleOverview({
               />
             </View>
             <View style={ui.headingCopy}>
-              <Text style={ui.cardTitle}>{t("Today's passengers")}</Text>
-              <Text style={ui.cardSubtitle}>{t('Transport shift')}</Text>
-            </View>
-          </View>
-          <View style={ui.shiftSelect}>
-            <Sun size={19} color="#F1A50A" />
-            <View style={ui.shiftField}>
-              <Select
-                label={t('Transport shift')}
-                value={shiftId}
-                onChange={onShiftChange}
-                compact
-                hideLabel
-                options={[
-                  { value: '', label: t('All shifts') },
-                  ...shifts.map(shift => ({
-                    value: shift.id,
-                    label: t(shift.name),
-                  })),
-                ]}
-              />
+              <Text style={ui.cardTitle}>{t('Transport Shift')}</Text>
             </View>
           </View>
           {scheduled.length ? (
@@ -162,12 +130,6 @@ export function RouteScheduleOverview({
                         t('End point')}
                     </Text>
                   </View>
-                  <Text style={ui.passengerShift} numberOfLines={1}>
-                    {t(
-                      shifts.find(shift => shift.id === serviceShift(student))
-                        ?.name || serviceShift(student),
-                    )}
-                  </Text>
                 </View>
               ))}
             </View>
@@ -179,47 +141,27 @@ export function RouteScheduleOverview({
         </View>
 
         <View style={[ui.card, ui.topCard]}>
-          <View style={ui.cardHeading}>
-            <View style={ui.iconCircle}>
-              <Wallet size={23} color={green} fill={green} strokeWidth={1.7} />
-            </View>
-            <View style={ui.headingCopy}>
-              <Text style={ui.cardTitle}>{t('Monthly transport fees')}</Text>
-              <Text style={ui.cardSubtitle} numberOfLines={1}>
-                {routeLabel}
-              </Text>
-            </View>
-          </View>
+          <Text style={ui.routeFeeTitle} numberOfLines={2}>
+            {routeLabel}
+          </Text>
           <Text style={ui.feeAmount}>{money(route.monthlyAmount)}</Text>
-          <View style={ui.feeCaption}>
-            <Text style={ui.cardSubtitle}>{t('Default monthly fee')}</Text>
-            <Info size={15} color="#5A9D96" />
-          </View>
-          {!route.fares?.length ? (
-            <Text style={ui.feeExplanation}>
-              {t(
-                'No stop-to-stop fares yet. The default fee applies without an end point.',
-              )}
-            </Text>
-          ) : (
-            <Text style={ui.feeExplanation}>
-              {t('Fee depends on destination')}
-            </Text>
-          )}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: faresOpen }}
-            onPress={() => setFaresOpen(open => !open)}
-            style={({ pressed }) => [ui.feeAction, pressed && ui.pressed]}
-          >
-            <Settings size={18} color={green} />
-            <Text style={ui.feeActionText}>
-              {editable ? t('Manage monthly fees') : t('View monthly fees')}
-            </Text>
-            <ChevronRight size={18} color={green} />
-          </Pressable>
         </View>
       </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: faresOpen }}
+        onPress={() => setFaresOpen(open => !open)}
+        style={({ pressed }) => [ui.feeAction, pressed && ui.pressed]}
+      >
+        <Text style={ui.feeActionText}>
+          {editable ? t('Manage monthly fees') : t('View monthly fees')}
+        </Text>
+        {faresOpen ? (
+          <ChevronDown size={18} color={green} />
+        ) : (
+          <ChevronRight size={18} color={green} />
+        )}
+      </Pressable>
       {faresOpen ? (
         <RouteFareManager route={route} editable={editable} />
       ) : null}
@@ -448,17 +390,6 @@ const ui = StyleSheet.create({
   blueIcon: { backgroundColor: '#E0F7F7' },
   cardTitle: { color: ink, fontSize: 14, lineHeight: 18, fontWeight: '700' },
   cardSubtitle: { color: muted, fontSize: 11, lineHeight: 16 },
-  shiftSelect: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#F6F9F9',
-    borderColor: '#E3EAEB',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingLeft: 6,
-  },
-  shiftField: { flex: 1 },
   passengers: { gap: 6, paddingTop: 1 },
   passengerRow: {
     flexDirection: 'row',
@@ -471,37 +402,30 @@ const ui = StyleSheet.create({
   passengerCopy: { flex: 1, minWidth: 0 },
   passengerName: { color: ink, fontSize: 11, fontWeight: '700' },
   passengerTrip: { color: muted, fontSize: 10, lineHeight: 14 },
-  passengerShift: { color: green, fontSize: 9, maxWidth: 52 },
   emptyPassengers: {
     color: muted,
     fontSize: 11.5,
     lineHeight: 16,
     marginTop: 5,
   },
-  feeAmount: { color: green, fontSize: 23, fontWeight: '800', marginLeft: 44 },
-  feeCaption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginLeft: 44,
+  routeFeeTitle: {
+    color: ink,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
   },
-  feeExplanation: {
-    color: muted,
-    fontSize: 10.5,
-    lineHeight: 14,
-    marginLeft: 44,
-  },
+  feeAmount: { color: green, fontSize: 25, fontWeight: '800', marginTop: 4 },
   feeAction: {
-    minHeight: 35,
+    minHeight: 42,
     borderRadius: 8,
     backgroundColor: '#E2F6EE',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 7,
-    marginTop: 'auto',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
   },
-  feeActionText: { flex: 1, color: green, fontSize: 11, fontWeight: '700' },
+  feeActionText: { color: green, fontSize: 13, fontWeight: '800' },
   stopChips: { gap: 7, paddingTop: 11 },
   stopChip: {
     minHeight: 43,

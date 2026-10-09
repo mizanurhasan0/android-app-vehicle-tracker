@@ -45,6 +45,25 @@ export interface Student {
   /** Present only for a soft-archived canonical student profile. */
   archivedAt?: string | null;
   archivedBy?: string | null;
+  /** Present on the paginated admin student list. */
+  hasAbsent?: boolean;
+  hasLeave?: boolean;
+}
+export type StudentListStatus = 'ALL' | 'ACTIVE' | 'ABSENT' | 'LEAVE' | 'ARCHIVED';
+export interface StudentListQuery {
+  page: number;
+  pageSize: number;
+  status: StudentListStatus;
+  search?: string;
+  vehicleId?: string;
+}
+export interface StudentListResponse {
+  items: Student[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  counts: { all: number; active: number; absent: number; leave: number; archived: number };
 }
 export interface StudentInput {
   studentId?: string;

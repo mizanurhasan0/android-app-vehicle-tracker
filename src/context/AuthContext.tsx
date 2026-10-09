@@ -7,12 +7,21 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import { api, ApiError, normalizeServerUrl } from '../api/client';
 import { Session, User } from '../api/types';
 import { DEFAULT_SERVER_URL, restoredServerUrl } from '../api/server';
 const credentialOptions = { service: 'transport.session' };
+const DEV_SERVER_MIGRATION_KEY = 'transport.server.dev-local-v1';
+
+function localDevelopmentServerUrl(): string {
+  return Platform.OS === 'android'
+    ? 'http://10.0.2.2:3000'
+    : 'http://127.0.0.1:3000';
+}
+
 interface AuthValue {
   session: Session | null;
   ready: boolean;
@@ -38,7 +47,18 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
       try {
         const savedUrl = await AsyncStorage.getItem('transport.server');
         const migrated = await AsyncStorage.getItem('transport.server.vps-v1');
-        const url = restoredServerUrl(savedUrl, migrated === '1');
+        let url = restoredServerUrl(savedUrl, migrated === '1');
+        if (__DEV__) {
+          const devServerMigrated = await AsyncStorage.getItem(
+            DEV_SERVER_MIGRATION_KEY,
+          );
+          // Earlier debug builds defaulted to the VPS. Move that default to the
+          // local API once, while preserving a server the developer selected.
+          if (devServerMigrated !== '1' && url === DEFAULT_SERVER_URL) {
+            url = localDevelopmentServerUrl();
+          }
+          await AsyncStorage.setItem(DEV_SERVER_MIGRATION_KEY, '1');
+        }
         if (!savedUrl || url !== new URL(savedUrl.trim()).origin) {
           // Never send a session belonging to the old server to the new server.
           await Keychain.resetGenericPassword(credentialOptions);
@@ -149,6 +169,8 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
     async (url: string) => {
       const normalized = normalizeServerUrl(url);
       await AsyncStorage.setItem('transport.server', normalized);
+      if (__DEV__)
+        await AsyncStorage.setItem(DEV_SERVER_MIGRATION_KEY, '1');
       await expire();
       setBaseUrl(normalized);
     },

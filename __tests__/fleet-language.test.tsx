@@ -286,7 +286,6 @@ it('retains the selected route period and edits, retranslates validation, and sa
   await render(
     <RouteDetailsScreen navigation={navigation} route={routeRoute} />,
   );
-  expect(select('Transport shift').props.value).toBe('MORNING');
   await press('Return schedule', 'tab');
   expect(textValues()).toContain('14:30');
   await press('Edit schedule');

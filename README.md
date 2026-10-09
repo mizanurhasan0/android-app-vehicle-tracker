@@ -23,14 +23,18 @@ Sign in separately in the debug app. The `android` script includes the matching
 launch suffix; when running the React Native CLI directly, use
 `npx react-native run-android --appIdSuffix debug`.
 
-Both debug and release apps default to the deployed API at
-`http://147.79.71.98:3000`; live Socket.IO uses port 3001. No local backend is
-needed. On the first upgrade, saved loopback/emulator defaults move to this VPS
-and the old server session is cleared. Other custom server settings are retained.
+Release apps default to the deployed API at `http://147.79.71.98:3000`; live
+Socket.IO uses port 3001. Debug builds use the local API: Android emulator
+`http://10.0.2.2:3000`, iOS simulator `http://127.0.0.1:3000`. Existing debug
+installs that still have the old VPS default are moved to the local API once and
+their old server session is cleared. A deliberately selected custom server is
+retained.
 
-For local development, open **School server settings** and select
-`http://10.0.2.2:3000` (emulator), a LAN origin, or use `adb reverse tcp:3000 tcp:3000`
-with `http://127.0.0.1:3000`. Reverse port 3001 too for live locations.
+For a physical Android device, open **School server settings** and enter the
+computer's LAN address, such as `http://192.168.1.20:3000`; bind the local API to
+`0.0.0.0` and allow ports 3000/3001 through the computer firewall. Alternatively,
+use `adb reverse tcp:3000 tcp:3000` with `http://127.0.0.1:3000` and reverse port
+3001 too for live locations.
 Release Android permits HTTP only to the deployed VPS host; other custom release
 origins must use HTTPS. HTTPS deployments proxy `/socket.io/` on the same origin.
 This VPS currently uses HTTP, so traffic is not encrypted. When HTTPS is deployed,
