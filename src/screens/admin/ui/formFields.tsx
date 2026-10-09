@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TextInput, TextInputProps, View } from 'react-native';
+import { Platform, Text, TextInput, TextInputProps, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { NoorIcon } from '../../../components/Noor';
 import { translateMessage, useTranslation } from '../../../i18n';
@@ -103,13 +103,31 @@ export function Choice({
   error?: string;
 }) {
   const { t } = useTranslation();
+  const selectedLabel =
+    options.find(option => option.value === value)?.label ||
+    t('Select an option');
   return (
     <View style={s.field}>
-      <View style={s.fieldLabelRow}>
+      {labelAction ? (
+        <View style={s.fieldLabelRow}>
+          <Text style={s.label}>{t(label)}</Text>
+          {labelAction}
+        </View>
+      ) : (
         <Text style={s.label}>{t(label)}</Text>
-        {labelAction}
-      </View>
+      )}
       <View style={[s.select, !!error && s.invalid]}>
+        {Platform.OS === 'android' ? (
+          <View
+            pointerEvents="none"
+            importantForAccessibility="no-hide-descendants"
+            style={s.pickerSelectedLabel}
+          >
+            <Text numberOfLines={1} style={s.pickerSelectedText}>
+              {selectedLabel}
+            </Text>
+          </View>
+        ) : null}
         <Picker
           accessibilityHint={error ? translateMessage(error) : undefined}
           aria-invalid={!!error}

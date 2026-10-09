@@ -383,7 +383,21 @@ export function StudentForm({
               <Choice
                 label={t('Blood group')}
                 value={form.bloodGroup}
-                options={['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(value => ({ value, label: value || t('Not specified') }))}
+                optional={false}
+                options={[
+                  '',
+                  'A+',
+                  'A-',
+                  'B+',
+                  'B-',
+                  'AB+',
+                  'AB-',
+                  'O+',
+                  'O-',
+                ].map(value => ({
+                  value,
+                  label: value || t('Not specified'),
+                }))}
                 onChange={v => set('bloodGroup', v)}
               />
             </View>
