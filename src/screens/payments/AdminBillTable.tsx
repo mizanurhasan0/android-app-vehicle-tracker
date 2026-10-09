@@ -1,12 +1,23 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
 import { Bill, Payment } from '../../api/types';
 import { TransportShift } from '../../api/management';
-import { Button } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme';
 import { paymentShiftLabel } from '../../utils/paymentShift';
-import { dateLabel, money, readable } from '../../utils/format';
+import { dateLabel, money } from '../../utils/format';
+
+function studentInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(word => Array.from(word)[0] || '')
+    .join('')
+    .toLocaleUpperCase();
+}
+
 export function AdminBillTable({
   bills,
   pending,
@@ -19,140 +30,160 @@ export function AdminBillTable({
   onOpenPayment: (bill: Bill) => void;
 }) {
   const { t } = useTranslation();
+  const pendingBillIds = new Set(pending.map(payment => payment.billId));
+
   return (
-    <View style={desk.table}>
-      <View style={[desk.billRow, desk.tableHead]}>
-        <Text style={[desk.columnName, desk.columnLabel]}>{t('Name')}</Text>
-        <Text style={[desk.columnMonth, desk.columnLabel]}>{t('Month')}</Text>
-        <Text style={[desk.columnAmount, desk.columnLabel]}>{t('Amount')}</Text>
-        <Text style={[desk.columnStatus, desk.columnLabel]}>{t('Status')}</Text>
-      </View>
-      {bills.map(bill => (
-        <View key={bill.id} style={desk.tableItem}>
-          {(() => {
-            const settled = ['PAID', 'WAIVED'].includes(bill.status);
-            const pendingSubmissionId =
-              bill.pendingSubmissionId ||
-              pending.find(payment => payment.billId === bill.id)?.id;
-            const row = (
-              <View style={desk.billRow}>
-                <View style={desk.columnName}>
-                  <Text style={desk.studentName}>{bill.studentName}</Text>
-                  {bill.shiftId ? (
-                    <Text style={desk.guardianName}>
-                      {paymentShiftLabel(bill, shifts)}
-                    </Text>
-                  ) : null}
-                  <Text style={desk.guardianName}>{bill.guardianName}</Text>
-                </View>
-                <Text style={[desk.columnMonth, desk.tableText]}>
-                  {bill.month}
+    <View style={billStyles.list}>
+      {bills.map(bill => {
+        const hasPending =
+          !!bill.pendingSubmissionId || pendingBillIds.has(bill.id);
+        const status = hasPending
+          ? t('Pending')
+          : bill.status === 'PAID'
+          ? t('Paid')
+          : bill.status === 'WAIVED'
+          ? t('Waived')
+          : t('Due');
+        const settled = bill.status === 'PAID' || bill.status === 'WAIVED';
+        const cardContent = (
+          <View style={billStyles.main}>
+            <View style={billStyles.avatar}>
+              <Text style={billStyles.avatarText}>
+                {studentInitials(bill.studentName)}
+              </Text>
+            </View>
+            <View style={billStyles.details}>
+              <Text style={billStyles.studentName} numberOfLines={1}>
+                {bill.studentName}
+              </Text>
+              <Text style={billStyles.secondary} numberOfLines={1}>
+                {bill.guardianName}
+              </Text>
+              {bill.shiftId ? (
+                <Text style={billStyles.secondary} numberOfLines={1}>
+                  {paymentShiftLabel(bill, shifts)}
                 </Text>
-                <Text style={[desk.columnAmount, desk.tableAmount]}>
-                  {money(bill.amount)}
+              ) : null}
+            </View>
+            <View style={billStyles.figures}>
+              <Text style={billStyles.month}>{bill.month}</Text>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={billStyles.amount}
+              >
+                {money(bill.amount)}
+              </Text>
+              <View
+                style={[
+                  billStyles.statusPill,
+                  hasPending
+                    ? billStyles.pendingPill
+                    : settled
+                    ? billStyles.paidPill
+                    : billStyles.duePill,
+                ]}
+              >
+                <Text
+                  style={[
+                    billStyles.statusText,
+                    hasPending
+                      ? billStyles.pendingText
+                      : settled
+                      ? billStyles.paidText
+                      : billStyles.dueText,
+                  ]}
+                >
+                  {status}
                 </Text>
-                <View style={desk.columnStatus}>
-                  <Text
-                    accessibilityLabel={readable(
-                      pendingSubmissionId ? 'PENDING' : bill.status,
-                    )}
-                    style={[desk.billStatus, !settled && desk.billStatusDue]}
-                  >
-                    {settled ? '✓' : pendingSubmissionId ? '◷' : '!'}
-                  </Text>
-                </View>
               </View>
-            );
-            return pendingSubmissionId ? (
+            </View>
+            {hasPending ? (
+              <ChevronRight size={18} color={colors.muted} />
+            ) : null}
+          </View>
+        );
+
+        return (
+          <View key={bill.id} style={billStyles.card}>
+            {hasPending ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${t('Review payment')} · ${
                   bill.studentName
                 }`}
                 onPress={() => onOpenPayment(bill)}
-                style={({ pressed }) => [
-                  desk.pendingRow,
-                  pressed && desk.pressed,
-                ]}
+                style={({ pressed }) => pressed && billStyles.pressed}
               >
-                {row}
+                {cardContent}
               </Pressable>
             ) : (
-              row
-            );
-          })()}
-          {bill.paidAt ? (
-            <Text style={desk.paidDate}>
-              {t('Paid on ')}
-              {dateLabel(bill.paidAt)}
-            </Text>
-          ) : null}
-          {bill.pendingSubmissionId ? (
-            <Button
-              secondary
-              title={t('Review payment')}
-              onPress={() => onOpenPayment(bill)}
-            />
-          ) : null}
-        </View>
-      ))}
+              cardContent
+            )}
+            {bill.paidAt ? (
+              <Text style={billStyles.paidDate}>
+                {t('Paid on ')}
+                {dateLabel(bill.paidAt)}
+              </Text>
+            ) : null}
+          </View>
+        );
+      })}
     </View>
   );
 }
 
-const desk = StyleSheet.create({
-  table: {
-    borderWidth: 1,
+const billStyles = StyleSheet.create({
+  list: { gap: 9 },
+  card: {
+    backgroundColor: colors.surface,
     borderColor: colors.line,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderRadius: 16,
     overflow: 'hidden',
   },
-  tableHead: { backgroundColor: '#EEF8F3' },
-  tableItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    paddingBottom: 2,
-  },
-  pendingRow: { alignSelf: 'stretch' },
-  billRow: {
+  main: {
+    minHeight: 86,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
+    gap: 10,
   },
-  columnName: { flex: 1.6 },
-  columnMonth: { flex: 0.95 },
-  columnAmount: { flex: 1.1 },
-  columnStatus: { flex: 0.6, alignItems: 'center', textAlign: 'center' },
-  columnLabel: { color: colors.ink, fontSize: 12, fontWeight: '700' },
-  studentName: {
-    color: colors.ink,
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 18,
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.mint,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  guardianName: { color: colors.muted, fontSize: 10, lineHeight: 16 },
-  tableText: { color: colors.muted, fontSize: 11 },
-  tableAmount: { color: colors.primary, fontSize: 13, fontWeight: '700' },
-  billStatus: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    backgroundColor: '#DDF3E6',
-    color: colors.primary,
-    fontSize: 15,
-    fontWeight: '800',
+  avatarText: { color: colors.primary, fontSize: 13, fontWeight: '800' },
+  details: { flex: 1, minWidth: 0, gap: 3 },
+  studentName: { color: colors.ink, fontSize: 13, fontWeight: '700' },
+  secondary: { color: colors.muted, fontSize: 11 },
+  figures: { width: 77, alignItems: 'flex-start', gap: 3 },
+  month: { color: colors.muted, fontSize: 10 },
+  amount: { color: colors.primary, fontSize: 15, fontWeight: '800' },
+  statusPill: {
+    minWidth: 57,
+    borderRadius: 20,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    alignItems: 'center',
   },
-  billStatusDue: { backgroundColor: '#FFF1D8', color: '#B7801D' },
+  paidPill: { backgroundColor: '#DEF5E8' },
+  duePill: { backgroundColor: '#FCE6E8' },
+  pendingPill: { backgroundColor: '#FFF2D8' },
+  statusText: { fontSize: 10, fontWeight: '700' },
+  paidText: { color: colors.primary },
+  dueText: { color: colors.danger },
+  pendingText: { color: colors.amber },
   paidDate: {
     color: colors.muted,
     fontSize: 10,
-    paddingHorizontal: 10,
-    paddingBottom: 7,
+    paddingHorizontal: 62,
+    paddingBottom: 9,
   },
-  pressed: { opacity: 0.7 },
+  pressed: { opacity: 0.72 },
 });

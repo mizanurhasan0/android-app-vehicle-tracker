@@ -23,6 +23,8 @@ export function Select({
   error,
   compact = false,
   hideLabel = false,
+  filterCard = false,
+  leadingIcon,
 }: {
   label: string;
   value: string;
@@ -32,6 +34,8 @@ export function Select({
   error?: string;
   compact?: boolean;
   hideLabel?: boolean;
+  filterCard?: boolean;
+  leadingIcon?: React.ReactNode;
 }) {
   const { t } = useTranslation();
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -53,12 +57,25 @@ export function Select({
           onPress={() => setOptionsOpen(true)}
           style={({ pressed }) => [
             ui.compactSelect,
+            filterCard && ui.filterSelect,
             !!error && ui.invalid,
             disabled && ui.disabled,
             pressed && ui.pressed,
           ]}
         >
-          <Text style={ui.compactValue}>{selectedLabel}</Text>
+          {filterCard ? (
+            <>
+              <View style={ui.filterIcon}>{leadingIcon}</View>
+              <View style={ui.filterCopy}>
+                <Text style={ui.filterLabel}>{label}</Text>
+                <Text numberOfLines={1} style={ui.filterValue}>
+                  {selectedLabel}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <Text style={ui.compactValue}>{selectedLabel}</Text>
+          )}
           <View style={ui.selectChevron}>
             <Icon name="chevron" size={16} color={colors.muted} />
           </View>
@@ -174,6 +191,24 @@ const ui = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: colors.surface,
   },
+  filterSelect: {
+    minHeight: 68,
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  filterIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: colors.mint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCopy: { flex: 1, minWidth: 0, gap: 2 },
+  filterLabel: { color: colors.muted, fontSize: 11, fontWeight: '600' },
+  filterValue: { color: colors.ink, fontSize: 13, fontWeight: '700' },
   compactValue: { flex: 1, fontSize: 13, color: colors.ink, fontWeight: '500' },
   selectChevron: { transform: [{ rotate: '90deg' }] },
   selectOverlay: {

@@ -26,7 +26,10 @@ function Choice({
         pressed && desk.pressed,
       ]}
     >
-      <Text style={[desk.choiceText, selected && desk.choiceTextSelected]}>
+      <Text
+        numberOfLines={2}
+        style={[desk.choiceText, selected && desk.choiceTextSelected]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -68,22 +71,30 @@ export function AdminPaymentTabs({
 }
 
 const desk = StyleSheet.create({
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
+  choices: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
   choice: {
-    minHeight: 44,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
+    flex: 1,
+    minHeight: 48,
+    paddingHorizontal: 3,
+    paddingVertical: 8,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   choiceSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    borderBottomColor: colors.primary,
   },
-  choiceText: { color: colors.ink, fontSize: 14, fontWeight: '600' },
-  choiceTextSelected: { color: colors.surface },
+  choiceText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  choiceTextSelected: { color: colors.primary, fontWeight: '700' },
   pressed: { opacity: 0.7 },
 });

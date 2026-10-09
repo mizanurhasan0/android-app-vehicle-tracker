@@ -7,10 +7,14 @@ import { useAction } from '../../hooks/useAction';
 import { useTranslation } from '../../i18n';
 import { styles } from '../../theme';
 import { currentMonth } from '../../utils/format';
-export function BillGenerator() {
+export function BillGenerator({
+  initialMonth = currentMonth(),
+}: {
+  initialMonth?: string;
+} = {}) {
   const { t } = useTranslation();
   const { mutate } = useDataActions();
-  const [month, setMonth] = useState(currentMonth());
+  const [month, setMonth] = useState(initialMonth);
   const action = useAction();
   return (
     <Card tinted>
